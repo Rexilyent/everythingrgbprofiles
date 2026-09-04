@@ -1,0 +1,32 @@
+# Cache and build files
+bin/
+
+# Source Backups
+*.zip
+
+# Gradle
+.gradle/
+build/
+out/
+src/generated/
+
+# NeoForge MDK cache
+run/
+
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code (keep settings.json since it has our JDK config)
+.vscode/*
+.vscode/settings.json
+
+# Local dev config — never commit this
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
