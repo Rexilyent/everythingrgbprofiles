@@ -95,7 +95,12 @@ runs {
         systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
     }
 
-    data {
+    // NeoForge 21.4 split the old 'data' run into 'clientData' and
+    // 'serverData', and a run naming a type the version does not define fails
+    // the build while it is still being configured — before any of the mod's
+    // own code is compiled. This mod generates no data at all; the run is kept
+    // only to stay in step with the template it came from.
+    clientData {
         // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
         // workingDirectory project.file('run-data')
 
