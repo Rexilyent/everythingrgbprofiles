@@ -143,20 +143,21 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
 
-    // JNA core only (no jna-platform) — used exclusively by the client-side
-    // CUE SDK bridge. Never touched on dedicated servers or non-Windows OSes;
-    // see StartupGate.
+    // No JNA dependency here, on purpose. The hardware backends need JNA, and
+    // Minecraft 1.21.1 already ships it (jna 5.14.0) as one of its own
+    // libraries, so it arrives through the neoforge dependency above for
+    // compiling and running alike, and is present in every player's game.
     //
-    // jarJar, not implementation: `implementation` compiles against JNA but
-    // does NOT ship it, so the class is absent at runtime in a real modpack.
-    // jarJar embeds it and lets NeoForge dedupe against any other mod in the
-    // pack that also carries JNA — which matters at ~600 mods.
-    jarJar(implementation("net.java.dev.jna:jna")) {
-        version {
-            strictly "[5.14.0,6.0)"
-            prefer "${jna_version}"
-        }
-    }
+    // An earlier version bundled its own copy with jarJar, on the belief that
+    // JNA would otherwise be missing in a real modpack. It was not: the mod
+    // drove iCUE from a pack whose mods folder held no JNA and whose mod jar
+    // contained none. The bundle only put a second copy of a library the game
+    // already loads into the -all jar.
+    //
+    // Declaring nothing, rather than compileOnly, is what makes a port safe.
+    // If a future Minecraft stops shipping JNA, the backends stop compiling,
+    // instead of the mod building cleanly and then lacking JNA in game. Bundle
+    // it again only then.
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
