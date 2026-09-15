@@ -111,8 +111,10 @@ public final class SculkBlockWatcher {
         int maxChunkX = SectionPos.blockToSectionCoord(center.getX() + radius);
         int minChunkZ = SectionPos.blockToSectionCoord(center.getZ() - radius);
         int maxChunkZ = SectionPos.blockToSectionCoord(center.getZ() + radius);
-        int minY = Math.max(level.getMinBuildHeight(), center.getY() - radius);
-        int maxY = Math.min(level.getMaxBuildHeight() - 1, center.getY() + radius);
+        // getMaxY is the top block itself. The 1.21.1 getMaxBuildHeight it
+        // replaced was one past it, which is why the older code subtracted one.
+        int minY = Math.max(level.getMinY(), center.getY() - radius);
+        int maxY = Math.min(level.getMaxY(), center.getY() + radius);
         if (minY > maxY) return;
         long radiusSq = (long) radius * radius;
 

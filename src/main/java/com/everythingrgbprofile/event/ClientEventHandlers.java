@@ -1821,7 +1821,7 @@ public final class ClientEventHandlers {
     @SubscribeEvent
     public static void onRaidHorn(PlaySoundEvent event) {
         if (event.getOriginalSound() == null) return;
-        if (!SoundEvents.RAID_HORN.value().getLocation().equals(event.getOriginalSound().getLocation())) return;
+        if (!SoundEvents.RAID_HORN.value().location().equals(event.getOriginalSound().getLocation())) return;
         if (!Feature.RAID_WARNING.isOn()) return;
         EffectRegistry effects = SdkWorkerThread.effects();
         if (effects == null) return;
