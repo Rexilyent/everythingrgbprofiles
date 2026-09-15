@@ -923,7 +923,7 @@ public final class RGBProfileConfig {
                         "              vanilla otherwise.",
                         "Pack maintainers: set this outright in defaultconfigs/ rather than relying on",
                         "auto. Detection is a convenience and cannot see inside every launcher.")
-                .define("style", "auto");
+                .define("style", "vanilla");
         MENU_PACK_PATTERNS = b.comment(
                         "Comma-separated. Under 'auto', the mineshaft theme is used when the detected "
                                 + "pack name contains any of these. Matched as a case-insensitive "
