@@ -50,7 +50,10 @@ public final class SculkServerRelay {
         double radius = RGBProfileConfig.SCULK_DETECTION_RADIUS.get();
 
         SculkPingPayload payload = new SculkPingPayload(activationPos, isShrieker);
-        for (ServerPlayer player : relativeTo.serverLevel().players()) {
+        // level() rather than the serverLevel() this used to call: since 1.21.8
+        // ServerPlayer narrows level()'s return type to ServerLevel, and the
+        // separate accessor is gone.
+        for (ServerPlayer player : relativeTo.level().players()) {
             // +0.5 on each axis to measure from the block's centre rather than
             // its corner. Pedantic, costs nothing, avoids an off-by-half-a-block
             // at the radius boundary.
