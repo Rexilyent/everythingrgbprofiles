@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "EXAMPLE ONLY - copy this to config/everythingrgbprofiles/layouts/ and edit.",
+    "Files in that folder describe a board this mod has no geometry for.",
+    "",
+    "match  : glob against the device name your backend reported.",
+    "keys   : the backend's own LED names -> [x, y].",
+    "",
+    "Units are arbitrary; only proportions matter, because each device is",
+    "normalised to 0..1 on load. Two rules that DO matter:",
+    "  x increases to the RIGHT",
+    "  y increases DOWNWARD  (get this backwards and rain falls upward)",
+    "",
+    "To find the LED names: set debug.enabled = true in the mod config and",
+    "look in latest.log at startup. Every LED is listed with its exact name.",
+    "",
+    "A partial layout is fine. Keys you leave out keep whatever position the",
+    "backend guessed, so you can describe the main block and ignore the rest."
+  ],
+  "match": "Example TKL*",
+  "keys": {
+    "Key: Escape": [0, 0],
+    "Key: F1": [2, 0],
+    "Key: F2": [3, 0],
+    "Key: F3": [4, 0],
+    "Key: F4": [5, 0],
+
+    "Key: `": [0, 1.5],
+    "Key: 1": [1, 1.5],
+    "Key: 2": [2, 1.5],
+    "Key: 3": [3, 1.5],
+
+    "Key: Tab": [0, 2.5],
+    "Key: Q": [1.5, 2.5],
+    "Key: W": [2.5, 2.5],
+    "Key: E": [3.5, 2.5],
+
+    "Key: A": [1.75, 3.5],
+    "Key: S": [2.75, 3.5],
+    "Key: D": [3.75, 3.5],
+
+    "Key: Space": [4, 5.5]
+  }
+}

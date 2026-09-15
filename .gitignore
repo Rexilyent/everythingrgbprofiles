@@ -19,7 +19,7 @@ run/
 *.ipr
 *.iws
 
-# VS Code (keep settings.json since it has our JDK config)
+# VS Code
 .vscode/*
 .vscode/settings.json
 
@@ -30,3 +30,16 @@ local.properties
 .DS_Store
 Thumbs.db
 
+# Logs
+logs/
+logs - base neoforge/
+
+# Only needed for tuning tools' classpath. File is downloadable anyways
+jna-5.14.0.jar
+
+# Tuning tools
+tuning/
+
+# References, documentation, and other auxiliary files
+reference/
+images/

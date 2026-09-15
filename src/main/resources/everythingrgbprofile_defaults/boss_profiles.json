@@ -1,0 +1,38 @@
+{
+  "minecraft:ender_dragon": {
+    "color": "#7F00FF",
+    "pattern": "pulse-slow",
+    "enrageColor": "#FF0033",
+    "enrageThresholdPercent": 20
+  },
+  "minecraft:wither": {
+    "color": "#2B2B2B",
+    "pattern": "pulse-medium",
+    "enrageColor": "#3D0000",
+    "enrageThresholdPercent": 33
+  },
+  "minecraft:elder_guardian": {
+    "color": "#3FA0A8",
+    "pattern": "pulse-slow"
+  },
+  "legendary_monsters:*": {
+    "color": "#FF8800",
+    "pattern": "pulse-medium"
+  },
+
+  "legendary_monsters:the_obliterator": {
+    "color": "#3E7A6B",
+    "enrageColor": "#00FF00",
+    "enrageThresholdPercent": 33
+  },
+  "legendary_monsters:cloud_golem": {
+    "color": "#B3E1F5",
+    "enrageColor": "#F7F674",
+    "enrageThresholdPercent": 40
+  },
+  "legendary_monsters:posessed_paladin": {
+    "color": "#3FE3ED",
+    "enrageColor": "#FF2424",
+    "enrageThresholdPercent": 50
+  }
+}

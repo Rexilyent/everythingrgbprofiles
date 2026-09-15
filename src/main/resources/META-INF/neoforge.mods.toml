@@ -1,0 +1,66 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+issueTrackerURL = "https://github.com/example/rgbprofile/issues"
+
+[[accessTransformers]]
+file="META-INF/accesstransformer.cfg"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+description = '''${mod_description}
+
+This mod is client-first: every feature that can be driven from client-only
+signals is, and it works on servers that do not have it installed. It carries
+one small optional server-side component (a sculk sensor/shrieker relay) that
+is currently inert, because sculk detection turned out to work from the client
+alone. On a dedicated server, or with no lighting software available, every
+part of the mod that touches lighting hardware is a complete no-op. See
+StartupGate.java for the exact gating order.
+'''
+
+# The lighting/SDK side of this mod is strictly client-only, but the mod as a
+# whole is not client-side-only: a dedicated server may optionally load it to
+# power the optional sculk relay, so there is no blanket clientSideOnly flag
+# (which would prevent server-side loading entirely).
+#
+# What lets a player with this mod join a server without it, vanilla or
+# NeoForge, is its one network payload being registered as optional; see
+# NetworkHandler. A required payload would make NeoForge refuse the connection.
+#
+# This uses the `[[dependencies]]` `type = "optional"` mechanism from the
+# 1.21.x NeoForge generation, and loads correctly on NeoForge for 1.21.1. If a
+# later NeoForge changes how "optional on both sides" is declared, this is the
+# block to update.
+
+[[dependencies.${mod_id}]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "${neo_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.${mod_id}]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+# Soft/optional compat — never causes a load failure if absent.
+[[dependencies.${mod_id}]]
+    modId = "toughasnails"
+    type = "optional"
+    versionRange = "[0,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
+[[dependencies.${mod_id}]]
+    modId = "legendary_monsters"
+    type = "optional"
+    versionRange = "[0,)"
+    ordering = "AFTER"
+    side = "BOTH"

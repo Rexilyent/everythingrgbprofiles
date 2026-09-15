@@ -13,7 +13,24 @@ tasks.named('wrapper', Wrapper).configure {
     distributionType = Wrapper.DistributionType.BIN
 }
 
-version = mod_version
+// Load local developer overrides (gitignored)
+def localProps = new Properties()
+def localPropsFile = rootProject.file('local.properties')
+if (localPropsFile.exists()) {
+    localPropsFile.withInputStream { localProps.load(it) }
+}
+
+// Release or development build. Features still in development are compiled
+// in but hard off unless this is true; see config/Feature.java for the list.
+// Off unless asked for, so a build from a clean checkout is always a release:
+//   -Pexperimental_features=true          for one build
+//   experimental_features=true            in local.properties, for every build
+// A development build carries "-experimental" in its version, which lands in
+// the jar's file name and the in-game mod list, so it cannot pass for a release.
+def experimentalFeatures = (project.findProperty('experimental_features')
+        ?: localProps.getProperty('experimental_features', 'false')).toString().trim().toBoolean()
+
+version = experimentalFeatures ? "${mod_version}-experimental" : mod_version
 group = mod_group_id
 
 sourceSets.main.resources {
@@ -26,7 +43,7 @@ sourceSets.main.resources {
 }
 
 repositories {
-    // Add here additional repositories if required by some of the dependencies below.
+    mavenCentral()
 }
 
 base {
@@ -36,7 +53,7 @@ base {
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-//minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
+minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 //minecraft.accessTransformers.entry public net.minecraft.client.Minecraft textureManager # textureManager
 
 // Default run configurations.
@@ -125,6 +142,21 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+    // JNA core only (no jna-platform) — used exclusively by the client-side
+    // CUE SDK bridge. Never touched on dedicated servers or non-Windows OSes;
+    // see StartupGate.
+    //
+    // jarJar, not implementation: `implementation` compiles against JNA but
+    // does NOT ship it, so the class is absent at runtime in a real modpack.
+    // jarJar embeds it and lets NeoForge dedupe against any other mod in the
+    // pack that also carries JNA — which matters at ~600 mods.
+    jarJar(implementation("net.java.dev.jna:jna")) {
+        version {
+            strictly "[5.14.0,6.0)"
+            prefer "${jna_version}"
+        }
+    }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -141,13 +173,14 @@ tasks.withType(ProcessResources).configureEach {
             mod_id                 : mod_id,
             mod_name               : mod_name,
             mod_license            : mod_license,
-            mod_version            : mod_version,
+            mod_version            : project.version,
 						mod_authors            : mod_authors,
 						mod_description        : mod_description,
+            experimental_features  : experimentalFeatures,
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/neoforge.mods.toml']) {
+    filesMatching(['META-INF/neoforge.mods.toml', 'everythingrgbprofiles/build.properties']) {
         expand replaceProperties
     }
 }
@@ -178,13 +211,6 @@ idea {
     }
 }
 
-// Load local developer overrides (gitignored)
-def localProps = new Properties()
-def localPropsFile = rootProject.file('local.properties')
-if (localPropsFile.exists()) {
-    localPropsFile.withInputStream { localProps.load(it) }
-}
-
 // Copies the built jar into your modpack mods folder
 tasks.register('copyToModpack', Copy) {
     group = 'modpack'
@@ -193,13 +219,55 @@ tasks.register('copyToModpack', Copy) {
 
     def destDir = localProps.getProperty('modpack_mods_dir')
     if (destDir) {
+        // Named for the version, but never for the kind of build. The Modrinth
+        // App tracks every file in an instance by name, and treats a tracked
+        // file disappearing as damage: an earlier version copied the jar under
+        // its full build name, so switching to an experimental build replaced
+        // everythingrgbprofiles-0.0.1.jar with ...-0.0.1-experimental.jar and
+        // the App reported the instance as needing repair. Replacing a file
+        // under a name it already knows is just an update, so the name here
+        // only changes when the version does. The experimental stamp is still
+        // on the jar in build/libs and in the in-game mod list.
         from(tasks.jar.archiveFile)
         into(destDir)
+        rename { "${mod_id}-${mod_version}.jar" }
         doFirst {
-            fileTree(destDir).matching { include 'everythingores-*.jar' }.each { it.delete() }
+            // Deleted rather than overwritten. The App keeps its own copy of
+            // each file it tracks and links the one in the mods folder to it,
+            // so writing into the existing file would change the App's copy
+            // too and leave it disagreeing with its own record of the file.
+            // Also clears the versioned names earlier builds were copied as.
+            fileTree(destDir).matching { include "${mod_id}*.jar" }.each { it.delete() }
         }
-        doLast { logger.lifecycle("Copied to: ${destDir}") }
+        doLast { logger.lifecycle("Copied to: ${destDir}/${mod_id}-${mod_version}.jar") }
     } else {
         doFirst { logger.warn("modpack_mods_dir not set in local.properties — skipping copy.") }
+    }
+}
+// --- Dev tooling -----------------------------------------------------------
+// Runs a tuning harness with the mod's real runtime classpath. Needed because
+// anything touching RGBProfileMod pulls NeoForge in during class verification,
+// which a hand-rolled classpath cannot satisfy.
+tasks.register('openRgbProbe', JavaExec) {
+    group = 'verification'
+    description = 'Reads geometry from a running OpenRGB SDK server. Writes no colours.'
+    dependsOn tasks.named('compileJava')
+    classpath = sourceSets.main.runtimeClasspath + files('tuning')
+    mainClass = 'OpenRgbProbe'
+    if (project.hasProperty('orgbArgs')) {
+        args project.property('orgbArgs').split(' ')
+    }
+}
+
+// Tries the Razer, Logitech and SteelSeries backends against whatever vendor
+// software is installed. Add -PprobeArgs=--send to also push a test frame.
+tasks.register('vendorProbe', JavaExec) {
+    group = 'verification'
+    description = 'Opens a session with each grid-vendor backend and reports what answered.'
+    dependsOn tasks.named('compileJava')
+    classpath = sourceSets.main.runtimeClasspath + files('tuning')
+    mainClass = 'VendorProbe'
+    if (project.hasProperty('probeArgs')) {
+        args project.property('probeArgs').split(' ')
     }
 }

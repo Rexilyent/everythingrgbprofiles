@@ -1,0 +1,107 @@
+{
+  "minecraft:the_nether": {
+    "color": "#B22222",
+    "accentColor": "#FFD24D",
+    "spiralArmCount": 1,
+    "arrivalFlashStyle": "sharp",
+    "gradient": [
+      "#FD0500",
+      "#FB3F00",
+      "#FE8200",
+      "#FEA200"
+    ],
+    "pillarDcLevel": 0.474,
+    "pillarAmplitude": 0.512,
+    "falloffPower": 1.95
+  },
+  "minecraft:the_end": {
+    "color": "#8A7FBF",
+    "accentColor": "#F5F0FF",
+    "spiralArmCount": 1,
+    "arrivalFlashStyle": "bloom",
+    "gradient": [
+      "#3948F9",
+      "#7F88F8",
+      "#D3D7FE",
+      "#F9FAFE"
+    ],
+    "pillarDcLevel": 0.68,
+    "pillarAmplitude": 0.311,
+    "falloffPower": 1.75
+  },
+  "aether:the_aether": {
+    "color": "#8FD8FF",
+    "accentColor": "#FFFFFF",
+    "spiralArmCount": 1,
+    "arrivalFlashStyle": "bloom",
+    "gradient": [
+      "#3FA8FF",
+      "#8FD8FF",
+      "#D6F1FF",
+      "#FFFFFF"
+    ],
+    "pillarDcLevel": 0.7,
+    "pillarAmplitude": 0.29,
+    "radialWavelengthKeys": 5.6
+  },
+  "twilightforest:twilight_forest": {
+    "color": "#4A3B7A",
+    "accentColor": "#9B8FE0",
+    "spiralArmCount": 2,
+    "arrivalFlashStyle": "bloom",
+    "gradient": [
+      "#690750",
+      "#9E3A7E",
+      "#DE71B4",
+      "#F98BCC"
+    ],
+    "pillarDcLevel": 0.64,
+    "pillarAmplitude": 0.34,
+    "radialWavelengthKeys": 6.2
+  },
+  "tropicraft:tropicraft": {
+    "color": "#1FA8C9",
+    "accentColor": "#FFFFFF",
+    "spiralArmCount": 1,
+    "arrivalFlashStyle": "sharp",
+    "gradient": [
+      "#00A000",
+      "#00C800",
+      "#00F000"
+    ],
+    "pillarDcLevel": 0.474,
+    "pillarAmplitude": 0.512
+  },
+  "undergarden:undergarden": {
+    "color": "#5C4A2E",
+    "accentColor": "#B8D65C",
+    "spiralArmCount": 1,
+    "arrivalFlashStyle": "bloom",
+    "gradient": [
+      "#7A6238",
+      "#A8912F",
+      "#B8D65C",
+      "#E4F5A0"
+    ],
+    "pillarDcLevel": 0.66,
+    "pillarAmplitude": 0.33,
+    "radialWavelengthKeys": 4.2
+  },
+  "the_bumblezone:the_bumblezone": {
+    "color": "#FFB200",
+    "accentColor": "#FFE500",
+    "emissionMode": "ring",
+    "gradient": [
+      "#D65A00",
+      "#FF8C00",
+      "#FFB300",
+      "#FFD500",
+      "#FFEC00"
+    ],
+    "radialWavelengthKeys": 4.4,
+    "coreRadiusKeys": 1.5,
+    "falloffPower": 1.95,
+    "pillarDcLevel": 0.42,
+    "pillarAmplitude": 0.58
+  }
+}
