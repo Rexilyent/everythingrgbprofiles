@@ -916,7 +916,7 @@ public final class ClientEventHandlers {
             elderGuardianBeamFired = false;
         }
 
-        MobEffectInstance fatigue = player.getEffect(MobEffects.DIG_SLOWDOWN);
+        MobEffectInstance fatigue = player.getEffect(MobEffects.MINING_FATIGUE);
         boolean cursed = fatigue != null;
         int curseTicks = cursed ? fatigue.getDuration() : 0;
         // Gone up rather than down: a fresh curse. See the field's note for

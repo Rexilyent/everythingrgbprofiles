@@ -166,7 +166,7 @@ public final class DiagnosticsCommands {
                 String hover = d.summary() + (d.fix() == null ? "" : "\n\n" + d.fix());
                 line.append(Component.literal(d.displayName() + " (" + d.state().label() + ")")
                         .withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY).withUnderlined(true)
-                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(hover)))));
+                                .withHoverEvent(new HoverEvent.ShowText(Component.literal(hover)))));
             }
             say(line);
         }
@@ -256,7 +256,7 @@ public final class DiagnosticsCommands {
                     .append(Component.literal((e.started() ? "started " : "stopped ") + e.effectId())
                             .withStyle(e.started() ? ChatFormatting.GREEN : ChatFormatting.GRAY));
             if (e.started()) {
-                line.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                line.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(
                         Component.literal(e.tier() + ", priority " + e.priority() + "\nJust after: " + e.board()))));
             }
             say(line);
@@ -301,7 +301,7 @@ public final class DiagnosticsCommands {
         } catch (IOException e) {
             RGBProfileMod.LOGGER.error("RGB Profile: writing the diagnostic report failed.", e);
             say(red("Could not write the report file (" + e.getMessage() + "). ")
-                    .append(link("[Copy it instead]", ClickEvent.Action.COPY_TO_CLIPBOARD, text, "Copy the report")));
+                    .append(link("[Copy it instead]", new ClickEvent.CopyToClipboard(text), "Copy the report")));
             return 0;
         }
         // Printed to the log as well, so a player who sends latest.log instead
@@ -311,11 +311,11 @@ public final class DiagnosticsCommands {
         say(title("Diagnostic report"));
         for (String conclusion : DiagnosticReport.conclusions()) say(gray("• " + conclusion));
         say(Component.literal("Saved as logs/" + path.getFileName() + " ").withStyle(ChatFormatting.WHITE)
-                .append(link("[Open]", ClickEvent.Action.OPEN_FILE, path.toString(), "Open the report"))
+                .append(link("[Open]", new ClickEvent.OpenFile(path), "Open the report"))
                 .append(" ")
-                .append(link("[Folder]", ClickEvent.Action.OPEN_FILE, path.getParent().toString(), "Open the logs folder"))
+                .append(link("[Folder]", new ClickEvent.OpenFile(path.getParent()), "Open the logs folder"))
                 .append(" ")
-                .append(link("[Copy]", ClickEvent.Action.COPY_TO_CLIPBOARD, text, "Copy the whole report to paste somewhere")));
+                .append(link("[Copy]", new ClickEvent.CopyToClipboard(text), "Copy the whole report to paste somewhere")));
         say(gray("Attach this file when reporting a lighting problem. It has no personal details in it."));
         return 1;
     }
@@ -501,13 +501,21 @@ public final class DiagnosticsCommands {
 
     private static MutableComponent command(String sub) {
         String full = "/" + ROOT + " " + sub;
-        return link(full, ClickEvent.Action.RUN_COMMAND, full, "Click to run " + full);
+        return link(full, new ClickEvent.RunCommand(full), "Click to run " + full);
     }
 
-    private static MutableComponent link(String text, ClickEvent.Action action, String value, String hover) {
+    /**
+     * @param click what clicking the text does. A whole {@code ClickEvent}
+     *              rather than an action and a string: since 1.21.5 the two
+     *              are one object per kind of click, each carrying the value
+     *              in the type it actually is — a URI for a link, a File for a
+     *              file — so an action and a loose string can no longer be
+     *              paired up here.
+     */
+    private static MutableComponent link(String text, ClickEvent click, String hover) {
         return Component.literal(text).withStyle(Style.EMPTY.withColor(ChatFormatting.AQUA).withUnderlined(true)
-                .withClickEvent(new ClickEvent(action, value))
-                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(hover))));
+                .withClickEvent(click)
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal(hover))));
     }
 
     private static MutableComponent fix(String text) {
