@@ -63,7 +63,7 @@ public final class StartupGate {
         // check of this exact condition (see RGBProfileMod) and it is staying
         // there, because the failure mode is "load a vendor DLL on a headless
         // Linux box" and no amount of redundancy is too much for that.
-        if (FMLEnvironment.dist != Dist.CLIENT) {
+        if (FMLEnvironment.getDist() != Dist.CLIENT) {
             RGBProfileMod.LOGGER.debug("RGB Profile: dedicated server side, skipping lighting pipeline entirely.");
             return;
         }

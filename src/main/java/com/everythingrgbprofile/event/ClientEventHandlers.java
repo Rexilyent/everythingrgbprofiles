@@ -33,7 +33,7 @@ import com.everythingrgbprofile.profile.ProfileResolver;
 import com.everythingrgbprofile.sdk.SdkWorkerThread;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.AdvancementToast;
-import net.minecraft.client.gui.screens.ReceivingLevelScreen;
+import net.minecraft.client.gui.screens.LevelLoadingScreen;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -2555,7 +2555,11 @@ public final class ClientEventHandlers {
      */
     private static void pollPortalWorldReady(Minecraft mc, EffectRegistry effects, long now) {
         if (!awaitingWorldReady) return;
-        if (mc.screen instanceof ReceivingLevelScreen) return;
+        // LevelLoadingScreen, which since 1.21.9 is what covers a dimension
+        // transfer as well: the ReceivingLevelScreen this used to test for is
+        // gone, and the one screen now reports why it is up. Any of its reasons
+        // means terrain is still coming, which is exactly what this waits for.
+        if (mc.screen instanceof LevelLoadingScreen) return;
 
         awaitingWorldReady = false;
         long loadMillis = worldReadyArmedAtMillis > 0 ? now - worldReadyArmedAtMillis : -1;

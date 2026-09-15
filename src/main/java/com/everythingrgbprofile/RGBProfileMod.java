@@ -104,7 +104,7 @@ public final class RGBProfileMod {
     }
 
     private void clientSetup(FMLClientSetupEvent event) {
-        if (FMLEnvironment.dist != Dist.CLIENT) {
+        if (FMLEnvironment.getDist() != Dist.CLIENT) {
             // Yes, this is unreachable. FMLClientSetupEvent fires on the
             // client, that's the whole personality of the event. StartupGate
             // then re-checks the exact same thing as its own first and
