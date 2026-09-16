@@ -475,9 +475,11 @@ public final class DiagnosticsCommands {
     private static void say(Component message) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.displayClientMessage(message, false);
+            mc.player.sendSystemMessage(message);
         } else {
-            mc.gui.getChat().addMessage(message);
+            // addClientSystemMessage, not the server variant: this text comes
+            // from the mod on this machine, and 26.1 keeps the two apart.
+            mc.gui.getChat().addClientSystemMessage(message);
         }
     }
 

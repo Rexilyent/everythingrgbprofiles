@@ -7,7 +7,11 @@ pluginManagement {
 }
 
 plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+    // Finds and downloads the JDK the toolchain below asks for. 0.8.0 reads a
+    // field Gradle 9 removed, so it dies with a NoSuchFieldError on
+    // JvmVendorSpec.IBM_SEMERU the moment a toolchain has to be resolved —
+    // which surfaced as the decompile step failing, not as a toolchain error.
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
 rootProject.name = 'everythingrgbprofiles'

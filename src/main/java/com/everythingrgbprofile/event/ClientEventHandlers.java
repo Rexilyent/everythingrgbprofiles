@@ -1629,10 +1629,15 @@ public final class ClientEventHandlers {
             SdkWorkerThread.enqueue(() -> effects.nightIndicator.setNightProgress(false, 0));
             return;
         }
-        // % 24000 because getDayTime() counts total elapsed ticks since world
+        // % 24000 because the clock counts total elapsed ticks since world
         // creation, not time-of-day. On an old world that's a very large
         // number and the indicator would be permanently pinned.
-        long dayTime = player.level().getDayTime() % 24000;
+        //
+        // The dimension's own clock, which is what 26.1 replaced the level's
+        // day time with. Asking for the overworld's instead would report the
+        // wrong time of day in any dimension that keeps its own — exactly the
+        // modded dimensions the check above goes out of its way to include.
+        long dayTime = player.level().getDefaultClockTime() % 24000;
         // Vanilla night is roughly [13000, 23000) of the 24000-tick day.
         boolean isNight = dayTime >= 13000 && dayTime < 23000;
         double progress = isNight ? (dayTime - 13000) / 10000.0 : 0;
@@ -1890,7 +1895,9 @@ public final class ClientEventHandlers {
             // exclusion is the user overriding both, and it has to win.
             if (isBossExcluded(loc, id)) continue;
 
-            boolean tagged = useTag && entity.getType().is(BOSSES_TAG);
+            // Through the registry holder, since 26.1 dropped EntityType's own
+            // tag test. Same question, one hop further.
+            boolean tagged = useTag && entity.getType().builtInRegistryHolder().is(BOSSES_TAG);
             boolean named = effects.bossProfiles.containsKey(id);
             if (!tagged && !named) {
                 if (entity.getMaxHealth() < minMaxHealth) continue;
