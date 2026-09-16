@@ -37,7 +37,7 @@ import net.minecraft.client.gui.screens.LevelLoadingScreen;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
@@ -56,8 +56,8 @@ import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
-import net.minecraft.world.entity.projectile.DragonFireball;
-import net.minecraft.world.entity.projectile.WitherSkull;
+import net.minecraft.world.entity.projectile.hurtingprojectile.DragonFireball;
+import net.minecraft.world.entity.projectile.hurtingprojectile.WitherSkull;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -153,7 +153,7 @@ public final class ClientEventHandlers {
      * break on an update. Tags sync to clients, so this is readable here.
      */
     private static final TagKey<EntityType<?>> BOSSES_TAG =
-            TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("c", "bosses"));
+            TagKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath("c", "bosses"));
 
     /**
      * Bearings, in whole degrees, of every tower that has lit this ritual.
@@ -958,7 +958,7 @@ public final class ClientEventHandlers {
         LivingEntity naga = null;
         for (Entity entity : clientLevel.entitiesForRendering()) {
             if (!(entity instanceof LivingEntity living) || !living.isAlive()) continue;
-            ResourceLocation loc = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
+            Identifier loc = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
             if (loc == null || !TwilightForestCompat.NAGA_ID.equals(loc.toString())) continue;
             if (living.distanceToSqr(player) > maxDistanceSq) continue;
             naga = living;
@@ -1010,7 +1010,7 @@ public final class ClientEventHandlers {
         LivingEntity slider = null;
         for (Entity entity : clientLevel.entitiesForRendering()) {
             if (!(entity instanceof LivingEntity living) || living.isRemoved()) continue;
-            ResourceLocation loc = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
+            Identifier loc = BuiltInRegistries.ENTITY_TYPE.getKey(living.getType());
             if (loc == null || !AetherCompat.SLIDER_ID.equals(loc.toString())) continue;
             if (living.distanceToSqr(player) > maxDistanceSq) continue;
             slider = living;
@@ -1091,7 +1091,7 @@ public final class ClientEventHandlers {
         List<SunSpiritEffect.Crystal> crystals = new ArrayList<>();
         for (Entity entity : clientLevel.entitiesForRendering()) {
             if (entity.isRemoved() || entity.distanceToSqr(player) > maxDistanceSq) continue;
-            ResourceLocation loc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            Identifier loc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
             if (loc == null || !AetherCompat.NAMESPACE.equals(loc.getNamespace())) continue;
             String id = loc.toString();
             if (AetherCompat.SUN_SPIRIT_ID.equals(id) && entity instanceof LivingEntity living) {
@@ -1207,7 +1207,7 @@ public final class ClientEventHandlers {
                 bolts.add(new ValkyrieQueenEffect.Bolt(entity.getId(), entity.getX(), entity.getZ()));
                 continue;
             }
-            ResourceLocation loc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            Identifier loc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
             if (loc == null || !AetherCompat.NAMESPACE.equals(loc.getNamespace())) continue;
             String id = loc.toString();
             if (AetherCompat.VALKYRIE_QUEEN_ID.equals(id) && entity instanceof LivingEntity living) {
@@ -1312,7 +1312,7 @@ public final class ClientEventHandlers {
     }
 
     private static boolean isValkyrieWall(ClientLevel level, BlockPos pos) {
-        ResourceLocation loc = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock());
+        Identifier loc = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock());
         return AetherCompat.NAMESPACE.equals(loc.getNamespace())
                 && loc.getPath().endsWith(AetherCompat.ANGELIC_STONE_SUFFIX);
     }
@@ -1500,8 +1500,8 @@ public final class ClientEventHandlers {
     private static void pollBiome(Player player, EffectRegistry effects, long now) {
         if (!Feature.BIOME_COLORS.isOn()) return;
         var biomeHolder = player.level().getBiome(player.blockPosition());
-        ResourceLocation biomeLoc = biomeHolder.unwrapKey()
-                .map(key -> key.location())
+        Identifier biomeLoc = biomeHolder.unwrapKey()
+                .map(key -> key.identifier())
                 .orElse(null);
         if (biomeLoc == null) {
             // The path that used to return before recording ANY sample — which
@@ -1590,8 +1590,8 @@ public final class ClientEventHandlers {
     private static RGBColor deriveBiomeColor(Biome biome) {
         try {
             var effects = biome.getSpecialEffects();
-            int grass = effects.getGrassColorOverride().orElse(0x6A8F3D);
-            int water = effects.getWaterColor();
+            int grass = effects.grassColorOverride().orElse(0x6A8F3D);
+            int water = effects.waterColor();
             int r = ((((grass >> 16) & 0xFF) * 2) + ((water >> 16) & 0xFF)) / 3;
             int g = ((((grass >> 8) & 0xFF) * 2) + ((water >> 8) & 0xFF)) / 3;
             int b = (((grass & 0xFF) * 2) + (water & 0xFF)) / 3;
@@ -1625,7 +1625,7 @@ public final class ClientEventHandlers {
         // Twilight Forest keeps a real day/night cycle and a sky, so it still
         // gets one, which is correct — time of day matters there.
         var dimension = player.level().dimensionType();
-        if (dimension.fixedTime().isPresent() || !dimension.hasSkyLight()) {
+        if (dimension.hasFixedTime() || !dimension.hasSkyLight()) {
             SdkWorkerThread.enqueue(() -> effects.nightIndicator.setNightProgress(false, 0));
             return;
         }
@@ -1821,7 +1821,7 @@ public final class ClientEventHandlers {
     @SubscribeEvent
     public static void onRaidHorn(PlaySoundEvent event) {
         if (event.getOriginalSound() == null) return;
-        if (!SoundEvents.RAID_HORN.value().location().equals(event.getOriginalSound().getLocation())) return;
+        if (!SoundEvents.RAID_HORN.value().location().equals(event.getOriginalSound().getIdentifier())) return;
         if (!Feature.RAID_WARNING.isOn()) return;
         EffectRegistry effects = SdkWorkerThread.effects();
         if (effects == null) return;
@@ -1883,7 +1883,7 @@ public final class ClientEventHandlers {
         for (LivingEntity entity : player.level().getEntitiesOfClass(
                 LivingEntity.class, player.getBoundingBox().inflate(radius))) {
             if (entity instanceof Player || !entity.isAlive()) continue;
-            ResourceLocation loc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
+            Identifier loc = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
             if (loc == null) continue;
             String id = loc.toString();
             // Checked before the tag and before the profile lookup: an
@@ -1979,7 +1979,7 @@ public final class ClientEventHandlers {
     }
 
     /** True if this entity id is excluded outright or belongs to an excluded mod. */
-    private static boolean isBossExcluded(ResourceLocation loc, String id) {
+    private static boolean isBossExcluded(Identifier loc, String id) {
         return excludedBossIds.contains(id) || excludedBossMods.contains(loc.getNamespace());
     }
 
@@ -2412,7 +2412,7 @@ public final class ClientEventHandlers {
     private static String dimensionIdOf(Level level) {
         try {
             if (level == null || level.dimension() == null) return null;
-            ResourceLocation loc = level.dimension().location();
+            Identifier loc = level.dimension().identifier();
             return loc == null ? null : loc.toString();
         } catch (Exception e) {
             return null;
@@ -2423,7 +2423,7 @@ public final class ClientEventHandlers {
         if (!Feature.PORTAL_TRANSITION.isOn()) return;
         if (mc.level == null) return;
 
-        ResourceLocation loc = mc.level.dimension().location();
+        Identifier loc = mc.level.dimension().identifier();
         if (loc == null) return;
         boolean latched = dimensionChangePending;
         dimensionChangePending = false;
@@ -2791,7 +2791,7 @@ public final class ClientEventHandlers {
         Object block = mc.level.getBlockState(pos).getBlock();
         Boolean cached = PORTAL_BLOCK_CACHE.get(block);
         if (cached != null) return cached;
-        ResourceLocation id = BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(pos).getBlock());
+        Identifier id = BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(pos).getBlock());
         boolean result = false;
         if (id != null) {
             String path = id.getPath();

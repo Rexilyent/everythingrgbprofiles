@@ -6,7 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * The optional sculk relay's entire payload: a block position and one
@@ -23,7 +23,7 @@ import net.minecraft.resources.ResourceLocation;
  */
 public record SculkPingPayload(BlockPos position, boolean isShrieker) implements CustomPacketPayload {
 
-    public static final Type<SculkPingPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(RGBProfileMod.MODID, "sculk_ping"));
+    public static final Type<SculkPingPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(RGBProfileMod.MODID, "sculk_ping"));
 
     /**
      * Serialisation. Field order here must match the record's component order
