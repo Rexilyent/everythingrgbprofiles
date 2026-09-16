@@ -449,64 +449,100 @@ public final class EffectRegistry {
         }
     }
 
-    /**
-     * Picks the title-screen theme.
-     *
-     * <p>Default is the plain one. The mineshaft theme is drawn to match the
-     * Forge Everything pack's title art and looks like a mistake anywhere else,
-     * so it is opt-in — either by naming it outright, or by {@code auto}
-     * recognising the pack.
-     */
-    private static Pattern menuPattern() {
-        return useMineshaftMenu()
-                ? new MenuAmbientPattern(
-                        RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_EMBER_COLOR.get(), ColorPalette.MENU_EMBER),
-                        RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_ARCANE_COLOR.get(), ColorPalette.MENU_ARCANE),
-                        RGBProfileConfig.MENU_SPARK_COUNT.get(),
-                        RGBProfileConfig.MENU_SPARK_INTERVAL_MILLIS.get(),
-                        RGBProfileConfig.MENU_ORE_GLINT_COUNT.get(),
-                        RGBProfileConfig.MENU_ORE_GLINT_INTERVAL_MILLIS.get(),
-                        RGBProfileConfig.MENU_TORCH_COUNT.get())
-                : new VanillaMenuPattern(RGBProfileConfig.MENU_VANILLA_CLOUD_COUNT.get());
+    /** The three title-screen themes, so the pattern and its two colours cannot disagree. */
+    private enum MenuStyle {
+        /** A sulfur cave, matching Minecraft 26.2's own panorama. The default. */
+        SULFUR,
+        /** Sky over grass, matching the panorama the game had through 1.21.x. */
+        VANILLA,
+        /** The Forge Everything pack's title art. */
+        MINESHAFT
     }
 
     /**
-     * The base colour the chosen pattern paints on: unlit rock, or grass.
+     * Picks the title-screen theme.
      *
-     * <p>Both themes take their second colour from the context's accent, so
-     * this pairs with {@code menuAccentColor()} and the two must agree about
-     * which theme is running.
+     * <p>Default is the sulfur cave, because that is what Minecraft 26.2 puts
+     * on the title screen: matching the panorama is not a decorating decision
+     * the way the mineshaft theme is, it is the board agreeing with the screen
+     * it sits under. The mineshaft theme is drawn for one pack's title art and
+     * looks like a mistake anywhere else, so it stays opt-in — either by naming
+     * it outright, or by {@code auto} recognising the pack.
+     *
+     * <p>The sky-over-grass theme is still here and still worth having. Anyone
+     * running a resource pack that restores the old panorama wants it, and it
+     * is the only theme that is about the overworld rather than about a cave.
+     */
+    private static Pattern menuPattern() {
+        return switch (menuStyle()) {
+            case MINESHAFT -> new MenuAmbientPattern(
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_EMBER_COLOR.get(), ColorPalette.MENU_EMBER),
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_ARCANE_COLOR.get(), ColorPalette.MENU_ARCANE),
+                    RGBProfileConfig.MENU_SPARK_COUNT.get(),
+                    RGBProfileConfig.MENU_SPARK_INTERVAL_MILLIS.get(),
+                    RGBProfileConfig.MENU_ORE_GLINT_COUNT.get(),
+                    RGBProfileConfig.MENU_ORE_GLINT_INTERVAL_MILLIS.get(),
+                    RGBProfileConfig.MENU_TORCH_COUNT.get());
+            case VANILLA -> new VanillaMenuPattern(RGBProfileConfig.MENU_VANILLA_CLOUD_COUNT.get());
+            case SULFUR -> SulfurCavePattern.menu();
+        };
+    }
+
+    /**
+     * The base colour the chosen pattern paints on: cave wall, unlit rock, or
+     * grass.
+     *
+     * <p>All three themes take their second colour from the context's accent,
+     * so this pairs with {@code menuAccentColor()} and the two must agree about
+     * which theme is running — which is what the enum is for. An earlier
+     * version asked a {@code useMineshaftMenu()} boolean three separate times,
+     * which was fine while there were two themes and would have needed two
+     * booleans that could contradict each other once there were three.
      */
     private static RGBColor menuBaseColor() {
-        return useMineshaftMenu()
-                ? RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_BASE_COLOR.get(), ColorPalette.MENU_STONE_BASE)
-                : RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_GRASS_COLOR.get(), ColorPalette.MENU_VANILLA_GRASS);
+        return switch (menuStyle()) {
+            case MINESHAFT ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_BASE_COLOR.get(), ColorPalette.MENU_STONE_BASE);
+            case VANILLA ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_GRASS_COLOR.get(), ColorPalette.MENU_VANILLA_GRASS);
+            case SULFUR ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_ROCK_COLOR.get(), ColorPalette.SULFUR_ROCK);
+        };
     }
 
     /**
      * The second colour, which each theme reads differently: the vanilla theme
-     * takes it as the sky, and the mineshaft theme ignores it entirely because
-     * it derives everything warm from its own ember colour instead.
+     * takes it as the sky, the sulfur theme as the acid pool, and the mineshaft
+     * theme ignores it entirely because it derives everything warm from its own
+     * ember colour instead.
      *
-     * <p>Set unconditionally rather than only for the vanilla theme, because
-     * an accent nobody reads costs nothing and a null one would have
-     * {@code resolvedAccentColor()} quietly hand the sky-shading code a
-     * lightened grass green.
+     * <p>Set unconditionally rather than only for the themes that read it,
+     * because an accent nobody reads costs nothing and a null one would have
+     * {@code resolvedAccentColor()} quietly hand the shading code a lightened
+     * version of the base.
      */
     private static RGBColor menuAccentColor() {
-        return RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_SKY_COLOR.get(), ColorPalette.MENU_VANILLA_SKY);
+        return switch (menuStyle()) {
+            case SULFUR ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_POOL_COLOR.get(), ColorPalette.SULFUR_ACID_POOL);
+            case VANILLA, MINESHAFT ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_SKY_COLOR.get(), ColorPalette.MENU_VANILLA_SKY);
+        };
     }
 
     /** Resolved once at registration; the theme does not change mid-session. */
-    private static boolean useMineshaftMenu() {
+    private static MenuStyle menuStyle() {
         String style = RGBProfileConfig.MENU_STYLE.get();
-        if (style == null) return false;
+        if (style == null) return MenuStyle.SULFUR;
         return switch (style.trim().toLowerCase(java.util.Locale.ROOT)) {
-            case "mineshaft" -> true;
-            case "vanilla" -> false;
+            case "mineshaft" -> MenuStyle.MINESHAFT;
+            case "vanilla" -> MenuStyle.VANILLA;
+            case "sulfur" -> MenuStyle.SULFUR;
             // Anything unrecognised behaves as auto rather than throwing: a
             // typo in a config file should not decide whether the mod starts.
-            default -> PackDetection.matches(RGBProfileConfig.MENU_PACK_PATTERNS.get());
+            default -> PackDetection.matches(RGBProfileConfig.MENU_PACK_PATTERNS.get())
+                    ? MenuStyle.MINESHAFT
+                    : MenuStyle.SULFUR;
         };
     }
 

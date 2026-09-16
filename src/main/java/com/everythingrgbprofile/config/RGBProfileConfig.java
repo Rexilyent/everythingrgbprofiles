@@ -259,6 +259,8 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.ConfigValue<String> MENU_VANILLA_SKY_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_VANILLA_GRASS_COLOR;
     public static final ModConfigSpec.IntValue MENU_VANILLA_CLOUD_COUNT;
+    public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_ROCK_COLOR;
+    public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_POOL_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_BASE_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_EMBER_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_ARCANE_COLOR;
@@ -914,21 +916,35 @@ public final class RGBProfileConfig {
                 .define("enabled", true);
         MENU_STYLE = b.comment(
                         "Which title-screen theme to use.",
-                        "  vanilla   - sky over grass with drifting clouds. The default, because a",
-                        "              mod you just installed should not redecorate your menu with",
-                        "              somebody else's art direction.",
+                        "  sulfur    - a sulfur cave: an acid pool bubbling and venting below a",
+                        "              spiked ceiling. The default, because from Minecraft 26.2 the",
+                        "              game's own title panorama IS a sulfur cave, so this is the",
+                        "              theme that matches the screen it is sitting behind rather",
+                        "              than somebody's taste.",
+                        "  vanilla   - sky over grass with drifting clouds. What the panorama was",
+                        "              through 1.21.x, and what this mod shipped with. Still the",
+                        "              right answer with a resource pack that restores the old art.",
                         "  mineshaft - the dark cave face with torches, a drill and ore glints. Built",
                         "              for the Forge Everything pack's title screen specifically.",
                         "  auto      - mineshaft if this looks like one of menuPackNames below,",
-                        "              vanilla otherwise.",
+                        "              sulfur otherwise.",
                         "Pack maintainers: set this outright in defaultconfigs/ rather than relying on",
                         "auto. Detection is a convenience and cannot see inside every launcher.")
-                .define("style", "vanilla");
+                .define("style", "sulfur");
         MENU_PACK_PATTERNS = b.comment(
                         "Comma-separated. Under 'auto', the mineshaft theme is used when the detected "
                                 + "pack name contains any of these. Matched as a case-insensitive "
                                 + "substring, so version suffixes do not break it.")
                 .define("menuPackNames", "Forge Everything");
+        MENU_SULFUR_ROCK_COLOR = b.comment(
+                        "Sulfur theme: the cave walls above the waterline, and the light everything "
+                                + "in the rock is shaded from.")
+                .define("sulfurRockColor", "#C4A917");
+        MENU_SULFUR_POOL_COLOR = b.comment(
+                        "Sulfur theme: the acid pool along the bottom. The deep water under it is "
+                                + "derived from this, so recolouring the pool moves its whole depth "
+                                + "gradient with it.")
+                .define("sulfurPoolColor", "#19D98C");
         MENU_VANILLA_SKY_COLOR = b.comment("Default theme: the sky above the horizon.")
                 .define("vanillaSkyColor", "#5B93E8");
         MENU_VANILLA_GRASS_COLOR = b.comment("Default theme: the grass below it.")
