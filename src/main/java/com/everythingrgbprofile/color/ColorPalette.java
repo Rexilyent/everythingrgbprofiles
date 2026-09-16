@@ -248,6 +248,43 @@ public final class ColorPalette {
     public static final RGBColor RAIN_BLUE_GRAY = RGBColor.fromHex("#AECDE8");
     public static final RGBColor LIGHTNING_WHITE_BLUE = RGBColor.fromHex("#F0F5FF");
 
+    // ---- Sulfur caves, and the 26.2 title panorama ---------------------
+    // Minecraft 26.2 added the sulfur caves, and made one the game's own title
+    // panorama, so these colours carry both the biome layer and the menu theme.
+    //
+    // Sampled from the biome definition and from the block textures it is built
+    // out of, then pushed toward saturation, which is the one adjustment this
+    // palette needs almost everywhere. A keyboard mixes three LEDs behind a
+    // diffuser: whatever all three channels share comes out as white light and
+    // dilutes the hue, so a colour that is right on a monitor arrives pale. The
+    // sampled values are given beside each one so the distance is on the record.
+
+    /** Sulfur rock. {@code sulfur.png} averages #BDAF65, which is half white light. */
+    public static final RGBColor SULFUR_ROCK = RGBColor.fromHex("#C4A917");
+    /** The acid pools. The biome declares water_color #34BF89. */
+    public static final RGBColor SULFUR_ACID_POOL = RGBColor.fromHex("#19D98C");
+    /** Vented gas. The biome declares fog_color #8CB831, and this keeps its hue. */
+    public static final RGBColor SULFUR_GAS = RGBColor.fromHex("#A6D41C");
+    /** Spikes off the ceiling. {@code sulfur_spike_up_tip.png} highlights at #D5CC6D. */
+    public static final RGBColor SULFUR_SPIKE = RGBColor.fromHex("#E8DC72");
+    /**
+     * A bubble bursting. Near-white with a yellow cast, close to the sulfur
+     * cube's own #ECF1BE, and left pale rather than saturated on purpose: this
+     * is the brightest thing in the scene and it has to read as a flash of
+     * light instead of as another yellow.
+     */
+    public static final RGBColor SULFUR_POP = RGBColor.fromHex("#F2F6C8");
+    /**
+     * Cinnabar in the walls, the red half of the 26.2 cave palette.
+     *
+     * <p>The texture averages #97524E, a low-saturation brick that on hardware
+     * sits beside sulfur yellow as an indeterminate brown and stops reading as
+     * red at all. Pushed to a deeper, cleaner red, which is the same liberty
+     * the lush-caves greens take and for the same reason — it has to stay
+     * unmistakably the other side of the wheel from everything else here.
+     */
+    public static final RGBColor SULFUR_CINNABAR = RGBColor.fromHex("#B8352C");
+
     // ---- Default menu theme: sky over grass ---------------------------
     /** Daytime sky, for the default title-screen theme. */
     public static final RGBColor MENU_VANILLA_SKY = RGBColor.fromHex("#5B93E8");

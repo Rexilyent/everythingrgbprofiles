@@ -64,6 +64,7 @@
   "minecraft:dripstone_caves": { "color": "#8B6F47", "pattern": "drift-particle", "preset": "drip-fall" },
   "minecraft:lush_caves": { "color": "#1F4A12", "accentColor": "#FF8E00", "pattern": "glow-motes", "preset": "lush-caves" },
   "minecraft:deep_dark": { "color": "#105B72", "accentColor": "#63E8DB", "pattern": "shimmer-twinkle", "preset": "sculk" },
+  "minecraft:sulfur_caves": { "color": "#C4A917", "accentColor": "#19D98C", "pattern": "sulfur-cave", "preset": "sulfur-caves" },
 
   "minecraft:nether_wastes": { "color": "#7A2E2E", "pattern": "drift-particle", "preset": "ember-rise" },
   "minecraft:crimson_forest": { "color": "#A8143C", "pattern": "drift-particle", "preset": "ember-rise" },

@@ -8,6 +8,7 @@ import com.everythingrgbprofile.pattern.patterns.GlowMotePattern;
 import com.everythingrgbprofile.pattern.patterns.PulsePattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerPattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerTwinklePattern;
+import com.everythingrgbprofile.pattern.patterns.SulfurCavePattern;
 import com.everythingrgbprofile.pattern.patterns.SunflowerFieldPattern;
 import com.everythingrgbprofile.pattern.patterns.TwinkleParticlePattern;
 import com.everythingrgbprofile.pattern.patterns.WindsweptRidgePattern;
@@ -76,6 +77,11 @@ public final class PatternFactory {
             // biomes are the same hillside with different amounts of soil left
             // on it — see the preset docs for which way each one leans.
             case "windswept-ridge" -> windsweptPreset(preset);
+            // An acid pool bubbling under a spiked ceiling. Shared with the
+            // title-screen theme, since Minecraft 26.2's own panorama is a
+            // sulfur cave — which is why it takes a preset despite there being
+            // one biome: the menu wants the same scene at a slower pace.
+            case "sulfur-cave" -> sulfurPreset(preset);
             default -> new ShimmerPattern(); // animated fallback, never solid — see class doc
         };
     }
@@ -145,6 +151,20 @@ public final class PatternFactory {
             case "windswept-forest" -> WindsweptRidgePattern.windsweptForest();
             case "windswept-savanna" -> WindsweptRidgePattern.windsweptSavanna();
             default -> WindsweptRidgePattern.windsweptHills();
+        };
+    }
+
+    /**
+     * Sulfur presets. The biome one is busier and sits lower in the water; the
+     * menu one is slower and shows more of the cave. See the factory methods
+     * for what each is framed against.
+     */
+    private static Pattern sulfurPreset(String preset) {
+        if (preset == null) return SulfurCavePattern.sulfurCaves();
+        return switch (preset.toLowerCase()) {
+            case "sulfur-caves" -> SulfurCavePattern.sulfurCaves();
+            case "menu" -> SulfurCavePattern.menu();
+            default -> SulfurCavePattern.sulfurCaves();
         };
     }
 

@@ -14,15 +14,21 @@ import java.util.Random;
 /**
  * The default title-screen theme: sky over grass, with clouds drifting across.
  *
- * <p>This is what you get if you just installed the mod. It is deliberately
- * the most obvious thing in the world — a horizon, blue above it, green below,
- * a few slow clouds — because a default should look like the game rather than
- * like somebody's taste.
+ * <p>Deliberately the most obvious thing in the world — a horizon, blue above
+ * it, green below, a few slow clouds — because a theme that ships on by default
+ * should look like the game rather than like somebody's taste.
  *
- * <p>{@link MenuAmbientPattern} is the other one: a mineshaft with a drill in
- * it, built for a specific pack's title art. Excellent there, presumptuous
- * anywhere else, which is why it is gated behind pack detection and this is
- * not.
+ * <p>This was that default for as long as the game's own title panorama was a
+ * landscape. Minecraft 26.2 replaced it with a sulfur cave, so the theme that
+ * now looks like the game is {@link SulfurCavePattern#menu()} and this one is
+ * opt-in — still the right answer with a resource pack that restores the old
+ * panorama, and still the only theme that is about the overworld rather than
+ * about a cave.
+ *
+ * <p>{@link MenuAmbientPattern} is the third: a mineshaft with a drill in it,
+ * built for a specific pack's title art. Excellent there, presumptuous
+ * anywhere else, which is why it is gated behind pack detection and neither of
+ * the other two is.
  *
  * <h2>Restraint is the design</h2>
  * A menu runs for as long as somebody leaves the game sitting there, which can
