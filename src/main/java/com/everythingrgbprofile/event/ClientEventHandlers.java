@@ -1034,7 +1034,7 @@ public final class ClientEventHandlers {
             double px = player.getX();
             double pz = player.getZ();
             double health = slider.getHealth() / Math.max(1.0f, slider.getMaxHealth());
-            boolean bossMusic = mc.gui.getBossOverlay().shouldPlayMusic();
+            boolean bossMusic = mc.gui.hud.getBossOverlay().shouldPlayMusic();
             SdkWorkerThread.enqueue(() -> effects.slider.setSlider(x, y, z, px, pz, health, bossMusic, now));
             return;
         }
@@ -1119,7 +1119,7 @@ public final class ClientEventHandlers {
             double px = player.getX();
             double pz = player.getZ();
             double health = spirit.getHealth() / Math.max(1.0f, spirit.getMaxHealth());
-            boolean bossMusic = mc.gui.getBossOverlay().shouldPlayMusic();
+            boolean bossMusic = mc.gui.hud.getBossOverlay().shouldPlayMusic();
             SdkWorkerThread.enqueue(() -> {
                 effects.sunSpirit.setSpirit(x, z, px, pz, health, bossMusic, now);
                 effects.sunSpirit.setCrystals(crystals, now);
@@ -1236,7 +1236,7 @@ public final class ClientEventHandlers {
             double px = player.getX();
             double pz = player.getZ();
             double health = queen.getHealth() / Math.max(1.0f, queen.getMaxHealth());
-            boolean bossMusic = mc.gui.getBossOverlay().shouldPlayMusic();
+            boolean bossMusic = mc.gui.hud.getBossOverlay().shouldPlayMusic();
             // The room goes in the same job, after the sighting, so the first
             // crystals and bolts are measured against the real walls.
             double[] room = !valkyrieRoomFound
@@ -1799,7 +1799,7 @@ public final class ClientEventHandlers {
 
     /** What the raid bar on screen says, or null if there is none. */
     private static RaidHordePattern.Phase raidBarPhase(Minecraft mc) {
-        for (LerpingBossEvent bar : mc.gui.getBossOverlay().events.values()) {
+        for (LerpingBossEvent bar : mc.gui.hud.getBossOverlay().events.values()) {
             if (!(bar.getName().getContents() instanceof TranslatableContents name)) continue;
             switch (name.getKey()) {
                 case RAID_BAR_KEY:
@@ -2566,7 +2566,7 @@ public final class ClientEventHandlers {
         // transfer as well: the ReceivingLevelScreen this used to test for is
         // gone, and the one screen now reports why it is up. Any of its reasons
         // means terrain is still coming, which is exactly what this waits for.
-        if (mc.screen instanceof LevelLoadingScreen) return;
+        if (mc.gui.screen() instanceof LevelLoadingScreen) return;
 
         awaitingWorldReady = false;
         long loadMillis = worldReadyArmedAtMillis > 0 ? now - worldReadyArmedAtMillis : -1;
@@ -2753,7 +2753,7 @@ public final class ClientEventHandlers {
             java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
 
     private static boolean isDimensionTransitionScreenOpen(Minecraft mc) {
-        net.minecraft.client.gui.screens.Screen screen = mc.screen;
+        net.minecraft.client.gui.screens.Screen screen = mc.gui.screen();
         if (screen == null) return false;
         Class<?> type = screen.getClass();
         Boolean cached = TRANSITION_SCREEN_CACHE.get(type);

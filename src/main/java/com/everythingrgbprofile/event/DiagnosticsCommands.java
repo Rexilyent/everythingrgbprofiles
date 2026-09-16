@@ -346,7 +346,7 @@ public final class DiagnosticsCommands {
         HardwareTest.Step step = HardwareTest.stepAt(elapsed);
         if (step == null) {
             testStartMillis = Long.MIN_VALUE;
-            mc.gui.setOverlayMessage(Component.empty(), false);
+            mc.gui.hud.setOverlayMessage(Component.empty(), false);
             say(Component.literal("Keyboard test finished. ").withStyle(ChatFormatting.GREEN)
                     .append(gray("If any step did not match, run ")).append(command("report"))
                     .append(gray(" and tell us which step looked wrong and what you saw instead.")));
@@ -357,7 +357,7 @@ public final class DiagnosticsCommands {
             say(gray("Test " + (step.ordinal() + 1) + "/" + HardwareTest.Step.values().length + ": "
                     + step.expectation()));
         }
-        mc.gui.setOverlayMessage(Component.literal("Keyboard test " + (step.ordinal() + 1) + "/"
+        mc.gui.hud.setOverlayMessage(Component.literal("Keyboard test " + (step.ordinal() + 1) + "/"
                 + HardwareTest.Step.values().length + ": " + step.expectation()).withStyle(ChatFormatting.AQUA), false);
     }
 
@@ -479,7 +479,7 @@ public final class DiagnosticsCommands {
         } else {
             // addClientSystemMessage, not the server variant: this text comes
             // from the mod on this machine, and 26.1 keeps the two apart.
-            mc.gui.getChat().addClientSystemMessage(message);
+            mc.gui.hud.getChat().addClientSystemMessage(message);
         }
     }
 
