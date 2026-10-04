@@ -503,6 +503,36 @@ public final class ColorPalette {
      */
     public static final RGBColor SULFUR_CINNABAR = RGBColor.fromHex("#B8352C");
 
+    // ---- The Sift --------------------------------------------------------
+    // A dimension announced for a future release and not in the game yet, so
+    // these come from the promotional screenshots rather than from textures or
+    // a biome file. Re-check every one of them against the real thing the day
+    // it ships. Sampled values are beside each, then pushed toward saturation
+    // for the same reason as the sulfur palette above.
+
+    /** The coral mesas. Screenshots: #EF707D, #F98998, #D25E61. Also the menu theme's base. */
+    public static final RGBColor SIFT_MESA = RGBColor.fromHex("#F0606E");
+    /** The teal sky. Screenshots: #62D5C7 across most of the frame. Also the menu theme's accent. */
+    public static final RGBColor SIFT_SKY = RGBColor.fromHex("#2FD6C2");
+    /** Canopy undersides and trunks. Screenshots: #44878B, #30615F, darker and deeper than the sky. */
+    public static final RGBColor SIFT_TREE = RGBColor.fromHex("#14A894");
+    /**
+     * Frost on the canopies, and the haze toward the horizon. Screenshots:
+     * #DEE4E0, #BFEBE5. Left pale on purpose, like the sulfur pop, because frost
+     * IS white; kept to small areas so the board does not wash out.
+     */
+    public static final RGBColor SIFT_FROST = RGBColor.fromHex("#C8FFF4");
+    /** The pink grass along the ground. Screenshot: #F98998. */
+    public static final RGBColor SIFT_GRASS = RGBColor.fromHex("#FF6F8C");
+    /** The aurora's pink ribbons. */
+    public static final RGBColor SIFT_AURORA_PINK = RGBColor.fromHex("#FF5FAE");
+    /** The aurora's green ribbons. Paler mint in the screenshots, pushed to read as green on an LED. */
+    public static final RGBColor SIFT_AURORA_GREEN = RGBColor.fromHex("#4DFFA0");
+    /** The glowing motes in the air. Screenshot highlights around #9AD9DB, pushed to cyan. */
+    public static final RGBColor SIFT_MOTE = RGBColor.fromHex("#7AFFF0");
+    /** The little blue cube creatures. Screenshot: a pale sky blue, pushed so it separates from the teal. */
+    public static final RGBColor SIFT_CRITTER = RGBColor.fromHex("#5CC4FF");
+
 		// ---- Default menu theme: sky over grass ---------------------------
     /** Daytime sky, for the default title-screen theme. */
     public static final RGBColor MENU_VANILLA_SKY = RGBColor.fromHex("#5B93E8");

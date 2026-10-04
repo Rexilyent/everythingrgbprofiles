@@ -262,6 +262,8 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.IntValue MENU_VANILLA_CLOUD_COUNT;
     public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_ROCK_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_POOL_COLOR;
+    public static final ModConfigSpec.ConfigValue<String> MENU_SIFT_MESA_COLOR;
+    public static final ModConfigSpec.ConfigValue<String> MENU_SIFT_SKY_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_BASE_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_EMBER_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_ARCANE_COLOR;
@@ -1170,6 +1172,13 @@ public final class RGBProfileConfig {
                                 + "derived from this, so recolouring the pool moves its whole depth "
                                 + "gradient with it.")
                 .define("sulfurPoolColor", "#19D98C");
+        MENU_SIFT_MESA_COLOR = b.comment(Feature.SIFT.configComment(
+                        "Sift theme (style = \"sift\"): the coral mesas. The lit tops of their caps "
+                                + "are derived from this."))
+                .define("siftMesaColor", "#F0606E");
+        MENU_SIFT_SKY_COLOR = b.comment(Feature.SIFT.configComment(
+                        "Sift theme: the teal sky behind the mesas, paling toward the horizon."))
+                .define("siftSkyColor", "#2FD6C2");
         MENU_VANILLA_SKY_COLOR = b.comment("Default theme: the sky above the horizon.")
                 .define("vanillaSkyColor", "#5B93E8");
         MENU_VANILLA_GRASS_COLOR = b.comment("Default theme: the grass below it.")

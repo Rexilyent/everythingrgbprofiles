@@ -2,6 +2,7 @@ package com.everythingrgbprofile.profile;
 
 import com.everythingrgbprofile.RGBProfileFiles;
 import com.everythingrgbprofile.color.RGBColor;
+import com.everythingrgbprofile.config.Feature;
 import com.everythingrgbprofile.pattern.patterns.SpiralInPattern;
 
 import java.util.Map;
@@ -226,7 +227,43 @@ public final class DimensionProfile {
     }
 
     public static Map<String, DimensionProfile> loadAll() {
-        return JsonProfileLoader.load("/everythingrgbprofile_defaults/dimension_profiles.json",
-                RGBProfileFiles.dimensionProfilesFile(), DimensionProfile.class);
+        Map<String, DimensionProfile> all = new java.util.HashMap<>(JsonProfileLoader.load(
+                "/everythingrgbprofile_defaults/dimension_profiles.json",
+                RGBProfileFiles.dimensionProfilesFile(), DimensionProfile.class));
+        // putIfAbsent, so an entry somebody wrote for the Sift themselves
+        // always wins over this held one.
+        if (Feature.SIFT.isOn()) all.putIfAbsent(SIFT_DIMENSION_ID, siftPortal());
+        return all;
+    }
+
+    /**
+     * The Sift's id. A PLACEHOLDER: the dimension is not in the game yet, so
+     * its real id is not known. Correct this the day it ships, before
+     * {@code Feature.SIFT} goes to RELEASED, or the portal below will simply
+     * never match anything.
+     */
+    static final String SIFT_DIMENSION_ID = "minecraft:the_sift";
+
+    /**
+     * The Sift's portal, held in code rather than in dimension_profiles.json
+     * while the dimension is unreleased, so it ships in no release config file
+     * and needs no guess at its id written into anybody's config folder. Move
+     * it into the JSON when the dimension is out.
+     *
+     * <p>Teal into frost with a coral tip. The portal in the reference shots
+     * is a cyan-white glow, so the field rides teal up through frost, and the
+     * crest touches the mesas' coral. Frost sits between the two on purpose:
+     * a ramp straight from teal to coral would pass through grey on the way.
+     */
+    static DimensionProfile siftPortal() {
+        DimensionProfile p = new DimensionProfile();
+        p.color = "#2FD6C2";
+        p.accentColor = "#FF6F8C";
+        p.spiralArmCount = 1;
+        p.arrivalFlashStyle = "bloom";
+        p.gradient = java.util.List.of("#0B4450", "#169C9A", "#3FE8D2", "#A8FFF2", "#FF7A98");
+        p.pillarDcLevel = 0.64;
+        p.pillarAmplitude = 0.34;
+        return p;
     }
 }

@@ -5,6 +5,7 @@ import com.everythingrgbprofile.RGBProfileMod;
 import com.everythingrgbprofile.color.ColorPalette;
 import com.everythingrgbprofile.color.ColorRamp;
 import com.everythingrgbprofile.color.RGBColor;
+import com.everythingrgbprofile.config.Feature;
 import com.everythingrgbprofile.config.RGBProfileConfig;
 import com.everythingrgbprofile.effects.support.*;
 import com.everythingrgbprofile.keymap.KeyGrid;
@@ -479,7 +480,9 @@ public final class EffectRegistry {
         /** Sky over grass, matching the panorama the game had through 1.21.x. */
         VANILLA,
         /** The Forge Everything pack's title art. */
-        MINESHAFT
+        MINESHAFT,
+        /** The Sift: coral mesas under an aurora. Development builds only; see {@code Feature.SIFT}. */
+        SIFT
     }
 
     /**
@@ -508,6 +511,7 @@ public final class EffectRegistry {
                     RGBProfileConfig.MENU_TORCH_COUNT.get());
             case VANILLA -> new VanillaMenuPattern(RGBProfileConfig.MENU_VANILLA_CLOUD_COUNT.get());
             case SULFUR -> SulfurCavePattern.menu();
+            case SIFT -> SiftPattern.menu();
         };
     }
 
@@ -530,6 +534,8 @@ public final class EffectRegistry {
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_GRASS_COLOR.get(), ColorPalette.MENU_VANILLA_GRASS);
             case SULFUR ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_ROCK_COLOR.get(), ColorPalette.SULFUR_ROCK);
+            case SIFT ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SIFT_MESA_COLOR.get(), ColorPalette.SIFT_MESA);
         };
     }
 
@@ -548,6 +554,8 @@ public final class EffectRegistry {
         return switch (menuStyle()) {
             case SULFUR ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_POOL_COLOR.get(), ColorPalette.SULFUR_ACID_POOL);
+            case SIFT ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SIFT_SKY_COLOR.get(), ColorPalette.SIFT_SKY);
             case VANILLA, MINESHAFT ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_SKY_COLOR.get(), ColorPalette.MENU_VANILLA_SKY);
         };
@@ -561,6 +569,9 @@ public final class EffectRegistry {
             case "mineshaft" -> MenuStyle.MINESHAFT;
             case "vanilla" -> MenuStyle.VANILLA;
             case "sulfur" -> MenuStyle.SULFUR;
+            // Only in a build that carries the Sift. In a release it falls
+            // through to the default below, the same as any unknown value.
+            case "sift" -> Feature.SIFT.isOn() ? MenuStyle.SIFT : MenuStyle.SULFUR;
             // Anything unrecognised behaves as auto rather than throwing,
             // because a typo in a config file does not get to decide whether
             // the mod starts. Note this is the only path that reaches

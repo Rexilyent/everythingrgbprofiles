@@ -118,7 +118,19 @@ public enum Feature {
     SUN_SPIRIT(Stage.IN_DEVELOPMENT, () -> AETHER.isOn() && RGBProfileConfig.SUN_SPIRIT_ENABLED.get()),
     VALKYRIE_QUEEN(Stage.IN_DEVELOPMENT, () -> AETHER.isOn() && RGBProfileConfig.VALKYRIE_QUEEN_ENABLED.get()),
     /** Its reading of thirst and temperature is still a placeholder; see {@code ToughAsNailsCompat}. */
-    TOUGH_AS_NAILS(Stage.IN_DEVELOPMENT, () -> RGBProfileConfig.TOUGH_AS_NAILS_ENABLED.get());
+    TOUGH_AS_NAILS(Stage.IN_DEVELOPMENT, () -> RGBProfileConfig.TOUGH_AS_NAILS_ENABLED.get()),
+
+    // --- Upcoming vanilla content -----------------------------------------
+    /**
+     * The Sift, a dimension announced for a future Minecraft release: its
+     * portal colours and its title-screen theme. Built from the promotional
+     * screenshots ahead of time and held back until the dimension ships,
+     * because its id and its real textures do not exist yet. No switch of its
+     * own; the portal and menu switches it lives under already cover it.
+     * Flip to RELEASED, and move its portal profile into
+     * dimension_profiles.json, once the real id is known.
+     */
+    SIFT(Stage.IN_DEVELOPMENT, () -> true);
 
     public enum Stage {
         /** Finished and tested. Follows its config switch like a normal feature. */
