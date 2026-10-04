@@ -16,13 +16,15 @@ import java.util.Map;
  * caves, where they fall. Same engine, different palette and a sign flip -
  * which is the whole reason it is parameterised rather than copied.
  *
- * <p>Direction carries more meaning here than it looks like it should. The
- * enchanted tangle's motes rise, and that is most of what makes the place read
- * as enchanted rather than merely wooded: things that fall are obeying physics,
- * things that rise are not. Lush caves gets the opposite, because its particles
- * are {@code falling_spore_blossom} shed from blossoms on the ceiling — they
- * drift down, and having the two biomes move in opposite directions keeps them
- * from reading as the same place in two colours.
+ * <p>Direction carries considerably more meaning here than a sign flip has any
+ * right to. The enchanted tangle's motes RISE, and that is most of what makes
+ * the place read as enchanted rather than merely wooded: things that fall are
+ * obeying physics, and things that rise are not.
+ *
+ * <p>Lush caves gets the opposite, because its particles are
+ * {@code falling_spore_blossom} shed from blossoms on the ceiling. They drift
+ * down, and having the two biomes move in opposite directions is what keeps
+ * them from reading as the same place rendered in two colours.
  *
  * <h2>Where each palette comes from</h2>
  * The mote palette is lifted straight out of the particle this biome actually

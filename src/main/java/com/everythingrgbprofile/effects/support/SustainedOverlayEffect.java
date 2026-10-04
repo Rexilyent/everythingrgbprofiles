@@ -19,25 +19,28 @@ import com.everythingrgbprofile.priority.EffectTier;
  * <ul>
  *   <li>Health Flash, Hunger Warning, Thirst Warning, Temperature Extreme —
  *       Tier 2, confined to a single key each.</li>
- *   <li>Warden Active Presence — Tier 1, whole board.</li>
+ *   <li>Rain and snowfall — Tier 2, whole board.</li>
+ *   <li>Warden presence, the menu theme and the death state — Tier 1, whole
+ *       board.</li>
  * </ul>
  *
- * <p>Note those are wildly different in tier, scope, and urgency, and they're
- * all this class. That's the point: "hold a pattern on a key set while
- * someone tells me to" is the entire behaviour, and it's the same behaviour
- * whether the trigger is low HP or an incoming raid.
+ * <p>Those are wildly different in tier, in scope and in urgency, and every
+ * one of them is this class. Which is the point: "hold a pattern on a set of
+ * keys while somebody tells me to" is the entire behaviour, and it does not
+ * change depending on whether the thing telling you is low HP or a Warden
+ * walking up.
  *
- * <p>Zero game logic lives here. Not one reference to health, hunger, or
- * anything Minecraft-shaped. All of that is in the owning effect class or
- * event handler, which just calls {@link #setActive}. Keeping the split clean
- * is why one class covers six features.
+ * <p>Zero game logic lives in here. Not one reference to health, to hunger, or
+ * to anything else Minecraft-shaped. All of that sits in the event handler,
+ * which just calls {@link #setActive}. Keeping that split honest is the only
+ * reason one class manages to cover nine features.
  */
 public final class SustainedOverlayEffect implements EffectController {
 
     private final String id;
     private final EffectTier tier;
     private final int priority;
-    /** null = whole primary surface. */
+    /** null means the whole primary surface. */
     private final List<KeyGrid.LedRef> targetKeys;
     private final Pattern pattern;
 
@@ -79,7 +82,7 @@ public final class SustainedOverlayEffect implements EffectController {
         this.active = nowActive;
     }
 
-    /** Recolourable live — the biome effect drives this as you walk around. */
+    /** Recolourable live — the temperature warning swaps between hot and cold this way. */
     public void setColor(RGBColor color) {
         this.color = color;
     }

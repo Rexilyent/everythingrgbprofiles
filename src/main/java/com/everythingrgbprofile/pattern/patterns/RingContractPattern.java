@@ -20,17 +20,22 @@ import com.everythingrgbprofile.pattern.PatternContext;
  * brightness = eased                     // gets brighter as it closes
  * </pre>
  *
- * <h2>Why this feels bad (complimentary)</h2>
- * Ring-expand eases OUT and dims — energy leaving, dissipating, calm. This
- * eases IN and brightens — accelerating inward, getting more intense, arriving.
- * That's the difference between "a sensor pinged" and "something has located
- * you and is closing". Same geometry, inverted derivatives, completely
- * inverted emotional read. Cheapest horror in the codebase.
+ * <h2>Why this feels bad, and that is a compliment</h2>
+ * Ring-expand eases OUT and dims: energy leaving, dissipating, calming down.
+ * This one eases IN and brightens: accelerating inward, getting more intense,
+ * arriving somewhere.
+ *
+ * <p>That is the whole difference between "a sensor pinged" and "something has
+ * located you and is closing". Identical geometry, inverted derivatives,
+ * completely inverted emotional read.
+ *
+ * <p>Cheapest horror in the entire codebase.
  *
  * <h2>Escalation lives elsewhere</h2>
- * Repeated shrieks deepen the colour, close faster, and flash harder — but
- * none of that is tracked here. {@code SculkAlertEffect} just constructs a new
- * instance with escalated parameters each time. This class stays a pure
+ * Repeated shrieks brighten the colour and close faster — but none of that is
+ * tracked here. {@code SculkEscalationTracker} works out the level, and the
+ * shrieker handler in {@code ClientEventHandlers} constructs a new instance
+ * and hands the flash an escalated colour and duration each time. This class stays a pure
  * single-shot renderer with no memory, which makes it trivially testable and
  * means the escalation logic lives in one place instead of two.
  */

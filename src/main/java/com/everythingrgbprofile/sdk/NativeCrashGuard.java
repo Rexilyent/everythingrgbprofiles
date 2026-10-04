@@ -22,20 +22,26 @@ import java.util.stream.Stream;
  *
  * <h2>The problem</h2>
  * Corsair's and Logitech's SDKs are native DLLs. When one of those faults — a
- * vendor update that changed something, a build nobody here has run — it does
- * not throw anything this mod can catch. The whole game process dies on the
- * spot, leaving an {@code hs_err_pid} file in the game folder and nothing in
- * Minecraft's log or crash reports that points at this mod. And since the mod
- * connects on every launch, the game then crashes on every launch, and the
- * player's only way out is to remove the mod.
+ * vendor update that quietly changed something, a build nobody here has ever
+ * run — it does not throw anything this mod can catch. The entire game process
+ * dies on the spot.
  *
- * <h2>How it is caught</h2>
- * A marker file is written just before a backend's native connection code runs,
- * and deleted as soon as it returns, whatever the outcome. It is also deleted by
- * a shutdown hook, which runs whenever the game exits normally or through
- * Minecraft's own crash handling. A native fault is one of the few ways to end
- * the process without running shutdown hooks. So a marker still there at the
- * next launch means the process died inside that backend's native code.
+ * <p>What it leaves behind is an {@code hs_err_pid} file in the game folder
+ * and absolutely nothing in Minecraft's log or crash reports pointing at this
+ * mod. And because the mod connects on every launch, the game then crashes on
+ * every launch, and the player's only apparent way out is deleting the mod and
+ * never thinking about it again.
+ *
+ * <h2>How it gets caught</h2>
+ * A marker file is written immediately before a backend's native connection
+ * code runs, and deleted the moment it returns, whatever the outcome. It is
+ * also deleted by a shutdown hook, which runs whenever the game exits normally
+ * OR through Minecraft's own crash handling.
+ *
+ * <p>A native fault is one of the very few ways to end a JVM process without
+ * running shutdown hooks. So a marker still sitting there at the next launch
+ * means the process died inside that backend's native code, and there is no
+ * other reasonable explanation for it being there.
  *
  * <p>That backend is then skipped, with a diagnosis saying so, until one of:
  * <ul>
@@ -45,13 +51,15 @@ import java.util.stream.Stream;
  *   <li>the player runs {@code /rgbprofiles retry}.</li>
  * </ul>
  *
- * <p>The one false positive is the game being killed from outside, by Task
- * Manager or a power cut, in the second or two a connection takes. That is rare,
- * costs one launch without that backend, and the diagnosis names the way back.
+ * <p>There is exactly one false positive: the game being killed from outside,
+ * by Task Manager or a power cut, during the second or two a connection takes.
+ * That is rare, it costs one launch without that backend, and the diagnosis
+ * spells out the way back.
  *
- * <p>Only connecting is guarded. A fault while sending frames mid-game cannot be
- * told apart from any other mod crashing the game in the same session, and
- * guessing would switch off lighting that works.
+ * <p>Only CONNECTING is guarded. A fault while sending frames mid-game cannot
+ * be told apart from any other mod crashing the game in that same session, and
+ * guessing wrong there would switch off lighting that was working perfectly
+ * well.
  */
 public final class NativeCrashGuard {
 

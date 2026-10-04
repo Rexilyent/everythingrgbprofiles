@@ -18,12 +18,16 @@ import java.util.Map;
  * output entirely, so the biome underneath keeps showing through — the same
  * way rain leaves the board visible between drops.
  *
- * <h2>The waterline is the whole effect</h2>
- * A flat boundary between "blue" and "not blue" reads as a progress bar. What
- * makes it read as water is that the line is not flat: it carries a slow sine
- * along the board, and it catches the light — keys near the surface are
- * brighter and paler than the ones below them. Depth then does the rest, with
- * the blue growing denser further down until it hides the biome completely.
+ * <h2>The waterline IS the whole effect</h2>
+ * A flat boundary between "blue" and "not blue" reads as a progress bar, and a
+ * progress bar is not what anybody wants to be looking at while drowning.
+ *
+ * <p>What makes it read as water instead is that the line is not flat: it
+ * carries a slow sine along the board, and it catches the light, so keys near
+ * the surface come out brighter and paler than the ones below them.
+ *
+ * <p>Depth then does the rest, with the blue growing denser the further down
+ * it goes until it all but hides the biome (94% at full depth).
  *
  * <h2>Why the level is eased here rather than at the poll</h2>
  * Air supply is an integer that ticks down once per tick, so a poll can only

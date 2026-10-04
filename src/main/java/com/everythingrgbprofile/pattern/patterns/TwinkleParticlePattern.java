@@ -13,25 +13,38 @@ import com.everythingrgbprofile.pattern.Pattern;
 import com.everythingrgbprofile.pattern.PatternContext;
 
 /**
- * The generic {@code twinkle-particle} engine — one class behind firefly-glow
- * (lush caves), sculk-shimmer (deep dark, plus the Warden's busier variant),
- * and starfield-twinkle (the End).
+ * The generic {@code twinkle-particle} engine, with three presets:
+ * firefly-glow, sculk-shimmer and starfield-twinkle.
+ *
+ * <p>No bundled profile names any of them any more. Lush caves moved to
+ * {@code glow-motes}, the deep dark to {@code shimmer-twinkle}, and the End to
+ * {@link EndAuroraPattern} (see there for why pale dots on a dark board were
+ * the wrong read of that sky). The presets stay because configs out there name
+ * them, and an unknown pattern name silently degrades to a plain shimmer. The
+ * engine itself still does real work as the glints inside
+ * {@link ShimmerTwinklePattern}, which is how the deep dark and the Warden's
+ * presence layer get theirs.
  *
  * <p>Not to be confused with {@link ShimmerPattern}, which it superficially
- * resembles. Shimmer is a continuous sine wave on <i>every</i> key. This is a
- * fixed budget of independent point lights that blink into existence, fade,
- * and reappear somewhere else. Shimmer is a surface breathing; this is
- * individual things glinting in the dark.
+ * resembles and is doing something completely different. Shimmer is a
+ * continuous sine wave running on <i>every</i> key. This is a fixed budget of
+ * independent point lights that blink into existence, fade out, and reappear
+ * somewhere else entirely.
+ *
+ * <p>Shimmer is a surface breathing. This is individual things glinting in the
+ * dark. Those are not the same thought.
  *
  * <p>Same "parameterise, don't subclass" approach as drift-particle. Three
  * presets, one engine, differing only in count and interval.
  *
  * <h2>The slot model</h2>
- * There are exactly {@code twinkleCount} twinkles, forever. When one finishes
- * it isn't destroyed — its slot is immediately recycled with a new key, a new
- * duration, and a jittered future start time. This bounds the work per frame
- * to a known constant with zero allocation churn, and makes "how busy is this
- * effect" a single number you can tune.
+ * There are exactly {@code twinkleCount} twinkles. Forever. When one finishes
+ * it does not get destroyed: its slot is immediately recycled with a new key,
+ * a new duration and a jittered future start time.
+ *
+ * <p>Which bounds the work per frame to a known constant with zero allocation
+ * churn, and turns "how busy is this effect" into one number somebody can
+ * tune without reading any code.
  */
 public final class TwinkleParticlePattern implements Pattern {
 
@@ -112,9 +125,10 @@ public final class TwinkleParticlePattern implements Pattern {
         // — and so does every other slot, all at once. The layer goes
         // completely silent for exactly as long as it ran the time before.
         //
-        // This is what made the main menu come back with its stone base but no
-        // embers and no arcane motes at all after a world had been loaded and
-        // quit: the shimmer underneath is a pure function of elapsed time and
+        // The same defect, in the main menu's own copy of this slot logic
+        // (MenuAmbientPattern carries one, with the same fix), is what made the
+        // menu come back with its stone base but no embers and no arcane motes
+        // at all after a world had been loaded and quit: the shimmer underneath is a pure function of elapsed time and
         // does not care, whereas everything scheduled cares enormously. Same
         // defect would silence the Warden's presence layer on a second
         // encounter.

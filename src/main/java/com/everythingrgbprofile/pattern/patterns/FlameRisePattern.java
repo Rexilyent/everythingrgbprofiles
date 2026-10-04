@@ -18,14 +18,17 @@ import java.util.Map;
  * keeps showing over them, exactly as it does above the waterline.
  *
  * <h2>What makes it fire rather than a red water level</h2>
- * Water has one surface and it is nearly flat. Fire has no surface at all: it
- * is tongues, each column reaching its own height and changing it several
- * times a second. So the top edge here is three sines on unrelated spatial
- * and temporal frequencies rather than one slow wave, which gives tongues
- * that lick upward and fall back out of step with their neighbours. The
- * colour runs the other way to water's too — hottest and brightest at the
- * base, reddening toward the tips — and a handful of sparks break off the top
- * and rise above it.
+ * Water has exactly one surface and that surface is nearly flat. Fire has no
+ * surface at all. It is tongues, each column reaching its own height and then
+ * changing its mind about it several times a second.
+ *
+ * <p>So the top edge in here is three sines running on unrelated spatial and
+ * temporal frequencies, rather than one slow wave, which gives tongues that
+ * lick upward and drop back permanently out of step with their neighbours.
+ *
+ * <p>The colour runs the opposite way to water's as well — hottest and
+ * brightest at the base, reddening toward the tips — and a handful of sparks
+ * break off the top and rise above the rest.
  *
  * <h2>Solid, not see-through</h2>
  * A key is either fire or biome, never a mix of the two. Water can be
