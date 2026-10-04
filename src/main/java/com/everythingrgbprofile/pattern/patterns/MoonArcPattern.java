@@ -13,10 +13,13 @@ import java.util.Map;
  * A moon crossing the board, tracking how much night is left.
  *
  * <p>Rises out of the left edge, arcs across the top rows, and sets down the
- * right — the same shape Terraria's RGB uses for its night events, and the
- * same shape the actual sky does. Where it is IS the information: a moon still
- * climbing on the left means most of the night is ahead of you, a moon dropping
- * off the right edge means dawn.
+ * right. That is the same shape Terraria's RGB uses for its night events, and
+ * also the same shape the actual sky uses, which is presumably where Terraria
+ * got it.
+ *
+ * <p>Where it IS constitutes the information. A moon still climbing on the
+ * left means most of the night is ahead of you. A moon dropping off the right
+ * edge means dawn. No number required, no reading involved.
  *
  * <h2>The arc is a real circle, not a guess</h2>
  * Traced from the reference capture frame by frame, the moon's path fits
@@ -27,10 +30,10 @@ import java.util.Map;
  * </pre>
  *
  * to within about 3% horizontally and 2% vertically across the whole run. That
- * is a circle seen edge-on, which is exactly what a body crossing the sky looks
- * like from the ground: near the horizon it climbs almost vertically while
- * barely moving sideways, and near the zenith it slides sideways while barely
- * changing height.
+ * is steady motion round a half-circle, stretched to fit the board, which is
+ * exactly what a body crossing the sky looks like from the ground: near the
+ * horizon it climbs almost vertically while barely moving sideways, and near
+ * the zenith it slides sideways while barely changing height.
  *
  * <p>That non-linearity is the entire reason this does not just interpolate
  * left-to-right. A moon moving at constant horizontal speed reads as a

@@ -10,9 +10,9 @@ import com.everythingrgbprofile.pattern.Pattern;
 import com.everythingrgbprofile.pattern.PatternContext;
 
 /**
- * {@code ring-expand}, which drives the Sculk Sensor Ping: a ring grows
- * outward from the middle of the keyboard and fades as it goes. Sonar ping,
- * basically.
+ * {@code ring-expand}, which drives the Sculk Sensor Ping (and the rings
+ * thrown off a dying Ender Dragon): a ring grows outward from the middle of
+ * the keyboard and fades as it goes. Sonar ping, basically.
  *
  * <pre>
  * eased      = 1 - (1-p)^2      // ease-out: fast expansion, gentle settle
@@ -21,13 +21,17 @@ import com.everythingrgbprofile.pattern.PatternContext;
  * </pre>
  *
  * <h2>Why it reads as calm rather than alarming</h2>
- * The ease-out is doing the emotional work. The ring bolts outward
- * immediately then decelerates, which is what a wave dissipating looks like.
- * Ease-IN would have it accelerate outward — that reads as something rushing
- * at you, which is the wrong feeling entirely for "a sensor noticed you
- * exist". Escalating that into actual dread is the shrieker's job, and it uses
- * ring-CONTRACT for exactly that reason: inward motion is threatening,
- * outward motion is informative.
+ * The ease-out is doing all of the emotional work here. The ring bolts outward
+ * immediately and then decelerates, which is exactly what a wave dissipating
+ * looks like.
+ *
+ * <p>Ease-IN would have it accelerate outward instead, and that reads as
+ * something rushing AT you, which is entirely the wrong feeling for "a sensor
+ * noticed that you exist".
+ *
+ * <p>Escalating that into genuine dread is the shrieker's job, and it uses
+ * ring-CONTRACT for precisely this reason. Inward motion is threatening.
+ * Outward motion is informative. Same circle, opposite meaning.
  */
 public final class RingExpandPattern implements Pattern {
 

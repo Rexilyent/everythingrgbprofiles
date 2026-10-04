@@ -23,28 +23,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Where every effect gets built, wired, and handed a priority. If you're
- * trying to answer "what effects exist and how do they rank", this is the
- * file — it's the closest thing the mod has to a table of contents.
+ * Where every effect gets built, wired up and handed a priority. If the
+ * question is "what effects exist and how do they rank against each other",
+ * this is the file. It is the closest thing this mod has to a table of
+ * contents.
  *
- * <p>Everything is constructed exactly once, on the SDK worker thread,
+ * <p>Everything here is constructed exactly once, on the SDK worker thread,
  * immediately after the keyboard's real (or synthetic) {@link KeyGrid} is
- * known. It has to be after, because several effects resolve config key
- * labels against actual hardware and need to know what physically exists.
+ * known. It has to happen after, because several effects resolve config key
+ * labels against actual hardware and therefore need to know what physically
+ * exists before they can be built.
  *
- * <p>Fields are public and typed rather than looked up by string, so
- * {@code ClientEventHandlers} says {@code effects.portalCharge.setActive(...)}
- * and gets a compile error if that's wrong, instead of a map lookup returning
- * null at runtime because someone typo'd an id.
+ * <p>The fields are public and typed rather than looked up by string, which is
+ * deliberate. {@code ClientEventHandlers} writes
+ * {@code effects.portalCharge.setActive(...)} and gets a compile error the
+ * moment that is wrong, instead of a map lookup quietly returning null at
+ * runtime because somebody typo'd an id eighteen months ago.
  */
 public final class EffectRegistry {
 
     private final EffectManager manager;
 
-    // Loaded once at startup. NOT hot-reloaded per frame — re-reading three
-    // JSON files 60 times a second would be a choice. A future "recheck"
-    // command could reload them; until then, editing a profile means
-    // restarting.
+    // Loaded once at startup, and pointedly NOT hot-reloaded per frame.
+    // Re-reading three JSON files sixty times a second would certainly be a
+    // decision somebody could make. A future "recheck" command could reload
+    // them properly; until that exists, editing a profile means restarting.
     public Map<String, BiomeProfile> biomeProfiles;
     public Map<String, BossProfile> bossProfiles;
     public Map<String, DimensionProfile> dimensionProfiles;
@@ -69,6 +72,7 @@ public final class EffectRegistry {
     public SustainedOverlayEffect healthFlash;
     public SustainedOverlayEffect hungerWarning;
     public SustainedOverlayEffect rainCascade;
+    public SustainedOverlayEffect snowfall;
     public PortalChargeEffect portalCharge;
     public SustainedOverlayEffect thirstWarning;
     public SustainedOverlayEffect temperatureWarning;
@@ -107,11 +111,14 @@ public final class EffectRegistry {
 
         // ============ Tier 1 ============
         // Priorities here are a strict "who owns the board" ladder:
-        //   0  biome      — the resting state
-        //   1  menu       — title screen, only active when there's no world
-        //   10 boss       — a fight outranks scenery
-        //   11 warden     — the Warden outranks the boss (correct, frankly)
-        //   20 raid       — a raid outranks everything else in this tier
+        //   0      biome      — the resting state
+        //   1      menu       — title screen, only active when there's no world
+        //   10     boss       — the generic layer; a fight outranks scenery
+        //   11     warden     — the Warden outranks the boss (correct, frankly)
+        //   20     raid
+        //   22-28  dedicated boss layers, which all beat the raid and the
+        //          generic boss layer they replace (see each one below)
+        //   100    death      — above everything, and exclusive
 
         biomeColor = new BiomeColorEffect(biomeProfiles);
         manager.register(biomeColor);
@@ -222,10 +229,10 @@ public final class EffectRegistry {
                 RGBProfileConfig.END_BREATH_FIRE_COLOR.get(), ColorPalette.END_BREATH_FIRE));
         manager.register(enderDragon);
 
-        // Priority 26: the top of the dedicated-boss bracket only because it
-        // was added last. The Slider never leaves the Aether, so it cannot
-        // share a board with any of the others; what matters is that it beats
-        // the generic pulse (10) that also claims it through c:bosses.
+        // Priority 26, the first of the three Aether bosses. The Slider never
+        // leaves the Aether, so it cannot share a board with any of the
+        // non-Aether ones; what matters is that it beats the generic pulse
+        // (10) that also claims it through c:bosses.
         slider = new SliderEffect(26);
         slider.setColors(
                 RGBColor.fromHexOrDefault(RGBProfileConfig.SLIDER_STONE_COLOR.get(), ColorPalette.SLIDER_STONE),
@@ -257,9 +264,10 @@ public final class EffectRegistry {
         manager.register(valkyrieQueen);
 
         // ============ Tier 2 ============
-        // Priority is meaningless here (everyone draws), hence all the 0s.
-        // The interesting distinction is scope: single-key warnings vs
-        // whole-board overlays.
+        // Priority is meaningless here (everyone draws), hence the 0s. The
+        // few that carry another number (the portal pair, the Warden
+        // emergence) say why where they're built. The interesting distinction
+        // is scope: single-key warnings vs whole-board overlays.
         //
         // Registration order is NOT arbitrary in this tier, though. There is no
         // priority contest, so overlays composite in the order they are
@@ -288,6 +296,18 @@ public final class EffectRegistry {
                 RGBColor.fromHexOrDefault(RGBProfileConfig.RAIN_COLOR.get(), ColorPalette.RAIN_BLUE_GRAY))
                 .withLayerOpacity(RGBProfileConfig.RAIN_LAYER_OPACITY.get());
         manager.register(rainCascade);
+
+        // Rain's cold-biome twin, and the only snowfall in the mod. The snowy
+        // biomes used to draw snow as their base pattern, which meant it was
+        // snowing on you forever under a clear sky. Now the biomes draw the
+        // land and this draws the weather, only while it's actually snowing.
+        // Never on at the same time as the rain: one position gets one kind
+        // of precipitation, and pollWeather asks per position.
+        snowfall = new SustainedOverlayEffect("snowfall", EffectTier.TIER2_OVERLAY, 0, null,
+                DriftParticlePattern.snowDrift(),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.SNOW_COLOR.get(), ColorPalette.SNOWFALL))
+                .withLayerOpacity(RGBProfileConfig.RAIN_LAYER_OPACITY.get());
+        manager.register(snowfall);
 
         // After the rain, deliberately. The moon is the one Tier 2 overlay you
         // read rather than just notice, and rain drawing over it would hide it
@@ -350,17 +370,18 @@ public final class EffectRegistry {
         // and it's what the suppression floors are measured against:
         //
         //   100  death              — nothing outranks dying
-        //    92  portal transition
         //    90  shrieker alert
         //    85  lightning
         //    40  level up / advancement   (the "confetti" tier)
         //    20  sculk sensor ping
         //    10  sleep/wake
         //
-        // Warden emergence used to sit at 95 in this list. It is now a Tier 2
-        // overlay, so it never competes here: it draws alongside whatever is
-        // showing and, while it runs, holds off every flash below 96 — which
-        // is everything except death.
+        // Warden emergence (95) and the portal transition (92) used to sit in
+        // this list too. Both are Tier 2 overlays now, so neither competes
+        // here: each draws alongside whatever is showing and, while it runs,
+        // holds off every flash below 96 — which is everything except death.
+        // They're still registered down here because they play the part of
+        // an interrupt.
 
         deathFlash = new MomentaryFlashEffect("death_flash", 100);
         manager.register(deathFlash);
@@ -380,11 +401,13 @@ public final class EffectRegistry {
         lightningFlash = new MomentaryFlashEffect("lightning_flash", 85);
         manager.register(lightningFlash);
 
-        // 92 and not 50, which is where it used to be. A player-initiated
-        // dimension change outranks weather and sculk ambience (lightning 85,
-        // shrieker 90) while still yielding to death (100) and to a Warden
-        // emergence already in progress, whose floor of 96 holds it off. At 50 a thunderstorm or a passing shrieker would swallow the
-        // arrival outright — you'd walk through a portal and see nothing,
+        // Tier 2, like the Warden emergence, so the 92 is another number that
+        // only records where it ranked back when this was a Tier 3 flash. What
+        // actually protects the arrival now is its suppression floor (the
+        // portal suppression floor in the config, 96 by default, pushed in
+        // when the portal fires): lightning (85) and a shrieker
+        // (90) are held off for the whole sequence, and only death gets
+        // through. Without it you'd walk through a portal and see nothing,
         // because it rained.
         portalTransitionFlash = new PortalTransitionEffect(92);
         manager.register(portalTransitionFlash);
@@ -411,7 +434,7 @@ public final class EffectRegistry {
     /**
      * Fails loudly if any effect field was left unassigned.
      *
-     * <p>This method is ~25 assignments long, every one of them
+     * <p>This method is over thirty assignments long, every one of them
      * {@code field = new Something(...)} followed by a register call, and the
      * fields are declared a hundred lines away from where they are filled in.
      * Drop one — an edit that lands on the wrong line, a merge that eats a
@@ -497,37 +520,49 @@ public final class EffectRegistry {
         return RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_SKY_COLOR.get(), ColorPalette.MENU_VANILLA_SKY);
     }
 
-    /** Resolved once at registration; the theme does not change mid-session. */
+    /** Resolved once at registration, because the theme does not change mid-session. */
     private static boolean useMineshaftMenu() {
         String style = RGBProfileConfig.MENU_STYLE.get();
         if (style == null) return false;
         return switch (style.trim().toLowerCase(java.util.Locale.ROOT)) {
             case "mineshaft" -> true;
             case "vanilla" -> false;
-            // Anything unrecognised behaves as auto rather than throwing: a
-            // typo in a config file should not decide whether the mod starts.
+            // Anything unrecognised behaves as auto rather than throwing,
+            // because a typo in a config file does not get to decide whether
+            // the mod starts. Note this is the only path that reaches
+            // PackDetection at all: the default of "vanilla" returns above
+            // without ever touching the disk.
             default -> PackDetection.matches(RGBProfileConfig.MENU_PACK_PATTERNS.get());
         };
     }
 
     /**
-     * Turns a config key label like {@code "H"} into a real LED, using the
-     * named-key table the connected backend provided. On Corsair that comes
-     * from {@code CorsairGetLedLuidForKeyName}, which respects the user's
+     * Turns a config key label such as {@code "H"} into a real LED, using the
+     * named-key table the connected backend handed over.
+     *
+     * <p>On Corsair that table comes from
+     * {@code CorsairGetLedLuidForKeyName}, which respects the user's actual
      * keyboard layout (checked on a K70 RGB RAPIDFIRE: H→47, F→45, T→33,
-     * K→49); Razer's comes from its documented key table; Logitech and
-     * SteelSeries document no key positions, so they have none and every
-     * label falls back as described below.
+     * K→49). Razer's comes from its documented key table. Logitech and
+     * SteelSeries document no key positions whatsoever, so they have no table
+     * at all and every label falls back as described below.
      *
-     * <p>Returns null (meaning "whole primary surface") if the key isn't
-     * present, after logging a warning that names both the effect and the key
-     * so the message is actionable.
+     * <p>Note also that {@code KeyGrid.namedKey} only reads the first
+     * character of the label, so {@code "F5"} resolves to F rather than to F5
+     * or to null.
      *
-     * <p><b>Why this exists:</b> an earlier version passed the raw string
-     * straight down to the SDK layer, where an unrecognised label resolved to
-     * LED id 0 — a real, valid LED. So a typo'd config key didn't error, it
-     * silently lit up some unrelated key forever. Failing loudly to the whole
-     * board is enormously easier to diagnose than one mystery key.
+     * <p>Returns null, meaning "the whole primary surface", when the key isn't
+     * present — after logging a warning naming both the effect AND the key, so
+     * the message is something a person can act on.
+     *
+     * <p><b>Why any of this exists:</b> an earlier version passed the raw
+     * string straight down to the SDK layer, where an unrecognised label
+     * resolved to LED id 0. Which is a real, valid, perfectly good LED. So a
+     * typo'd config key did not error, it silently lit up some unrelated key
+     * and kept doing it forever.
+     *
+     * <p>Failing loudly to the whole board is enormously easier to diagnose
+     * than one mystery key nobody can explain.
      */
     private static List<KeyGrid.LedRef> resolveKey(KeyGrid grid, String label, String effectId) {
         KeyGrid.LedRef ref = grid.namedKey(label);

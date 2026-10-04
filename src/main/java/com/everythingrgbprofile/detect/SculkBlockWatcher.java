@@ -22,17 +22,17 @@ import java.util.function.Predicate;
  * Client-side detection of sculk sensors firing and shriekers shrieking.
  *
  * <p>Before this class existed, the Sculk Sensor Ping and Shrieker Alert
- * effects were fully implemented — colours, escalation, ring patterns, the
- * lot — but their only caller was the network payload handler, and nothing
- * ever sent that payload. They were unreachable code. This is the signal they
- * were missing.
+ * effects were completely finished. Colours, escalation, ring patterns, all
+ * of it. Not one of them had ever run, not once, for anybody, because the
+ * only thing that called them was a network payload handler being fed by an
+ * optional server-side relay that never actually sent a payload. Fully
+ * implemented, fully unreachable. This class is the signal they were missing.
  *
- * <h2>Why no server component is needed</h2>
- * The server relay in {@code server/} was written on the assumption that the
- * activation had to be observed server-side and forwarded. It doesn't. Both
- * blocks carry their firing state
- * in the <b>block state</b>, and block states sync to every client that has
- * the chunk:
+ * <h2>The server component that got deleted, and why</h2>
+ * That relay existed to spot a sculk activation server-side and forward it to
+ * the client. It never needed to, because the game already solves this on its
+ * own: both blocks carry their firing state in the <b>block state</b>, and
+ * block states get synced to every client holding the chunk:
  *
  * <ul>
  *   <li>{@code SculkSensorBlock.PHASE} cycles INACTIVE to ACTIVE to COOLDOWN,
@@ -41,63 +41,75 @@ import java.util.function.Predicate;
  *       flag 2.</li>
  * </ul>
  *
- * <p>Both flags include "send to client", so watching for the rising edge on
- * the client is sufficient, needs no mixin, and works on any vanilla server
- * without the mod installed. That last point is the one that settles it.
+ * <p>Both of those flags include "send to client". Which means watching for
+ * the rising edge right here is the entire job: no mixin, no packets, no
+ * server component, and it works on a bone-stock vanilla server that has
+ * never heard of this mod in its life. That last part is what settled the
+ * argument, because a relay cannot do that by definition. The relay and its
+ * payload were deleted and this mod now has no network surface at all.
  *
- * <h2>Why scanning blocks is affordable</h2>
- * The obvious objection to a block scan is cost: a radius of 16 is nearly
- * 36,000 positions, and doing that even a few times a second to run a
- * cosmetic light show would be indefensible.
+ * <h2>Why scanning tens of thousands of blocks is fine, actually</h2>
+ * The obvious objection to a block scan is the cost. A radius of 16 is just
+ * under 36,000 positions, and walking that several times a second to drive a
+ * cosmetic light show would be completely indefensible.
  *
- * <p>{@link LevelChunkSection#maybeHas} is what makes it fine. It tests the
- * section's <b>palette</b> — the list of distinct block states the section
- * contains — so asking "is there any sculk in this 16x16x16 at all" is one
- * cheap call, not 4,096 lookups. Outside a Deep Dark essentially every section
- * answers no and is skipped whole. Inside one, only the sections that really
- * hold sculk get walked.
+ * <p>{@link LevelChunkSection#maybeHas} is the reason it isn't. It checks the
+ * section's <b>palette</b>, which is the list of distinct block states that
+ * section actually contains, so "is there any sculk in this entire 16x16x16"
+ * costs one cheap call rather than 4,096 lookups. Outside the Deep Dark
+ * basically every section answers no and gets skipped whole. Inside one, only
+ * the sections genuinely holding sculk get walked.
  *
- * <p>State is a flat map of packed positions to "was it firing last time",
- * pruned every scan to what is still in range, so a long session in a large
- * sculk field does not grow it without bound.
+ * <p>State is a flat map of packed positions to "was this firing last time",
+ * pruned every scan down to whatever is still in range, so parking yourself in
+ * a large sculk field for three hours doesn't quietly turn into a memory leak.
  */
 public final class SculkBlockWatcher {
 
-    /** What the palette test looks for. Calibrated sensors count — they fire identically. */
+    /**
+     * What the palette test is hunting for. Calibrated sensors are in the list
+     * too, because they fire in exactly the same way and there is no reason to
+     * snub them.
+     */
     private static final Predicate<BlockState> IS_SCULK_TRIGGER = state ->
             state.is(Blocks.SCULK_SENSOR)
                     || state.is(Blocks.CALIBRATED_SCULK_SENSOR)
                     || state.is(Blocks.SCULK_SHRIEKER);
 
-    /** Told once per scan, however many blocks fired — see the dispatch note in {@link #poll}. */
+    /** Told once per scan no matter how many blocks fired; see the note on {@link #poll}. */
     public interface Listener {
         void onSensorActivated();
 
         void onShriekerActivated();
     }
 
-    /** Packed BlockPos to "was firing at the previous scan". */
+    /** Packed BlockPos to "was this firing at the previous scan". */
     private final Map<Long, Boolean> lastFiring = new HashMap<>();
-    /** Reused across scans to avoid allocating a set every poll. */
+    /** Reused across scans instead of allocating a fresh set four times a second. */
     private final Set<Long> seenThisScan = new HashSet<>();
 
     private boolean sensorFired;
     private boolean shriekerFired;
 
-    /** Wipes all memory of what was firing. Call on world unload. */
+    /**
+     * Wipes all memory of what was firing. Called on world unload, because
+     * positions from the world you just left mean nothing in the one you are
+     * about to load and would just sit there taking up space.
+     */
     public void reset() {
         lastFiring.clear();
         seenThisScan.clear();
     }
 
     /**
-     * Scans for rising edges and reports at most one sensor and one shrieker
-     * event.
+     * Scans for rising edges and reports at most one sensor event and one
+     * shrieker event, however many blocks actually went off.
      *
-     * <p>The collapsing is deliberate. A Deep Dark can have a dozen sensors go
-     * off from a single footstep, and both effects are whole-board Tier 3
-     * flashes — firing twelve identical retriggers into the SDK queue would
-     * produce exactly the same visual as firing one, at twelve times the cost.
+     * <p>That collapsing is deliberate. One footstep in a Deep Dark can set off
+     * a dozen sensors at once, and both effects are whole-board Tier 3 flashes,
+     * so shoving twelve identical retriggers into the SDK queue gets you the
+     * exact same thing on the keyboard as sending one. Same picture, twelve
+     * times the bill.
      */
     public void poll(Player player, int radius, Listener listener) {
         Level level = player.level();
@@ -120,8 +132,10 @@ public final class SculkBlockWatcher {
 
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                // hasChunk first: getChunk on a missing chunk can trigger a
-                // load, and a lighting mod has no business forcing chunk loads.
+                // hasChunk first, always. getChunk on a chunk that isn't there
+                // can kick off a load, and a keyboard lighting mod forcing
+                // chunk loads on somebody's world is genuinely unacceptable
+                // behaviour.
                 if (!level.getChunkSource().hasChunk(chunkX, chunkZ)) continue;
                 LevelChunk chunk = level.getChunk(chunkX, chunkZ);
                 LevelChunkSection[] sections = chunk.getSections();
@@ -131,8 +145,9 @@ public final class SculkBlockWatcher {
                 for (int index = firstIndex; index <= lastIndex; index++) {
                     LevelChunkSection section = sections[index];
                     if (section == null || section.hasOnlyAir()) continue;
-                    // The palette test. Everything above is bookkeeping; this
-                    // line is why the whole approach is cheap.
+                    // The palette test. Everything above this is bookkeeping.
+                    // This one line is the reason the whole approach is cheap
+                    // enough to run four times a second.
                     if (!section.maybeHas(IS_SCULK_TRIGGER)) continue;
 
                     int baseY = SectionPos.sectionToBlockCoord(chunk.getSectionYFromSectionIndex(index));
@@ -142,8 +157,9 @@ public final class SculkBlockWatcher {
             }
         }
 
-        // Forget blocks that have left range, so the map tracks the player
-        // rather than growing for the whole session.
+        // Forget anything that has left range, so the map follows the player
+        // around instead of accumulating every sculk block they have ever
+        // walked past this session.
         lastFiring.keySet().retainAll(seenThisScan);
 
         if (sensorFired) listener.onSensorActivated();
@@ -168,8 +184,9 @@ public final class SculkBlockWatcher {
 
                     int z = baseZ + localZ;
                     long dz = z - center.getZ();
-                    // Spherical, not the cubic region the section walk gives
-                    // us. Squared throughout so there is no sqrt in here.
+                    // Spherical, rather than the cube the section walk hands
+                    // us for free. Squared distances the whole way through so
+                    // there is no sqrt anywhere in this loop.
                     if (dx * dx + dy * dy + dz * dz > radiusSq) continue;
 
                     long key = BlockPos.asLong(x, y, z);
@@ -179,11 +196,14 @@ public final class SculkBlockWatcher {
                             : state.getValue(SculkSensorBlock.PHASE) == SculkSensorPhase.ACTIVE;
                     Boolean previous = lastFiring.put(key, firing);
 
-                    // Rising edge only, and a block seen for the FIRST time
-                    // never counts as one however active it is. Without that
-                    // guard, walking into range of a busy sculk field would
-                    // set off a burst of pings for activations that happened
-                    // before you arrived — and so would every chunk reload.
+                    // Rising edge only, and a block being seen for the FIRST
+                    // time never counts as one no matter how loudly it is
+                    // going off right now.
+                    //
+                    // Skip that guard and walking into range of a busy sculk
+                    // field sets off a burst of pings for activations that
+                    // happened before you got there, which is a lie. Every
+                    // chunk reload does the same thing.
                     if (firing && previous != null && !previous) {
                         if (shrieker) {
                             shriekerFired = true;

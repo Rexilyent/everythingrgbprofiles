@@ -17,12 +17,14 @@ import java.util.Map;
  * dragon's wingspan and the Naga's body: the shape is the thing you recognise,
  * so draw the shape.
  *
- * <h2>The heads move independently because they do</h2>
- * A Wither's three heads pick their own targets and swing separately — that is
- * a real mechanic, not a rendering flourish, and it is the single detail that
- * makes it read as a Wither rather than as three dots. Each head bobs on its
- * own frequency, and a head that has locked onto something is drawn brighter
- * with its eye lit.
+ * <h2>The heads move independently because they genuinely do</h2>
+ * A Wither's three heads pick their own targets and swing separately. That is
+ * a real game mechanic rather than a rendering flourish, and it is the single
+ * detail that makes the board read as a Wither instead of as three dots in a
+ * row.
+ *
+ * <p>Each head bobs on its own frequency, and a head that has locked onto
+ * something gets drawn brighter with its eye lit.
  *
  * <h2>The skulls</h2>
  * Each shot is a mote leaving a head and running out to the edge of the board.

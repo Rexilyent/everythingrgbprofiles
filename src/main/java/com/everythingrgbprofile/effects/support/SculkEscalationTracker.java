@@ -3,29 +3,31 @@ package com.everythingrgbprofile.effects.support;
 import com.everythingrgbprofile.color.RGBColor;
 
 /**
- * Counts how much trouble you're in. Specifically: how many shrieks have
- * landed close enough together to count as one escalating incident.
+ * Counts how much trouble you are currently in. Specifically: how many shrieks
+ * have landed close enough together to count as one escalating incident rather
+ * than several unrelated ones.
  *
- * <p>Shriek once and it's a warning. Shriek again inside the window and it
- * gets darker, faster, and more insistent. Wander off, wait it out, and it
- * resets to nothing.
+ * <p>Shriek once and it is a warning. Shriek again inside the window and it
+ * gets brighter, faster and considerably more insistent. Wander off, wait it
+ * out, and it resets to nothing at all.
  *
- * <p>Escalation drives three things together — deeper colour, faster
- * ring-contract, harder convergence flash — which is why they're all derived
- * from one level here rather than tracked separately. They must move as one or
- * the escalation stops reading as escalation and starts reading as three
- * unrelated effects.
+ * <p>Escalation drives two things at once, the colour and how fast the ring
+ * closes, which is exactly why both are derived from one level in here instead
+ * of being tracked separately. They have to move together, or the escalation
+ * stops reading as escalation and starts reading as two unrelated effects
+ * going off near each other.
  *
- * <p>Pure state machine, no rendering, no Minecraft. Easy to reason about,
- * easy to test.
+ * <p>Pure state machine. No rendering, no Minecraft, nothing to mock. Easy to
+ * reason about and easy to test.
  *
- * <h2>Caveat: the window is a guess</h2>
- * The default {@code escalationWindowMillis} (20000ms, from config) is an
- * <b>untuned placeholder</b>. It has not been compared against vanilla's own
- * warning level, which rises with each shriek and decays on a timer of its
- * own, because measuring that means repeatedly baiting a real Warden spawn.
- * If escalation ever feels out of step with the game, this is the number to
- * change.
+ * <h2>Caveat: this does not track vanilla's own counter</h2>
+ * The default {@code escalationWindowMillis} (20000ms, from the config) is far
+ * shorter than the game's memory. Vanilla's {@code WardenSpawnTracker} only
+ * drops its warning level after 12000 ticks (10 minutes) without a shriek,
+ * ignores shrieks within 200 ticks (10 seconds) of the last one it counted,
+ * and summons on level 4. So shrieks a minute apart reset this to zero while
+ * the game is still counting toward a Warden. If escalation ever feels out of
+ * step with the game, this is the number to go and change.
  */
 public final class SculkEscalationTracker {
 
@@ -66,7 +68,7 @@ public final class SculkEscalationTracker {
     }
 
     /**
-     * Base → deep colour as the level climbs. Static because it's a pure
+     * Base to peak colour as the level climbs. Static because it's a pure
      * function of the level — the caller already has one, no reason to make it
      * ask the tracker.
      */

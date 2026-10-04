@@ -18,30 +18,35 @@ import java.util.Map;
  * warps and the destination loads. Half one of the portal sequence;
  * {@link PortalTransitionEffect} is half two.
  *
- * <h2>Why this exists — the spiral was in the wrong place</h2>
+ * <h2>Why this exists: the spiral was in the wrong place entirely</h2>
  * This used to be a {@link SustainedOverlayEffect} running
- * {@code PulsePattern(FAST)} in a flat colour. Which is why standing in a
- * portal read as "the keyboard is blinking" rather than "a portal is opening".
+ * {@code PulsePattern(FAST)} in a flat colour, which is precisely why standing
+ * in a portal read as "the keyboard is blinking" rather than "a portal is
+ * opening beneath me".
  *
- * <p>Meanwhile the good stuff — the fitted pillar field — was only reachable
- * on the <i>arrival</i>: a Tier 3 flash firing once on dimension change, at
- * the old 1200ms default, with 70% of that spent ramping. One rotation of the
- * field takes 1420ms. Do the arithmetic: <b>nobody had ever seen a complete
- * turn of it.</b> The best animation in the mod was rendering into a window
- * too short to contain it.
+ * <p>Meanwhile the actually good part, the fitted pillar field, was only
+ * reachable on the <i>arrival</i>: a Tier 3 flash firing once on the dimension
+ * change, at the old 1200ms default, with roughly 70% of that spent ramping
+ * up.
+ *
+ * <p>One full rotation of the field takes 1420ms. Do that arithmetic and the
+ * conclusion is unavoidable: <b>nobody had ever seen a complete turn of it.</b>
+ * The best animation in the entire mod was being rendered into a window too
+ * short to contain it.
  *
  * <p>So the spiral moved to where the time actually is. The dwell now runs the
  * same fitted {@link CoreEmitterPattern}, spinning continuously for as long as
- * you stand there, easing up from nothing over {@link #rampMillis}.
+ * you stand there, easing up from its intensity floor over
+ * {@link #rampMillis} (see render for why it does not start from nothing).
  *
  * <p>Tier 2 rather than Tier 3, so the biome shows through while the field is
- * weak and gets progressively buried as it reaches full strength — the world
- * dissolving into the portal, instead of a hard cut to a spiral.
+ * still weak and gets progressively buried as it reaches full strength. The
+ * world dissolving into the portal, rather than a hard cut to a spiral.
  *
- * <p>Note the pattern instance is rebuilt only when the palette actually
- * changes, never per frame: {@link CoreEmitterPattern} copies its settings bag
- * on construction, so rebuilding per frame would be pure allocation churn on
- * the render thread for zero benefit.
+ * <p>Note that the pattern instance is rebuilt only when the palette genuinely
+ * changes, and never per frame. {@link CoreEmitterPattern} copies its settings
+ * bag on construction, so rebuilding it every frame would be pure allocation
+ * churn on the render thread in exchange for exactly nothing.
  */
 public final class PortalChargeEffect implements EffectController {
 
@@ -79,15 +84,17 @@ public final class PortalChargeEffect implements EffectController {
     /**
      * Hold the board against Tier 3 interrupts while dwelling.
      *
-     * <p>At the default 90 that covers level up, advancement, sculk ping,
-     * sleep/wake and lightning — the incidental traffic
+     * <p>The event layer pushes the config's portal suppression floor in every
+     * time the dwell starts, 96 by default (the 90 this field starts at is only
+     * ever seen before that). At 96 that covers level up, advancement, sculk
+     * ping, sleep/wake, lightning and shrieker alerts — the incidental traffic
      * that, in a large pack, fires often enough to erase the dwell entirely.
      * (See {@link EffectController#tier3SuppressionFloor} for the full story
      * of how that manifested as "the portal effect doesn't work".)
      *
-     * <p>Death (100) and the portal's own arrival (92) still preempt, as they
-     * must. A Warden emergence is a Tier 2 overlay, so it draws alongside the
-     * dwell rather than needing to get past it.
+     * <p>Death (100) still preempts, as it must. The arrival and a Warden
+     * emergence are both Tier 2 overlays, so they draw alongside the dwell
+     * rather than needing to get past it.
      */
     public void setSuppressionFloor(int floor) {
         this.suppressionFloor = floor;
@@ -144,17 +151,18 @@ public final class PortalChargeEffect implements EffectController {
 
         long elapsed = elapsedMillis(nowMillis);
 
-        // Ease in from a FLOOR, not from zero. This looks like a fudge and is
-        // in fact load-bearing.
+        // Ease in from a FLOOR rather than from zero. This looks like a fudge
+        // and is in fact completely load-bearing.
         //
         // Dwell time varies enormously between portals. A nether portal gives
-        // you about four seconds. The Aether and most modded teleporters
-        // transfer in 160-420ms — measured against Iris's own dimension-change
-        // log line in a 600-mod pack. Ramping from zero meant the field was
-        // still at single-digit strength when the dimension changed, so
-        // walking into an Aether portal looked like absolutely nothing
-        // happened. Starting at the floor makes it legible on frame one while
-        // still visibly building toward full.
+        // you about four seconds to admire things. The Aether and most modded
+        // teleporters transfer in 160-420ms, measured against Iris's own
+        // dimension-change log line in a 600-mod pack.
+        //
+        // Ramping from zero meant the field was still at single-digit strength
+        // when the dimension changed, so walking into an Aether portal looked
+        // like absolutely nothing had happened. Starting at the floor makes it
+        // legible on frame one while still visibly building toward full.
         double p = Math.min(1.0, elapsed / (double) rampMillis);
         // Inline smoothstep (3p^2 - 2p^3). Eased so the build has a shape
         // rather than sliding up at constant speed.
@@ -171,7 +179,7 @@ public final class PortalChargeEffect implements EffectController {
         // bright it is.
         //
         // CoreEmitterPattern encodes its dark core and dim regions as low
-        // ALPHA. On Tier 2 that means the biome shimmer read through most of
+        // ALPHA. On Tier 2 that means the biome layer read through most of
         // the board for the entire dwell. The portal was genuinely active
         // within ~25ms of the hitbox touching it (confirmed in the logs!) and
         // still never looked like it had taken over — which sent this whole

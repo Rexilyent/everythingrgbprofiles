@@ -18,31 +18,38 @@ import java.util.function.Supplier;
  * Knows which lighting backends exist and picks what this session drives.
  *
  * <h2>Adding a vendor</h2>
- * Write a {@link LightingBackend} — or extend {@link GridBackend} if the vendor
- * exposes a fixed grid — and add one line to {@link #BACKENDS}. Nothing else in
- * the mod needs to know. If adding a vendor ever requires touching a pattern,
- * the abstraction has failed, not the vendor.
+ * Write a {@link LightingBackend}, or extend {@link GridBackend} if the vendor
+ * exposes a fixed grid, and add one line to {@link #BACKENDS}. Nothing else in
+ * this mod needs to hear about it.
+ *
+ * <p>If adding a vendor ever requires touching a pattern, then the abstraction
+ * has failed, not the vendor. Fix the abstraction.
  *
  * <h2>Order</h2>
- * Backends that can <i>enumerate</i> hardware come first: Corsair and OpenRGB
- * both report exactly which devices exist and where their LEDs are. The grid
- * vendors — Razer, Logitech, SteelSeries — come after, because they cannot: all
- * three answer "connected" whenever their desktop software is running, whether
- * or not a keyboard is plugged in.
+ * Backends that can <i>enumerate</i> hardware go first. Corsair and OpenRGB
+ * both report exactly which devices exist and precisely where their LEDs sit.
+ *
+ * <p>The grid vendors (Razer, Logitech, SteelSeries) come afterwards, because
+ * they cannot do that. All three of them answer "connected" whenever their
+ * desktop software is running, entirely regardless of whether a keyboard is
+ * plugged into the machine.
  *
  * <h2>Why auto drives everything that answers</h2>
- * Auto used to keep the first backend that connected. That was fine with one
- * vendor, and wrong the moment there were three that cannot tell you what is
- * attached. G HUB installed for a Logitech mouse answers exactly like G HUB with
- * a Logitech keyboard, so first-one-wins would let it take the slot from a
- * Razer or Corsair keyboard sitting on the same desk, and the user would get a
- * dark board with nothing in the log to say why.
+ * Auto used to keep the first backend that connected, full stop. Which was
+ * perfectly fine with one vendor, and became wrong the instant there were
+ * three of them that cannot tell you what is actually attached.
  *
- * <p>So auto connects every backend that answers and picks a <b>leader</b> — the
- * first one whose main device is a keyboard. Patterns render against the
- * leader's geometry, and every other backend is a <b>follower</b> that shows the
- * same frame, resampled onto its own LEDs by {@link SurfaceMapper}. A grid
- * backend with no keyboard behind it costs a few ignored requests; guessing
+ * <p>G HUB installed for a Logitech MOUSE answers identically to G HUB with a
+ * Logitech keyboard. So first-one-wins would happily let it take the slot from
+ * a Razer or Corsair keyboard sitting right there on the same desk, and the
+ * player would get a dark board with nothing in the log explaining why.
+ *
+ * <p>So auto connects every backend that answers and then picks a
+ * <b>leader</b>: the first one whose main device is genuinely a keyboard.
+ * Patterns render against the leader's geometry, and every other backend
+ * becomes a <b>follower</b> showing the same frame, resampled onto its own
+ * LEDs by {@link SurfaceMapper}. A grid backend with no keyboard behind it
+ * costs a handful of ignored requests; guessing
  * wrong would have cost the user their lighting.
  *
  * <p>Naming a backend explicitly in config skips all of this and drives exactly
@@ -250,6 +257,13 @@ public final class BackendRegistry {
             return true;
         }
 
+        /** Every backend mirroring the leader, by id. Empty until connected. */
+        List<String> followerIds() {
+            List<String> ids = new ArrayList<>();
+            for (LightingBackend f : followers) ids.add(f.id());
+            return ids;
+        }
+
         /**
          * True while <i>any</i> live backend can still deliver.
          *
@@ -258,13 +272,6 @@ public final class BackendRegistry {
          * out — G HUB restarting, say — would otherwise silence every follower
          * along with it. A dropped leader skips its own frames internally.
          */
-        /** Every backend mirroring the leader, by id. Empty until connected. */
-        List<String> followerIds() {
-            List<String> ids = new ArrayList<>();
-            for (LightingBackend f : followers) ids.add(f.id());
-            return ids;
-        }
-
         @Override
         public boolean connected() {
             for (LightingBackend b : live) {

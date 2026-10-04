@@ -10,8 +10,17 @@ import com.everythingrgbprofile.pattern.PatternContext;
 import java.util.Map;
 
 /**
- * The Ender Dragon summoning ritual, drawn top-down, fitted to a real capture
- * rather than to a guess.
+ * The Ender Dragon summoning ritual, drawn top-down, and fitted to an actual
+ * traced capture rather than to anybody's recollection of what it looks like.
+ *
+ * <h2>This one only ever runs under Better End Island</h2>
+ * Every number below came off a traced respawn with that mod installed, and
+ * the shape of the effect is the shape of its ceremony: a core, a ring of
+ * towers lighting one at a time, a beam sweeping between them. Vanilla is
+ * gated out of it by {@code BetterEndIslandCompat.isStagedRitual()}, checked
+ * in {@code ClientEventHandlers.pollEndDragon}. That gate is a decision about
+ * what a vanilla End should feel like rather than anything to do with what is
+ * detectable; the reasoning lives on the gate.
  *
  * <h2>What actually happens</h2>
  * From a traced respawn under YUNG's Better End Island:

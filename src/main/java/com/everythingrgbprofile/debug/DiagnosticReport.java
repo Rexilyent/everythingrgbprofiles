@@ -27,22 +27,31 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The file {@code /rgbprofiles report} writes: everything needed to work out a
- * lighting problem on hardware nobody here owns, in one place, readable by a
- * person.
+ * lighting problem on hardware nobody here owns, in one place, and readable by
+ * an actual human being.
  *
- * <p>Built for the conversation that follows "my keyboard doesn't light".
- * Without it, that conversation is a dozen questions — which version, which
- * brand, is the software running, is it on in the config — each costing a
- * round trip, and the player's latest.log answers some of them, buried among
- * every other mod's output. The report answers all of them up front, and
- * leads with what the mod already concluded, so that the common cases are
- * solved by the player reading the first screen of it.
+ * <p>This exists for the conversation that follows "my keyboard doesn't
+ * light". Without it, that conversation is a dozen separate questions (which
+ * version, which brand, is the vendor software even running, is it switched on
+ * in the config) and every single one costs a round trip. The player's
+ * latest.log answers some of them, buried somewhere in the output of six
+ * hundred other mods.
  *
- * <p>Nothing personal goes in: no player name, no server address, no paths
- * beyond the vendor install locations the mod looked in.
+ * <p>The report answers all of it up front, and deliberately leads with what
+ * the mod already worked out for itself, so the common cases get solved by
+ * somebody reading the first screen and going "oh".
+ *
+ * <p>Nothing personal goes in it. No player name, no server address, and no
+ * paths beyond the vendor install locations the mod went looking in. Some of
+ * the detail lines do carry a path under the user's own folder (the extracted
+ * Corsair DLL, a JVM crash log), so the finished text goes through
+ * {@link #redact} on the way out, which is what keeps that promise true
+ * however a future detail line is worded.
  */
 public final class DiagnosticReport {
 
@@ -50,9 +59,13 @@ public final class DiagnosticReport {
     private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     /**
-     * Vendor programs worth knowing are running, as lowercase substrings of the
-     * executable name. The last two are not backends: they drive the same
-     * lights, and two programs driving one keyboard fight over it.
+     * Vendor programs worth knowing about, as lowercase substrings of the
+     * executable name.
+     *
+     * <p>The last two are not backends at all. They are in the list because
+     * they drive the same lights, and two programs driving one keyboard is not
+     * a partnership, it's a fight. Knowing one of them is running explains a
+     * whole category of "it works for a second then goes back to rainbow".
      */
     private static final String[][] VENDOR_PROCESSES = {
             {"Corsair iCUE", "icue"},
@@ -65,6 +78,34 @@ public final class DiagnosticReport {
     };
 
     private DiagnosticReport() {
+    }
+
+    /** Windows ({@code C:\\Users\\name}), macOS ({@code /Users/name}) and Linux ({@code /home/name}) home folders. */
+    private static final Pattern ANY_HOME = Pattern.compile(
+            "(?i)(\\b[a-z]:[\\\\/]+users[\\\\/]+|/users/|/home/)([^\\\\/\\s\"':;]+)");
+
+    /**
+     * Takes the user's name out of every path in the report.
+     *
+     * <p>Their own home folder becomes {@code ~}. Anything else that looks
+     * like a home folder (another drive, another account, a path some vendor
+     * message spelled with forward slashes) keeps its shape and loses the name,
+     * so {@code C:\\Users\\Alex\\...} reads {@code C:\\Users\\<user>\\...}. A path
+     * is still useful for working out which file went wrong; whose machine it
+     * was on is not.
+     */
+    static String redact(String text) {
+        if (text == null || text.isEmpty()) return text;
+        String home = System.getProperty("user.home");
+        if (home != null && home.length() > 3) {
+            // Both slash directions, because Java, JNA and the vendor SDKs do
+            // not agree on which one a Windows path uses.
+            for (String form : new String[]{home, home.replace('\\', '/'), home.replace('/', '\\')}) {
+                text = Pattern.compile(Pattern.quote(form), Pattern.CASE_INSENSITIVE)
+                        .matcher(text).replaceAll(Matcher.quoteReplacement("~"));
+            }
+        }
+        return ANY_HOME.matcher(text).replaceAll(m -> Matcher.quoteReplacement(m.group(1) + "<user>"));
     }
 
     /** Where the report is written: next to latest.log, which is usually asked for alongside it. */
@@ -265,7 +306,7 @@ public final class DiagnosticReport {
             }
         }
         out.append('\n');
-        return out.toString();
+        return redact(out.toString());
     }
 
     /**
@@ -274,13 +315,19 @@ public final class DiagnosticReport {
      */
     public static List<String> conclusions() {
         List<String> out = new ArrayList<>();
+        conclusionsInto(out);
+        out.replaceAll(DiagnosticReport::redact);
+        return out;
+    }
+
+    private static void conclusionsInto(List<String> out) {
         if (BackendHealth.gateSummary() != null) {
             out.add(BackendHealth.gateSummary() + (BackendHealth.gateFix() == null ? "" : " " + BackendHealth.gateFix()));
-            return out;
+            return;
         }
         if (!BackendHealth.connectFinished()) {
             out.add("Still connecting to lighting software; check again in a few seconds.");
-            return out;
+            return;
         }
         List<BackendHealth.Diagnosis> all = BackendHealth.diagnoses();
         String leader = BackendHealth.leaderId();
@@ -322,7 +369,7 @@ public final class DiagnosticReport {
         int bugs = 0;
         for (BackendHealth.Problem p : BackendHealth.problems()) bugs += p.count();
         if (bugs > 0) out.add(bugs + " error(s) recorded this session; see the end of this report.");
-        return out;
+        return;
     }
 
     /** Settings that differ from their defaults, and changed ones that cannot be used. */
@@ -337,7 +384,7 @@ public final class DiagnosticReport {
      * is covered without anyone remembering to add it here.
      *
      * <p>Only changed settings are listed: the defaults are known, and a list of
-     * three hundred values would bury the one that matters. Colours get one more
+     * nearly two hundred values would bury the one that matters. Colours get one more
      * check, because a colour that does not parse falls back to its default
      * silently, which reads as the setting being ignored.
      */

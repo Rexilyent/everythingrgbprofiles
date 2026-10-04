@@ -14,10 +14,12 @@ import java.util.Map;
  * Dragon's breath: purple fire thrown at the board, spreading along the bottom
  * and licking upward.
  *
- * <p>Replaces a cone drawn out from the dragon's head, which was geometrically
- * honest and read as a triangle. What the attack actually does in game is put
- * a pool of burning purple on the floor — so the board gets the floor, and the
- * fire runs along it.
+ * <p>Replaces a cone drawn outward from the dragon's head, which was
+ * geometrically honest and read, unmistakably, as a triangle.
+ *
+ * <p>What the attack actually does in game is leave a pool of burning purple
+ * on the floor. So the board gets the floor, and the fire runs along it
+ * instead of pointing at you.
  *
  * <h2>What makes it fire and not a purple bar</h2>
  * <ul>
