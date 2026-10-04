@@ -13,66 +13,89 @@ import com.everythingrgbprofile.compat.ModCompatRegistry;
  * middle and reshapes itself, and only once every pillar has gone does the
  * dragon arrive.
  *
- * <h2>The stage is not readable, and it does not need to be</h2>
- * The mod ships <b>no network classes at all</b> — it works through mixins
- * into {@code EndDragonFight}, {@code PrimaryLevelData} and
- * {@code ServerLevel}, every one of them server-side. Its respawn stage is
- * therefore server-only state that no client can see, and no amount of
- * reflection will change that.
+ * <h2>The stage is not readable, and it turns out not to matter</h2>
+ * The mod ships <b>no network classes whatsoever</b>. Its respawn works through
+ * mixins into {@code EndDragonFight}, {@code PrimaryLevelData} and
+ * {@code ServerLevel}, and the rest of its mixins are worldgen features;
+ * every single one of them is server-side. Its respawn stage
+ * is therefore server-only state that no client can see, and no quantity of
+ * reflection is going to change that.
  *
- * <p>Reading end crystals instead sidesteps the problem entirely. The beams
- * ARE the ritual, {@code EndCrystal.getBeamTarget()} is
+ * <p>Reading end crystals sidesteps the entire problem. The beams ARE the
+ * ritual, {@code EndCrystal.getBeamTarget()} lives in
  * {@link net.minecraft.network.syncher.SynchedEntityData} because vanilla has
- * to render them, and counting how many are lit tells you how far along the
- * sequence is without knowing the mod exists. So the effect needs no mod
- * imports, no server component, and works on a vanilla server.
+ * to render them anyway, and counting how many are lit tells you exactly how
+ * far along the sequence is without ever knowing the mod exists. No mod
+ * imports, no server component, works on a vanilla server.
  *
- * <h2>Then why does this class exist?</h2>
- * Two reasons, and unlike {@code LegendaryMonstersCompat} the second one
- * changes what the lighting does:
+ * <h2>Then why does this class exist at all?</h2>
+ * Because being able to read the beams is not the same thing as wanting to
+ * draw them:
  *
  * <ol>
- *   <li>The log line answers "is my End overhaul supported" without anyone
- *       having to enable debug logging after the fact.</li>
- *   <li><b>It changes the expected pillar count.</b> Vanilla's respawn lights
- *       four crystals on the exit portal. This mod's ritual walks the ten
- *       obsidian pillars one at a time. That number is what the ray pattern
- *       divides the circle by, so getting it wrong makes the rays sit at the
- *       wrong angles for the whole sequence — the one place the two paths
- *       genuinely diverge.</li>
+ *   <li><b>It decides whether the respawn gets lit at all.</b>
+ *       {@link #isStagedRitual()} is the switch. With this mod installed, the
+ *       pillar walk is the centrepiece of the End and earns the full ritual
+ *       effect. Without it, the board sits the respawn out entirely and never
+ *       looks at a crystal, because a vanilla crystal spends essentially its
+ *       whole existence bolted to a pillar topping the dragon back up, and
+ *       that is the only thing it should mean.</li>
+ *   <li>The log line answers "is my End overhaul supported" without anybody
+ *       having to turn debug logging on and do the whole respawn again.</li>
  * </ol>
  *
- * <p>As ever: no import of anything from the mod. Detection is a modid string.
+ * <p>Worth knowing before anybody re-derives it: vanilla runs a staged
+ * respawn of its own ({@code DragonRespawnAnimation}: the four crystals beam
+ * at (0,128,0) to start, then retarget to each of the ten spikes in turn,
+ * forty ticks apiece), and it would be perfectly readable from here. Leaving it dark is a call about what the End
+ * should feel like without an overhaul installed, not a detection limit.
+ *
+ * <p>Only the respawn is gated. The fight runs off synced {@code EnderDragon}
+ * state, which is there whatever else is installed, so it needs no branch.
+ *
+ * <p>As ever, no import of anything from the mod. Detection is a modid string.
  */
 public final class BetterEndIslandCompat {
 
-    /** Vanilla lights the four crystals placed on the exit portal. */
-    private static final int VANILLA_RITUAL_SOURCES = 4;
     /** The staged ritual walks the ten obsidian pillars. */
     private static final int BETTER_END_ISLAND_PILLARS = 10;
 
     /**
-     * How many beam sources the ritual is expected to involve, which sets the
-     * angular spacing of the rays.
+     * Whether the End respawn is the staged, ten-pillar kind.
      *
-     * <p>Used as a FLOOR, not a fixed value: the detector takes the max of
-     * this and the highest beam count it has actually seen, so if the real
-     * number differs the display corrects itself rather than clipping.
+     * <p>The one gate. Everything downstream of it reads plain vanilla entity
+     * state, so this is the only line in the End code that knows another mod
+     * is installed.
+     */
+    public static boolean isStagedRitual() {
+        return ModCompatRegistry.isBetterEndIslandLoaded();
+    }
+
+    /**
+     * How many beam sources the staged ritual involves.
+     *
+     * <p>A denominator, nothing more: lit sources over this is how far along
+     * the ritual is, which drives how loaded the core looks. Ray angles come
+     * from the crystals' real positions in the world, not from dividing a
+     * circle by this, so a wrong value here makes the core fill at the wrong
+     * rate and moves nothing.
+     *
+     * <p>Only ever asked while {@link #isStagedRitual()} holds, since the
+     * vanilla path never reads a crystal in the first place.
      */
     public static int expectedRitualSources() {
-        return ModCompatRegistry.isBetterEndIslandLoaded()
-                ? BETTER_END_ISLAND_PILLARS
-                : VANILLA_RITUAL_SOURCES;
+        return BETTER_END_ISLAND_PILLARS;
     }
 
     public static void logStatusIfPresent() {
-        if (!ModCompatRegistry.isBetterEndIslandLoaded()) return;
+        if (!isStagedRitual()) return;
         RGBProfileMod.LOGGER.info(
-                "RGB Profile: YUNG's Better End Island detected — the dragon summoning ritual will be "
-                        + "read from end crystal beams (the mod keeps its respawn stage server-side and "
-                        + "ships no packets, so beams are the only client-visible signal — and they are "
-                        + "enough). Ray layout assumes {} pillars; vanilla's respawn uses {}.",
-                BETTER_END_ISLAND_PILLARS, VANILLA_RITUAL_SOURCES);
+                "RGB Profile: YUNG's Better End Island detected, so the End respawn gets the staged "
+                        + "ritual effect, read from end crystal beams (the mod keeps its respawn stage "
+                        + "server-side and ships no packets, so beams are the only client-visible signal, "
+                        + "and they turn out to be enough). Pacing assumes {} pillars. Without this mod "
+                        + "the respawn is left dark on purpose and only the dragon itself is drawn.",
+                BETTER_END_ISLAND_PILLARS);
     }
 
     private BetterEndIslandCompat() {

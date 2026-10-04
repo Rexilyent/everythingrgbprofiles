@@ -29,14 +29,19 @@ import java.util.Map;
  * red and blue swapped: a working board in entirely the wrong colours, with no
  * error anywhere.
  *
- * <h2>Synapse alone is not enough</h2>
- * The REST server is part of Synapse's <b>Chroma</b> module, not Synapse
- * itself. On the test machine Synapse 4 was installed and running
- * ({@code RazerAppEngine}), yet nothing listened on 54235 or 54236 and no Chroma
- * service or DLL existed — the Chroma module had not been installed. Most Razer
- * owners who care about RGB will already have it, because Synapse's own
- * lighting effects need it too, but "Synapse is installed" and "this backend
- * can connect" are different claims. When it cannot, auto mode simply moves on.
+ * <h2>Synapse on its own is not enough</h2>
+ * The REST server belongs to Synapse's <b>Chroma</b> module rather than to
+ * Synapse itself, and those are not the same install.
+ *
+ * <p>On the test machine Synapse 4 was installed and running
+ * ({@code RazerAppEngine}), and yet nothing was listening on 54235 or 54236
+ * and no Chroma service or DLL existed anywhere, because the Chroma module had
+ * never been installed.
+ *
+ * <p>Most Razer owners who care about RGB will already have it, since Synapse's
+ * own lighting effects need it too. But "Synapse is installed" and "this
+ * backend can connect" are two different claims and it is worth not confusing
+ * them. When it cannot connect, auto mode simply moves along.
  *
  * <h2>What has been checked against a real Chroma server</h2>
  * Once the Chroma module was installed on the test machine — which has no Razer
@@ -45,27 +50,31 @@ import java.util.Map;
  * answering, forty-nine changing frames went through this class, and the
  * session heartbeats and closes cleanly.
  *
- * <p>Unlike SteelSeries, Razer <b>validates</b> what it is sent, which makes
- * this the best-checked grid backend. Our 6x22 grid comes back
- * {@code "result": 0}. Five rows, twenty-one columns or a flat list come back
- * {@code "result": 87} with "expecting a 2 dimensional array of 6 (rows) x 22
- * (columns) elements with integer values", and an unknown effect gets 50. So
- * the payload shape is confirmed by Razer's own validator, not just accepted.
+ * <p>Unlike SteelSeries, Razer actually <b>validates</b> what it is sent,
+ * which makes this the best-checked grid backend in the mod by some distance.
+ * Our 6x22 grid comes back {@code "result": 0}. Five rows, twenty-one columns,
+ * or a flat list all come back {@code "result": 87} with "expecting a 2
+ * dimensional array of 6 (rows) x 22 (columns) elements with integer values",
+ * and an unknown effect gets 50.
  *
- * <p>The catch: every one of those rejections arrives as HTTP <b>200</b>. That is
- * why frames are checked for {@code result 0} rather than for status — without
- * it, an expired or rejected session would fail every frame, silently, for the
- * rest of the game.
+ * <p>So the payload shape here is confirmed by Razer's own validator rather
+ * than merely not rejected.
  *
- * <p>Still unverified: the validator checks the grid's shape, not what the
- * integers mean. That red is the low byte rests on the header, and needs a
- * Razer keyboard showing red to settle.
+ * <p>The catch, and it is a good one: every single one of those rejections
+ * arrives as HTTP <b>200</b>. Which is why frames are checked for
+ * {@code result 0} rather than for status. Without that, an expired or
+ * rejected session would fail every frame for the rest of the game, silently,
+ * while reporting success the entire time.
+ *
+ * <p>Still unverified: the validator checks the grid's SHAPE and says nothing
+ * about what the integers mean. That red is the low byte rests on the header,
+ * and settling it needs a Razer keyboard visibly showing red.
  */
 public final class RazerChromaBackend extends GridBackend {
 
     private static final String INIT_URL = "http://localhost:54235/razer/chromasdk";
 
-    /** Razer's success marker. Anything else, including a 200, is a rejection. */
+    /** Razer's success marker. Anything else, very much including an HTTP 200, is a rejection. */
     private static final java.util.regex.Pattern RESULT_OK =
             java.util.regex.Pattern.compile("\"result\"\\s*:\\s*0\\b");
 

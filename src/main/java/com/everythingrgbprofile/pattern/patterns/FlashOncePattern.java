@@ -14,26 +14,28 @@ import java.util.Map;
  * switch. Fast attack (0 → full over the first 15% of the duration), then an
  * eased decay down to a baseline over the remaining 85%.
  *
- * <p>Used by the Death Flash, the progression flashes, and — with its
- * parameters pinned at max escalation — inside Warden emergence via
- * ring-contract's arrival flash.
+ * <p>Used by the death flash, the lightning flash and the advancement flash.
+ * (The level-up has its own animation, {@code LevelUpPattern}.)
  *
  * <h2>Why the asymmetry</h2>
- * Because that's what light does. Real flashes — muzzle flare, lightning, a
- * camera strobe — rise faster than they fall, and your visual system is
- * extremely well calibrated to that. A symmetric fade-up-fade-down doesn't
- * read as a flash, it reads as something politely turning on and off. The
- * 15/85 split is what makes this feel like an impulse rather than an
- * animation.
+ * Because that is what light actually does. Real flashes — muzzle flare,
+ * lightning, a camera strobe — rise far faster than they fall, and human
+ * visual systems are extremely well calibrated to that fact.
+ *
+ * <p>A symmetric fade-up-fade-down does not read as a flash at all. It reads
+ * as something politely turning itself on and then politely turning itself
+ * off. The 15/85 split is the whole reason this lands as an impulse rather
+ * than as an animation.
  */
 public final class FlashOncePattern implements Pattern {
 
     /**
      * Where the decay settles instead of going fully dark.
      *
-     * <p>Non-zero when the flash is the opening beat of a longer effect and
-     * needs to hand off to a sustained glow rather than blink out and leave a
-     * hole. Zero for a plain one-shot.
+     * <p>Non-zero when the flash is the opening beat of something longer and
+     * has to hand off into a sustained glow, rather than blinking out and
+     * leaving a hole where the effect used to be. Zero for a plain one-shot,
+     * which is every caller there currently is.
      */
     private final double baselineBrightness;
 

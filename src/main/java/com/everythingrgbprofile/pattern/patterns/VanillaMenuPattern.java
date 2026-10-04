@@ -14,15 +14,15 @@ import java.util.Random;
 /**
  * The default title-screen theme: sky over grass, with clouds drifting across.
  *
- * <p>This is what you get if you just installed the mod. It is deliberately
- * the most obvious thing in the world — a horizon, blue above it, green below,
- * a few slow clouds — because a default should look like the game rather than
- * like somebody's taste.
+ * <p>This is what you get if you have just installed the mod and touched
+ * nothing. It is deliberately the most obvious thing in the world — a horizon,
+ * blue above it, green below it, a few slow clouds — because a default should
+ * look like the GAME rather than like somebody's personal taste.
  *
- * <p>{@link MenuAmbientPattern} is the other one: a mineshaft with a drill in
- * it, built for a specific pack's title art. Excellent there, presumptuous
- * anywhere else, which is why it is gated behind pack detection and this is
- * not.
+ * <p>{@link MenuAmbientPattern} is the other one: a mineshaft with a drill
+ * grinding through it, built specifically for one pack's title art. Excellent
+ * there and frankly presumptuous anywhere else, which is exactly why that one
+ * sits behind pack detection and this one does not.
  *
  * <h2>Restraint is the design</h2>
  * A menu runs for as long as somebody leaves the game sitting there, which can

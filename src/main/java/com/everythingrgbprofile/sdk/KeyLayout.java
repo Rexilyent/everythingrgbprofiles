@@ -19,12 +19,31 @@ import java.util.stream.Stream;
 /**
  * User-supplied board geometry, for hardware that will not report its own.
  *
- * <p>This is the piece that makes "someone else's keyboard" a job somebody
- * else can do. Every pattern in this mod is geometry, so a device is either
- * describable in x/y or it is useless to us — and plenty of hardware reports a
- * flat list of LEDs with names and no positions at all. Rather than that being
- * the end of the road, a user with the device writes a small JSON file, and the
- * whole effect library starts working on it.
+ * <p>This is the piece that turns "someone else's keyboard" into a job
+ * somebody else can actually do.
+ *
+ * <p>Every pattern in this mod is geometry, so a device is either describable
+ * in x/y or it is of no use to us whatsoever. And plenty of hardware
+ * cheerfully reports a flat list of LEDs with names attached and no positions
+ * at all.
+ *
+ * <p>This is not a rare corner case. Corsair reports real positions via
+ * {@code CorsairGetLedPositions} and OpenRGB has its per-zone matrix map, so
+ * those two are fine. Logitech and SteelSeries document no key positions
+ * whatsoever, which is why {@code GridBackend} has to fall back to assuming
+ * the vendor's fixed rectangle for them. Any board those SDKs describe badly,
+ * or describe as a shape it is not, lands here.
+ *
+ * <p>Rather than that being the end of the road, somebody who owns the device
+ * writes a small JSON file and the entire effect library starts working on it.
+ * No Java, no build, and no waiting for anybody here to go and buy their
+ * keyboard.
+ *
+ * <p>(Not to be confused with the profile files under
+ * {@code config/everythingrgbprofiles/*.json}, loaded by
+ * {@code JsonProfileLoader}. Those say what colours and patterns to draw. This
+ * says where the lights physically are. Different problem entirely, and only
+ * this one is about making unfamiliar hardware work at all.)
  *
  * <h2>The file</h2>
  * Anything in {@code config/everythingrgbprofiles/layouts/*.json}:

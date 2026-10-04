@@ -30,13 +30,18 @@ import java.nio.file.Path;
  * three seconds went through without the transport dropping. {@code stop_game}
  * is a real endpoint and not just an echo — an unknown path gets a 404.
  *
- * <p><b>What that does not prove.</b> GameSense answers HTTP 200 to a bitmap with
- * 131 entries, to {@code [r, g]} pairs instead of triples, and to an event name
- * that was never registered. It echoes the payload back and validates nothing.
- * So "accepted" proves the connection and says nothing about the colours: the
- * payload shape rests on SteelSeries' documentation until someone with a
- * SteelSeries keyboard watches it light. It also means {@link #transportLost}
- * can notice GG closing, but can never notice a wrong payload.
+ * <p><b>What none of that proves.</b> GameSense answers HTTP 200 to a bitmap
+ * with 131 entries, to {@code [r, g]} pairs instead of triples, and to an
+ * event name that was never registered in the first place. It echoes the
+ * payload straight back and validates precisely nothing.
+ *
+ * <p>So "accepted" proves the connection exists and says absolutely nothing
+ * about the colours. The payload shape rests entirely on SteelSeries' own
+ * documentation until somebody with a SteelSeries keyboard sits and watches it
+ * light up.
+ *
+ * <p>It also means {@link #transportLost} can notice GG closing and can never,
+ * under any circumstances, notice a wrong payload.
  *
  * <h2>The first thing to check if a SteelSeries board stays dark</h2>
  * GG reports this app as {@code "enabled": false} straight after registering,

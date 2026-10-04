@@ -12,40 +12,47 @@ import java.util.function.Predicate;
 /**
  * Shared plumbing for vendors that expose a keyboard as a fixed grid.
  *
- * <p>Razer, Logitech and SteelSeries all work the same way underneath: the SDK
- * does not tell you what keyboard is attached or where its keys are. It hands
- * you a rectangle — 22x6 for Razer and SteelSeries, 21x6 for Logitech — and
- * maps that rectangle onto whatever physical board is plugged in. Every game
- * that supports these vendors draws into that rectangle, and so does this.
+ * <p>Razer, Logitech and SteelSeries all work identically underneath: the SDK
+ * flatly refuses to tell you what keyboard is attached or where its keys are.
+ * It hands you a rectangle (22x6 for Razer and SteelSeries, 21x6 for Logitech)
+ * and maps that rectangle onto whatever physical board happens to be plugged
+ * in. Every game that supports these vendors draws into that rectangle, and so
+ * does this one.
  *
- * <p>That makes geometry free, which is the one thing every pattern needs: cell
- * (row, col) simply <i>is</i> the position. It is an approximation — a real
- * board has staggered rows and a gap above the number row — but it is the same
- * approximation the vendor made, and it is good enough for weather, bosses and
- * blood. A {@link KeyLayout} can still correct it per board, using cell names
- * of the form {@code R2C6} (row 2, column 6).
+ * <p>Which makes geometry free, and geometry is the one thing every pattern
+ * here needs: cell (row, col) simply <i>is</i> the position.
  *
- * <h2>The limitation worth knowing</h2>
- * None of these SDKs can report whether a keyboard exists. They answer
- * "connected" if the vendor software is running, full stop — G HUB installed
- * for a mouse says exactly the same thing as G HUB with a G915 attached. That is
- * why {@link BackendRegistry}'s auto mode drives every backend that answers
- * rather than trusting the first one: a grid backend with no keyboard behind it
- * costs a few idle requests, whereas picking it over a real keyboard would cost
- * the user their lighting.
+ * <p>It is an approximation, obviously. A real board has staggered rows and a
+ * physical gap above the number row. But it is the exact same approximation
+ * the vendor already made, and it is more than good enough for weather, bosses
+ * and blood. A {@link KeyLayout} can still correct it per board using cell
+ * names of the form {@code R2C6}, meaning row 2, column 6.
  *
- * <h2>What subclasses do</h2>
+ * <h2>The limitation genuinely worth knowing</h2>
+ * Not one of these SDKs can report whether a keyboard exists. They answer
+ * "connected" whenever the vendor software is running and that is the end of
+ * it. G HUB installed for a mouse says precisely the same thing as G HUB with a
+ * G915 attached.
+ *
+ * <p>That is exactly why {@link BackendRegistry}'s auto mode drives every
+ * backend that answers rather than trusting whichever one got there first. A
+ * grid backend with no keyboard behind it costs a handful of idle requests.
+ * Picking it over somebody's real keyboard costs them their lighting.
+ *
+ * <h2>What subclasses actually do</h2>
  * Open the vendor session, push a whole grid, optionally keep the session
- * alive, and close. Dirty tracking, frame-rate capping, keep-alive timing and
- * giving up after repeated failures all live here so each vendor file is only
- * about its vendor.
+ * alive, close it again. That is the entire contract.
+ *
+ * <p>Dirty tracking, frame-rate capping, keep-alive timing and knowing when to
+ * give up after repeated failures all live up here, specifically so each
+ * vendor file stays about its vendor and nothing else.
  */
 abstract class GridBackend implements LightingBackend {
 
     protected final int cols;
     protected final int rows;
     private final String deviceId;
-    /** One packed 0xRRGGBB per cell, row-major. Reused every frame. */
+    /** One packed 0xRRGGBB per cell, row-major. Reused every frame rather than reallocated. */
     private final int[] cells;
     private final long minPushNanos;
     private final long keepAliveNanos;

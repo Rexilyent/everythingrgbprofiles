@@ -7,20 +7,20 @@ import com.everythingrgbprofile.pattern.PatternParams;
 import java.util.Map;
 
 /**
- * One entry in {@code biome_profiles.json}. Gson fills these
- * fields in directly, which is why they're public and mutable rather than a
- * nice immutable record — Gson wants a no-arg constructor and field access,
- * and fighting it here would buy nothing.
+ * One entry in {@code biome_profiles.json}. Gson fills these fields in
+ * directly, which is why they are public and mutable instead of a nice
+ * immutable record. Gson wants a no-arg constructor and field access, and
+ * fighting it here would buy us exactly nothing.
  *
- * <p>Field defaults double as the "user omitted this" defaults, since Gson
- * leaves untouched anything the JSON doesn't mention. So {@code pattern}
- * defaults to {@code shimmer} simply by being initialised to it — and the
- * bundled entries either omit it (implying shimmer) or name
- * {@code pulse-slow}, {@code drift-particle} or {@code twinkle-particle}.
+ * <p>The field initialisers double as the "user left this out" defaults, since
+ * Gson doesn't touch anything the JSON never mentions. So {@code pattern}
+ * defaults to {@code shimmer} purely by being initialised to it. The bundled
+ * entries all name one explicitly anyway; PatternFactory has the full list.
  *
- * <p>{@code preset} only means anything for the two particle patterns
- * ({@code petal-drift}, {@code firefly-glow}, and friends). Setting it on a
- * shimmer entry is harmless and does nothing.
+ * <p>{@code preset} only means anything to the pattern families that take one
+ * (the particle engines, canopy, windswept, strata and friends: again, see
+ * PatternFactory). Putting it on a shimmer entry is harmless and does
+ * absolutely nothing.
  */
 public final class BiomeProfile {
     public String color;
@@ -29,7 +29,7 @@ public final class BiomeProfile {
     public String preset;
     public Map<String, Object> patternParams;
 
-    /** Parses the hex, or hands back {@code fallback} if it's missing or malformed. */
+    /** Parses the hex, or hands back {@code fallback} if it's missing or nonsense. */
     public RGBColor resolvedColor(RGBColor fallback) {
         return color != null ? RGBColor.fromHexOrDefault(color, fallback) : fallback;
     }
@@ -37,22 +37,26 @@ public final class BiomeProfile {
     /**
      * The highlight colour, for patterns that draw two things at once.
      *
-     * <p>Null when the entry doesn't set one, and that null is meaningful:
-     * {@code PatternContext.resolvedAccentColor()} then derives a lightened
-     * base instead, which is the behaviour every profile had before this field
-     * existed. So adding it changed nothing for entries that ignore it.
+     * <p>Null when the entry doesn't set one, and that null carries meaning:
+     * {@code PatternContext.resolvedAccentColor()} derives a lightened base
+     * instead, which is what every profile did before this field existed. So
+     * adding it changed nothing whatsoever for entries that ignore it.
      *
-     * <p>It earns its keep on dark biomes. Deriving an accent by lightening
-     * {@code #10182B} gives a washed-out grey, because lightening toward white
-     * strips the hue out of a colour that had very little to begin with — the
-     * Deep Dark needs a genuinely cyan glint, and the only way to get one is
-     * to say so.
+     * <p>Where it earns its keep is dark biomes. Deriving an accent by
+     * lightening a dark navy like {@code #10182B} gets you a washed-out grey, because
+     * lightening toward white strips the hue out of a colour that barely had
+     * any to begin with. The Deep Dark needs a properly cyan glint, and the
+     * only way to get one is to come out and say so.
      */
     public RGBColor resolvedAccentColor() {
         return accentColor != null ? RGBColor.fromHexOrDefault(accentColor, null) : null;
     }
 
-    /** EMPTY rather than null, so callers never have to null-check params. */
+    /**
+     * EMPTY rather than null, so no caller ever has to null-check params.
+     * Currently uncalled: see {@link PatternParams} for why patternParams does
+     * nothing yet.
+     */
     public PatternParams resolvedParams() {
         return patternParams != null ? new PatternParams(patternParams) : PatternParams.EMPTY;
     }

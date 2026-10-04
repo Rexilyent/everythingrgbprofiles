@@ -12,16 +12,19 @@ import java.util.Map;
 /**
  * Desert: dune ridges under a moving sheet of wind-blown sand.
  *
- * <p>Replaces a bare {@code sand-drift}, which put six particles on a hundred
- * and nine keys and left the rest of the board dark. Six moving dots is not a
- * desert, it is six moving dots — a desert is a surface, and a surface has to
- * cover the board before anything moving across it means anything.
+ * <p>Replaces a bare {@code sand-drift}, which put six particles across a
+ * hundred and nine keys and left the entire rest of the board dark. Six moving
+ * dots is not a desert. It is six moving dots.
  *
- * <h2>Where this differs from the obvious reference</h2>
- * Terraria's underground desert is a dense amber field, and dense is the part
- * worth taking: whatever else it does, the whole strip is alive. What it does
- * not have is structure, so this adds some. Three things are happening here
- * that a noise field alone would not give you:
+ * <p>A desert is a SURFACE, and the surface has to cover the board before
+ * anything moving across it means anything at all.
+ *
+ * <h2>Where this deliberately differs from the obvious reference</h2>
+ * Terraria's underground desert is a dense amber field, and "dense" is the
+ * part worth stealing: whatever else it is doing, the whole strip is alive.
+ *
+ * <p>What it does not have is structure, so this adds some. Three things
+ * happen here that a plain noise field would never give you:
  *
  * <ol>
  *   <li><b>Dunes.</b> The large noise octave is stretched wide and flat,
@@ -38,9 +41,8 @@ import java.util.Map;
  * <h2>Heat shimmer</h2>
  * The whole field is sampled through a slow vertical ripple whose phase varies
  * along the board, so it wobbles rather than sliding. It is deliberately almost
- * too subtle to point at — the desert is the only biome in the mod where the
- * air itself is visibly doing something, and overdoing it turns sand into
- * water immediately.
+ * too subtle to point at, because overdoing it turns sand into water
+ * immediately.
  *
  * <h2>Why the sand is not sand-coloured</h2>
  * Minecraft's sand samples at {@code #DBCFA3}, which is 74% white light. On a

@@ -14,23 +14,26 @@ import java.util.Map;
 
 /**
  * Night indicator: a moon crossing the board, showing how much night is left.
- * Genuinely useful, which is rare for RGB lighting.
+ * Genuinely useful information, which is a rare thing for RGB lighting to be.
  *
  * <h2>A moon, not a progress bar</h2>
- * This used to sweep a bar along the function row. It worked, and it read as a
- * loading bar for the night — accurate, and completely uninteresting.
- * {@link MoonArcPattern} puts the moon on the arc it actually travels: up out
- * of the left edge, across the top rows, down the right at dawn. Same
- * information, except now you read it the way you read the sky, by glancing at
- * where the thing is.
+ * This used to sweep a bar along the function row. It worked perfectly well
+ * and it read as a loading bar for the night: accurate, and completely
+ * uninteresting.
  *
- * <p>Tier 2, so the biome layer keeps showing underneath — you should be able
- * to check how long until sunrise without your scenery having to get out of
- * the way. It is deliberately registered <b>after</b> the rain cascade so that
- * it draws on top: Tier 2 has no priority contest, it just composites in
+ * <p>{@link MoonArcPattern} puts the moon on the arc it actually travels
+ * instead: up out of the left edge, across the top rows, down the right at
+ * dawn. The same information, except now you read it the way you read the
+ * sky, by glancing at where the thing is.
+ *
+ * <p>Tier 2, so the biome layer keeps showing underneath. Checking how long
+ * until sunrise should not require your scenery to get out of the way.
+ *
+ * <p>It is deliberately registered <b>after</b> the rain cascade so that it
+ * draws on top. Tier 2 has no priority contest at all, it just composites in
  * registration order, and a moon that rain can paint over is a moon you cannot
- * read during exactly the weather where you most want to know how long is
- * left.
+ * read during precisely the weather where you most want to know how much night
+ * is left.
  *
  * <h2>Two clocks, on purpose</h2>
  * Night progress only needs recomputing on the ambient poll — night moves
