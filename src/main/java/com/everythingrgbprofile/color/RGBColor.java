@@ -1,20 +1,20 @@
 package com.everythingrgbprofile.color;
 
 /**
- * An immutable 8-bit RGB triple and the four blend helpers this mod actually
- * uses. That's it. That's the class.
+ * An immutable 8-bit RGB triple and the handful of blend helpers this mod
+ * actually uses. That's it. That's the class.
  *
- * <p>Before anyone asks: no, this is not colour-managed. There is no sRGB
- * transfer function, no linear light, no CIELAB, no perceptual anything. It
- * lerps in gamma space like it's 1998.
+ * <p>Before anybody asks: no, this is not colour-managed. No sRGB transfer
+ * function, no linear light, no CIELAB, no perceptual anything. It lerps in
+ * gamma space like it's 1998 and it sleeps fine at night.
  *
- * <p>And that is <b>correct here</b>, because the output device is not a
- * monitor — it's a keyboard with RGB LEDs behind chunky plastic, driven by a
- * vendor SDK that takes 0–255 per channel and does its own opaque thing to
- * them anyway. Doing proper linear-light blending would add a pile of maths
- * and a pow() per channel per LED per frame in exchange for a difference
- * nobody can see on a Corsair keycap. We're colouring buttons, not grading a
- * film.
+ * <p>Which is <b>correct here</b>, because the output device is not a monitor.
+ * It is a keyboard with RGB LEDs sitting behind chunky plastic, driven by a
+ * vendor SDK that takes 0-255 per channel and then does its own completely
+ * opaque thing to the numbers anyway. Proper linear-light blending would buy
+ * us a pile of extra maths and a pow() per channel per LED per frame, in
+ * exchange for a difference nobody can see on a Corsair keycap. We are
+ * colouring buttons here, not grading a film.
  */
 public record RGBColor(int r, int g, int b) {
 
@@ -22,10 +22,11 @@ public record RGBColor(int r, int g, int b) {
     public static final RGBColor WHITE = new RGBColor(255, 255, 255);
 
     /**
-     * Compact constructor that clamps on the way in, so no instance of this
-     * record can ever hold an out-of-range channel. Every helper below gets to
-     * do maths without a defensive check, because the type itself already
-     * guarantees the invariant. This is the whole point of records.
+     * Compact constructor that clamps on the way in, so there is no way for an
+     * instance of this record to exist holding an out-of-range channel. Every
+     * helper below then gets to do arithmetic without a single defensive
+     * check, because the type itself already guarantees it. This is the entire
+     * point of records and it is genuinely lovely.
      */
     public RGBColor {
         r = clamp(r);
@@ -40,9 +41,10 @@ public record RGBColor(int r, int g, int b) {
     /**
      * Parses {@code "#RRGGBB"} or {@code "RRGGBB"}. Throws on anything else.
      *
-     * <p>This one throws on purpose — it's the strict version, for callers who
-     * genuinely want to know they were handed garbage. If you're reading a
-     * user-editable file, you want {@link #fromHexOrDefault} instead.
+     * <p>This one throws on purpose. It is the strict version, for callers who
+     * genuinely do want to find out they were handed garbage. If you are
+     * reading anything a human might have edited, you want
+     * {@link #fromHexOrDefault} instead.
      */
     public static RGBColor fromHex(String hex) {
         String h = hex.startsWith("#") ? hex.substring(1) : hex;
@@ -59,16 +61,17 @@ public record RGBColor(int r, int g, int b) {
      * The forgiving version: parse it, and if it's malformed just quietly use
      * {@code fallback}.
      *
-     * <p>Used everywhere we read user-editable JSON/TOML, on the standing rule
-     * that a malformed user edit must never crash the mod. Somebody is going to type
-     * {@code "#GGGGGG"} or leave off a digit, and the correct response to that
-     * is one slightly-wrong keyboard colour, not a crash report titled "mod
-     * broke my game" that turns out to be a typo in a config file.
+     * <p>Used everywhere this mod reads user-editable JSON or TOML, under the
+     * standing rule that a malformed edit must never crash anything. Somebody
+     * is eventually going to type {@code "#GGGGGG"} or drop a digit, and the
+     * correct response to that is one slightly-wrong key colour. Not a crash
+     * report titled "mod broke my game" that turns out to be a typo they made.
      *
-     * <p>Note it swallows the exception without logging. That's deliberate —
-     * this runs per-entry while loading profiles, and the <i>caller</i> has the
-     * context worth logging (which file, which key). Logging here would just
-     * spam "bad hex" with no idea whose hex it was.
+     * <p>Note that it swallows the exception without logging, which is
+     * deliberate. This runs per-entry while profiles load, and the
+     * <i>caller</i> is the one holding the context worth logging: which file,
+     * which key. Logging in here would just emit "bad hex" over and over with
+     * no indication of whose hex it was, which helps nobody.
      */
     public static RGBColor fromHexOrDefault(String hex, RGBColor fallback) {
         try {
@@ -82,7 +85,7 @@ public record RGBColor(int r, int g, int b) {
         return String.format("#%02X%02X%02X", r, g, b);
     }
 
-    /** Dims toward black. 0 = fully off, 1 = untouched. */
+    /** Dims toward black. 0 is fully off, 1 leaves it alone. */
     public RGBColor scaled(double brightness) {
         double c = Math.max(0.0, Math.min(1.0, brightness));
         return new RGBColor((int) Math.round(r * c), (int) Math.round(g * c), (int) Math.round(b * c));
@@ -93,8 +96,9 @@ public record RGBColor(int r, int g, int b) {
      * so a caller with a slightly-overshooting eased value can't accidentally
      * extrapolate past the endpoint and produce a colour nobody asked for.
      *
-     * <p>This is the single most-called method in the mod — every crossfade,
-     * every pattern gradient, every alpha composite bottoms out here.
+     * <p>This is comfortably the most-called method in the whole mod. Every
+     * crossfade, every pattern gradient and every alpha composite bottoms out
+     * right here, so keep it boring.
      */
     public RGBColor lerp(RGBColor other, double t) {
         double c = Math.max(0.0, Math.min(1.0, t));
@@ -105,53 +109,64 @@ public record RGBColor(int r, int g, int b) {
         );
     }
 
-    /** Tints toward white. Used to auto-invent an accent colour. */
+    /** Tints toward white. Used to auto-invent an accent colour when nobody supplied one. */
     public RGBColor lightened(double amount) {
         return lerp(WHITE, amount);
     }
 
     /**
-     * Invents a stable, decent-looking colour out of any string key — a
-     * dimension id, usually. This is the fallback that covers biomes and
-     * dimensions nobody has hand-authored a profile for: some rando's custom
-     * dimension still gets its own consistent identity instead of defaulting
-     * to grey.
+     * Invents a stable, decent-looking colour out of any string key, which in
+     * practice means a dimension or boss id. This is the fallback covering
+     * every dimension and boss nobody ever hand-authored a profile for, so some
+     * random person's custom dimension still gets a consistent identity of its
+     * own instead of defaulting to grey. (Biomes get theirs a different way,
+     * from the biome's own colours; see ClientEventHandlers.deriveBiomeColor.)
      *
-     * <h2>Why a hand-rolled FNV-1a instead of {@link String#hashCode()}</h2>
-     * {@code String.hashCode()} is in fact specified in the Javadoc and stable
-     * in practice. Relying on it is still the wrong call here, because the
-     * requirement isn't "stable within a JVM run" — it's "the Twilight Forest
-     * is the same shade of green it was last Tuesday, and on your friend's
-     * machine, on a different JDK, forever." Depending on a platform hash for
-     * a value users will notice changing is a bet with no upside. FNV-1a is
-     * nine lines. We wrote the nine lines.
+     * <h2>Why a hand-rolled FNV-1a and not {@link String#hashCode()}</h2>
+     * {@code String.hashCode()} genuinely is specified in the Javadoc and it
+     * genuinely is stable in practice. Relying on it here is still the wrong
+     * call, because the requirement is not "stable within one JVM run". The
+     * requirement is "the Twilight Forest is the same green it was last
+     * Tuesday, and the same green on your friend's machine, on a different
+     * JDK, forever". Betting a user-visible value on a platform hash has no
+     * upside at all. FNV-1a is nine lines. We wrote the nine lines.
      */
     public static RGBColor deterministicFromKey(String key) {
         long hash = fnv1a(key);
-        // Pick the hue from the hash, but PIN saturation and value to narrow
-        // mid-range bands instead of hashing them freely across 0..1.
+        // Hue comes straight off the hash, but saturation and value get PINNED
+        // to narrow mid-range bands rather than being hashed freely across
+        // 0..1.
         //
-        // Free-range S/V means some dimensions roll near-black, near-white, or
-        // a washed-out pastel — all of which look like the mod is broken
-        // rather than like a deliberate colour. Clamping to 0.55–0.85 sat and
-        // 0.55–0.80 value guarantees every generated colour is saturated
-        // enough to read as intentional on an LED, and keeps them clear of
-        // vanilla's own Nether (fiery orange-red) and End (pale gold) so a
-        // modded dimension never gets mistaken for a vanilla one at a glance.
+        // Free-range S/V means some dimensions roll near-black, some roll
+        // near-white, and some roll a washed-out pastel. All three read as
+        // "the mod is broken" rather than as a deliberate colour choice.
+        // Clamping to 0.55-0.85 saturation and 0.55-0.80 value guarantees
+        // every generated colour is saturated enough to look intentional on an
+        // LED.
+        //
+        // Note what this does NOT do: hue is still the full 0-360, so a
+        // generated dimension absolutely can land on the same fiery orange as
+        // the Nether or the same pale gold as the End. Nothing here reserves
+        // vanilla's hues, and a previous version of this comment claimed it
+        // did. If two dimensions ever need to be told apart at a glance, give
+        // one of them a real entry in dimension_profiles.json.
         float hue = (Math.abs(hash) % 360) / 360f;
         float saturation = 0.55f + (Math.abs(hash >> 8) % 30) / 100f; // 0.55–0.85
         float value = 0.55f + (Math.abs(hash >> 16) % 25) / 100f;     // 0.55–0.80
-        // Shifted slices of the same hash rather than three separate hashes:
-        // different bits, so hue/sat/value aren't correlated, and it's one
-        // pass over the string instead of three. Free win.
+        // Shifted slices of the same hash instead of three separate hashes.
+        // Different bits, so hue, saturation and value don't end up correlated
+        // with each other, and it's one pass over the string rather than
+        // three. Free win, take it.
         int argb = java.awt.Color.HSBtoRGB(hue, saturation, value);
         return new RGBColor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF);
     }
 
     /**
-     * FNV-1a, 64-bit. Textbook implementation, no cleverness, deliberately
-     * boring — the entire value proposition is that this produces the same
-     * number on every machine until the heat death of the universe.
+     * FNV-1a, 64-bit. Textbook apart from one thing: it hashes UTF-16 chars
+     * rather than bytes, which is identical for the plain-ASCII ids it gets
+     * fed. Zero cleverness, aggressively boring on purpose. The entire value proposition of this method is that
+     * it returns the same number on every machine until the heat death of the
+     * universe, and cleverness is how you lose that.
      */
     private static long fnv1a(String s) {
         long hash = 0xcbf29ce484222325L; // FNV offset basis

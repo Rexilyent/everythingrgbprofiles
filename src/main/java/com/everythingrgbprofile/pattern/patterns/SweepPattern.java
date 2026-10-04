@@ -16,17 +16,20 @@ import com.everythingrgbprofile.pattern.PatternContext;
  * physical top row and turned the F-key row into a progress bar for how much
  * night was left.
  *
- * <h2>The one weird thing: progress is pushed in, not computed</h2>
- * Every other pattern derives its animation from {@code elapsedMillis}. This
- * one ignores it completely and reads a {@code progress} field that
- * {@code NightIndicatorEffect} sets from outside.
+ * <h2>The one genuinely odd thing: progress is pushed IN, not computed</h2>
+ * Every other pattern in this package derives its animation from
+ * {@code elapsedMillis}. This one ignores that value completely and reads a
+ * {@code progress} field that its owner sets from outside (the night
+ * indicator, back when it used this).
  *
- * <p>That's because the quantity being drawn isn't "how long has this
- * animation been running", it's "how far through the night is the world" —
- * external game state. Deriving it from elapsed time would mean the bar
- * desyncs from the actual sky the moment anything sleeps, lags, or changes
- * the day length, and you'd get a progress bar reporting a time
- * of day that isn't happening.
+ * <p>That is because the quantity being drawn is not "how long has this
+ * animation been running". It is "how far through the night is the world",
+ * which is external game state and nothing to do with us.
+ *
+ * <p>Derive it from elapsed time instead and the bar desyncs from the actual
+ * sky the moment anybody sleeps, the server lags, or a mod changes the day
+ * length. You would end up with a confident progress bar reporting a time of
+ * day that is not happening.
  *
  * <p>The field is {@code volatile} because it's written from the client
  * thread's polling and read on the SDK worker thread. That's the decoupling

@@ -18,15 +18,18 @@ import java.util.Map;
  * {@link TwinkleParticlePattern} produces highlights but writes <b>only</b>
  * the keys currently twinkling — every other key is absent from its output, so
  * the compositor's black prefill shows through untouched. Either is fine when
- * the biome colour is bright: The End's cream {@code #D8CB9A} twinkling on
- * black reads as a starfield, which is the intent.
+ * the colour is bright: a cream like the {@code #D8CB9A} the End used to run
+ * reads as a starfield twinkling on black.
  *
- * <p>It falls apart when the biome colour is itself nearly black. The Deep
- * Dark was {@code twinkle-particle} at {@code #10182B} — luminance 24, barely
- * off black — with four twinkle slots, so roughly two keys were lit at any
- * moment, in a colour almost indistinguishable from the unlit board around
- * them. The effect was working exactly as written and looked like the mod had
- * switched off.
+ * <p>Where it falls apart is when the biome colour is itself nearly black. The
+ * Deep Dark ran {@code twinkle-particle} at {@code #10182B}, which is
+ * luminance 24 and therefore barely off black, with four twinkle slots. So
+ * roughly two keys were lit at any given moment, in a colour almost
+ * indistinguishable from the unlit board surrounding them.
+ *
+ * <p>The effect was working exactly as written. It also looked identical to
+ * the mod having switched itself off, which is the only opinion a player gets
+ * to have about it.
  *
  * <p>Splitting the two roles across two colours is what fixes it: the base
  * colour becomes a dark wash that occupies the whole board so it never reads
@@ -101,7 +104,8 @@ public final class ShimmerTwinklePattern implements Pattern {
     /**
      * A Warden is nearby. Deliberately quieter and slower than
      * {@link #sculkVeins}: a dimmer wash breathing at half the rate, with
-     * fewer glints that sit brighter when they do arrive.
+     * fewer glints (by default) at the same full brightness, which stand out
+     * harder against the darker wash when they do arrive.
      *
      * <p>It has to be distinguishable from the Deep Dark biome layer it
      * replaces — this is Tier 1 priority 11 taking the board off the biome at

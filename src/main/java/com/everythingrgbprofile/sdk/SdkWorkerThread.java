@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.everythingrgbprofile.RGBProfileMod;
 import com.everythingrgbprofile.debug.Diagnostics;
@@ -20,28 +21,35 @@ import com.everythingrgbprofile.keymap.KeyGrid;
 
 /**
  * The one thread that owns the connection to the lighting hardware, whichever
- * backend that turns out to be, and the reason the lighting stays smooth while
- * Minecraft stalls for five seconds loading chunks.
+ * backend that turns out to be. Also the reason the lighting stays perfectly
+ * smooth while Minecraft stalls for five seconds loading chunks.
  *
  * <h2>The rule</h2>
  * <b>Every native call and every effect state mutation happens here.</b> Event
  * handlers on the client thread never touch the bridge or an effect object
- * directly — they call {@link #enqueue(Runnable)} with a small job and get on
+ * directly. They call {@link #enqueue(Runnable)} with a small job and get on
  * with their lives.
  *
- * <p>This isn't architectural fussiness. The Corsair and Logitech SDKs are
- * native DLLs reached through JNA, and two threads calling into one
- * concurrently doesn't throw an exception you can catch and log; it corrupts
- * memory and takes the JVM down with no stack trace. Logitech's SDK goes further
- * and initialises itself per thread. Single-threaded ownership is the only
- * defence, and it's cheap.
+ * <p>This is not architectural fussiness. The Corsair and Logitech SDKs are
+ * native DLLs reached through JNA, and two threads calling into one of those
+ * concurrently does not throw an exception you can catch and log. It corrupts
+ * memory and takes the JVM down with it, silently, with no stack trace and no
+ * crash report worth the name.
+ *
+ * <p>Logitech's SDK goes one further and initialises itself PER THREAD, so
+ * calling it from the wrong one does not even fail consistently.
+ * Single-threaded ownership is the only real defence, and it costs almost
+ * nothing.
  *
  * <p>The happy side effect is independence: this loop runs at
- * {@code animationFrameRateHz} regardless of what the game thread is doing. A
- * portal transition keeps spinning at full frame rate through the entire chunk
- * -loading freeze. (Which, memorably, turned out to be a
- * <i>problem</i> — see {@code PortalTransitionEffect}, where the animation
- * happily finished while the player couldn't see anything.)
+ * {@code animationFrameRateHz} no matter what the game thread is currently
+ * doing to itself. A portal transition keeps spinning at full frame rate
+ * straight through the entire chunk-loading freeze.
+ *
+ * <p>Which, memorably, turned out to be its own problem. See
+ * {@code PortalTransitionEffect}, where the animation ran beautifully to
+ * completion during the several seconds the player could not see anything at
+ * all.
  */
 public final class SdkWorkerThread {
 
@@ -52,21 +60,49 @@ public final class SdkWorkerThread {
      * Whichever vendor backend this session is driving.
      *
      * <p>Resolved once at startup by {@link BackendRegistry} and never swapped
-     * afterwards. Everything below this line is written against the interface,
-     * so adding a vendor does not touch the render loop at all.
+     * afterwards. Everything below this line is written against the interface
+     * rather than any particular vendor, which is why adding a new one does
+     * not touch the render loop at all.
      */
     private final LightingBackend bridge = BackendRegistry.select();
     private final EffectManager effectManager = new EffectManager();
     private final EffectRegistry effects = new EffectRegistry(effectManager);
-    // ConcurrentLinkedQueue: many client-thread producers, one worker
-    // consumer, unbounded and lock-free. The client thread must NEVER block
-    // to hand off a job, because a game stutter caused by the lighting queue is
-    // the one cost this mod must never impose on the game itself.
+    // ConcurrentLinkedQueue: many client-thread producers, exactly one worker
+    // consumer, lock-free.
+    //
+    // The client thread must NEVER block to hand off a job. A game stutter
+    // caused by the keyboard lighting is the one cost this mod is absolutely
+    // not allowed to impose on the game it is decorating.
     private final ConcurrentLinkedQueue<Runnable> jobQueue = new ConcurrentLinkedQueue<>();
+    /**
+     * How many jobs are in {@link #jobQueue}, kept by hand because the queue's
+     * own {@code size()} walks every node to count them.
+     */
+    private final AtomicInteger queuedJobs = new AtomicInteger();
+    /** Jobs thrown away to stay under {@link #MAX_QUEUED_JOBS} since the worker last caught up. */
+    private final AtomicInteger droppedJobs = new AtomicInteger();
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    // Published by the worker for diagnostics on the game thread. Plain
-    // volatiles, written once or once a frame; nothing here is worth a lock.
+    /**
+     * Most jobs the queue will hold before it starts dropping the oldest.
+     *
+     * <p>A healthy worker drains the queue thirty times a second, so it never
+     * holds more than a few ticks' worth. The cap is for a worker that has
+     * stopped draining, which in practice means a vendor SDK call that never
+     * returned. Several handlers enqueue every tick whether or not anything
+     * changed, so without a cap a hung SDK turns into a queue that grows for
+     * as long as the game stays open.
+     *
+     * <p>Dropping the OLDEST is safe because nearly every job says "the state
+     * is now X", and a newer job saying the same thing supersedes it. At the
+     * rate the game enqueues during a busy fight this is around twenty seconds
+     * of backlog, far more than a working frame ever has.
+     */
+    private static final int MAX_QUEUED_JOBS = 4096;
+
+    // Published by the worker so diagnostics on the game thread can read them.
+    // Plain volatiles, written once or once per frame. Nothing in here is
+    // worth the price of a lock.
     private volatile KeyGrid publishedGrid = KeyGrid.empty();
     private volatile String publishedName = "not connected yet";
     private volatile boolean publishedConnected;
@@ -105,17 +141,20 @@ public final class SdkWorkerThread {
         worker.running.set(true);
         worker.executor.submit(() -> worker.runLoop(dllExtractDir));
 
-        // Two shutdown paths, deliberately.
-        //
         // Shutting down is what hands lighting back to the user's own
         // software: Corsair removes our layer, Razer and SteelSeries close
         // their sessions, Logitech restores the lighting it saved at connect.
         // Skip it and the board keeps showing our last frame — for up to
         // fifteen seconds with the HTTP vendors, indefinitely if something
         // holds the session open — which from the user's side looks exactly
-        // like the mod broke their keyboard. Registering here as well as via
-        // the FML lifecycle hook (see RGBProfileMod) means it takes two
-        // independent failures to skip it. Running it twice is harmless.
+        // like the mod broke their keyboard.
+        //
+        // This JVM shutdown hook is the only path that triggers it; nothing
+        // registers an FML lifecycle hook as a second one. Note the hook only
+        // asks the worker to stop and returns straight away. It does not wait
+        // for the worker's finally block, and the worker is a daemon thread,
+        // so the release is racing the JVM's exit. Running it twice is
+        // harmless.
         Runtime.getRuntime().addShutdownHook(new Thread(SdkWorkerThread::shutdown, "RGBProfile-Shutdown-Hook"));
     }
 
@@ -128,12 +167,24 @@ public final class SdkWorkerThread {
      * this unconditionally without first asking whether lighting exists, which
      * is what keeps "zero cost when irrelevant" from turning into a null-check
      * at every call site.
+     *
+     * <p>Never blocks. If the worker has fallen {@link #MAX_QUEUED_JOBS}
+     * behind, the oldest job is dropped to make room.
      */
     public static void enqueue(Runnable job) {
         SdkWorkerThread current = instance;
-        if (current != null && current.running.get()) {
-            current.jobQueue.add(job);
+        if (current == null || !current.running.get()) return;
+        if (current.queuedJobs.incrementAndGet() > MAX_QUEUED_JOBS) {
+            if (current.jobQueue.poll() != null) {
+                current.queuedJobs.decrementAndGet();
+                if (current.droppedJobs.getAndIncrement() == 0) {
+                    RGBProfileMod.LOGGER.warn("RGB Profile: the lighting thread has fallen {} updates behind "
+                            + "(usually a lighting program that stopped answering). Dropping the oldest "
+                            + "updates until it catches up.", MAX_QUEUED_JOBS);
+                }
+            }
         }
+        current.jobQueue.add(job);
     }
 
     /** The pipeline's state for diagnostics, or null if the worker was never started. */
@@ -234,7 +285,7 @@ public final class SdkWorkerThread {
                 long frameStart = System.nanoTime();
                 long now = System.currentTimeMillis();
 
-                int queueDepthAtFrameStart = jobQueue.size();
+                int queueDepthAtFrameStart = queuedJobs.get();
 
                 // Drain every pending job before rendering, so this frame sees
                 // the freshest state. Each job is individually try/caught: one
@@ -243,12 +294,20 @@ public final class SdkWorkerThread {
                 // showing. Log it, drop it, keep going.
                 Runnable job;
                 while ((job = jobQueue.poll()) != null) {
+                    queuedJobs.decrementAndGet();
                     try {
                         job.run();
                     } catch (Exception e) {
                         BackendHealth.bug("Game events", "Updating a lighting effect from the game threw, "
                                 + "and that update was skipped.", e);
                     }
+                }
+                // Caught up after a stall that overflowed the queue: say how
+                // much was lost, once, so the warning in enqueue has an end.
+                int dropped = droppedJobs.getAndSet(0);
+                if (dropped > 0) {
+                    RGBProfileMod.LOGGER.warn("RGB Profile: the lighting thread caught up after dropping {} "
+                            + "stale updates.", dropped);
                 }
 
                 boolean live = bridge.connected();

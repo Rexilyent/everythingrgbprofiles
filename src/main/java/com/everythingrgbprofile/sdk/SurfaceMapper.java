@@ -11,23 +11,28 @@ import java.util.Map;
 /**
  * Decides which LED of one surface each LED of another should copy.
  *
- * <p>Needed whenever a frame rendered for one board has to be shown on a
- * different one — the tuner's drawn keyboard onto real hardware, or the lead
+ * <p>Needed any time a frame rendered for one board has to be shown on a
+ * different one: the tuner's drawn keyboard onto real hardware, or the lead
  * backend's keyboard onto every other backend in auto mode.
  *
  * <h2>Why not just nearest neighbour</h2>
- * Because it was tried, and it blacked out the number row. Two boards normalise
- * to different vertical spacing: a real K70 puts its F-row at y 0.2 and numbers
- * at 0.4 (there is a physical gap and a logo LED above), while a vendor grid
- * spaces six rows evenly at 0.2 apart. Plain nearest-in-2D sent the grid's
- * number row to the K70's F-row, and fourteen physical LEDs were never written.
+ * Because that was tried first, and it blacked out the number row.
  *
- * <p>So this matches <b>rows first</b> — cluster both boards into rows, pair
- * them top to bottom, then match within a row by x alone — and only falls back
- * to 2D distance for LEDs that belong to no key row, like a logo or an
- * indicator. Rows with fewer than five LEDs are not key rows: a K70 reports its
- * logo as a one-LED "row", and letting that take a pairing slot would shift
- * every row below it by one.
+ * <p>Two boards normalise to different vertical spacing. A real K70 puts its
+ * F-row at y 0.2 and its numbers at 0.4, because there is a physical gap and a
+ * logo LED sitting above them. A vendor grid spaces its six rows evenly, 0.2
+ * apart. So plain nearest-in-2D confidently sent the grid's number row to the
+ * K70's F-row, and fourteen physical LEDs were simply never written to at all.
+ *
+ * <p>So this matches <b>rows first</b>: cluster both boards into rows, pair
+ * them off top to bottom, then match within a row by x alone. It only falls
+ * back to 2D distance for LEDs belonging to no key row, such as a logo or an
+ * indicator.
+ *
+ * <p>Rows holding fewer than five LEDs do not count as key rows, and that
+ * threshold is load-bearing. A K70 reports its logo as a one-LED "row", and
+ * letting that take a pairing slot shifts every single row below it down by
+ * one.
  */
 public final class SurfaceMapper {
 

@@ -17,11 +17,15 @@ import com.everythingrgbprofile.pattern.PatternContext;
  *
  * <h2>Why synchronised, when shimmer is deliberately not</h2>
  * Because they're saying different things. Shimmer is ambient texture — "you
- * are in a swamp" — and desynchronised keys make it feel alive and organic.
- * Pulse is a warning. Warnings need to be parsed in peripheral vision in under
- * a second, and a unified flash does that instantly where a shimmering blob
- * does not. If your health is critical you should not have to <i>study</i>
- * your keyboard.
+ * are in a swamp" — and desynchronised keys are what make it feel alive and
+ * organic rather than mechanical.
+ *
+ * <p>Pulse is a warning, and warnings have to be parsed in peripheral vision
+ * in under a second. A unified flash does that instantly. A shimmering blob
+ * does not.
+ *
+ * <p>If your health is critical you should not have to <i>study</i> your
+ * keyboard to find that out.
  */
 public final class PulsePattern implements Pattern {
 
@@ -29,13 +33,15 @@ public final class PulsePattern implements Pattern {
      * Frequency and floor per speed. Note the floor differs and that's on
      * purpose.
      *
-     * <p>SLOW keeps a 0.10 floor so it never fully extinguishes — it's used
-     * for ambient "be aware" states, and a light that goes completely dark
-     * twice a second reads as a fault, not a mood.
+     * <p>SLOW keeps a 0.10 floor so that it never fully extinguishes. It gets
+     * used for ambient "be aware" states, and a light going completely dark
+     * every couple of seconds reads as a hardware fault rather than as a
+     * mood.
      *
-     * <p>MEDIUM and FAST go to a true zero, because they signal urgency and
-     * the hard blackout between beats is what makes them feel urgent. 3Hz to
-     * full black is genuinely hard to ignore, which is the entire point.
+     * <p>MEDIUM and FAST go to a true zero, because they are signalling
+     * urgency and the hard blackout between beats is the thing that makes them
+     * feel urgent. 3Hz to full black is genuinely difficult to ignore, which
+     * is the entire reason it is set that way.
      */
     public enum Speed {
         SLOW(0.4, 0.10),

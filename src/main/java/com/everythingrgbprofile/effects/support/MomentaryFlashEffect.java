@@ -14,33 +14,39 @@ import java.util.Map;
 
 /**
  * The Tier 3 counterpart to {@link SustainedOverlayEffect}: fire and forget.
- * {@link #trigger} sets it off, and it reports inactive again once
- * {@code durationMillis} has elapsed. No cleanup, no teardown — the compositor
- * simply stops calling it and Tiers 1–2 reappear on their own, because they're
- * recomposited from scratch every frame anyway.
+ * {@link #trigger} sets it off and it reports inactive again once
+ * {@code durationMillis} has elapsed.
  *
- * <h2>Why everything is supplied at trigger time</h2>
- * Pattern, colour, accent, duration and target keys all arrive as arguments
- * rather than being fixed in the constructor. That's what lets ONE registered
- * instance serve an escalating effect — the Shrieker Alert hands it a
- * progressively deeper colour and shorter duration on each shriek, and the
- * per-dimension portal flash hands it a different palette per dimension —
- * without allocating a new controller or registering anything new mid-session.
+ * <p>No cleanup, no teardown, nothing to remember to call. The compositor
+ * simply stops asking and Tiers 1 and 2 reappear by themselves, because they
+ * are recomposited from scratch every frame regardless.
  *
- * <p>{@code priority} decides who wins when two Tier 3 flashes overlap: the
- * higher-urgency one preempts. Death outranks lightning, and lightning outranks
- * a sensor ping.
+ * <h2>Why everything arrives at trigger time</h2>
+ * Pattern, colour, accent, duration and target keys all come in as arguments
+ * rather than being fixed in the constructor, and that is what lets ONE
+ * registered instance serve an escalating effect.
+ *
+ * <p>The Shrieker Alert hands it a progressively brighter colour and a shorter
+ * duration on each shriek; the level-up hands it a two-colour animation where
+ * the advancement hands it a single flash. Neither allocates a new controller
+ * or registers anything new mid-session.
+ *
+ * <p>{@code priority} settles who wins when two Tier 3 flashes overlap: the
+ * more urgent one preempts. Death outranks lightning, lightning outranks a
+ * sensor ping, and nothing outranks death.
  */
 public final class MomentaryFlashEffect implements EffectController {
 
     private final String id;
     private final int priority;
 
-    // All volatile. trigger() is meant to be called from a job on the worker
-    // thread, which is also where render() runs, so in correct use there is
-    // no cross-thread traffic at all. Volatile costs nothing measurable here
-    // and means a stray call from another thread still publishes cleanly
-    // instead of being half-seen.
+    // All volatile. trigger() is supposed to be called from a job on the
+    // worker thread, which is also where render() runs, so in correct use
+    // there is no cross-thread traffic here whatsoever.
+    //
+    // Volatile costs nothing measurable at this scale and means a stray call
+    // from some other thread still publishes cleanly rather than being
+    // half-seen by a render midway through reading it.
     private volatile long triggeredAtMillis = Long.MIN_VALUE; // sentinel: never fired
     private volatile long durationMillis = 0;
     private volatile RGBColor color = RGBColor.WHITE;

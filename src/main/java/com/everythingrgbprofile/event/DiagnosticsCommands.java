@@ -32,8 +32,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * {@code /rgbprofiles} and the chat notices that point to it: the part of the
- * diagnostics a player actually sees.
+ * {@code /rgbprofiles} and the chat notices that point at it. This is the
+ * part of the diagnostics an actual player ever sees, as opposed to the part
+ * that lives in the log waiting to be asked for.
  *
  * <ul>
  *   <li>{@code /rgbprofiles status} — which lighting software is in use, and for
@@ -48,13 +49,14 @@ import java.util.Map;
  *       {@link NativeCrashGuard} is skipping after a crash.</li>
  * </ul>
  *
- * <p>Client commands, so they work on any server, including ones without this
- * mod, and never touch the server.
+ * <p>Client commands, so they work on any server at all, including servers
+ * that have never heard of this mod, and they never once touch the server.
  *
- * <p>The notices exist because a player with a dark keyboard does not know the
- * command exists. They are said once each — at the first world joined, and
- * when a connection drops or the mod hits an error — and can be turned off
- * with {@code [debug] chatNotices}.
+ * <p>The chat notices exist for a boring and important reason: somebody
+ * staring at a dark keyboard has no idea the command exists. So each one is
+ * said exactly once — on the first world joined, and when a connection drops
+ * or the mod runs into an error — and all of them can be switched off with
+ * {@code [debug] chatNotices} by anyone who finds them irritating.
  */
 @EventBusSubscriber(modid = RGBProfileMod.MODID, value = Dist.CLIENT)
 public final class DiagnosticsCommands {
@@ -141,9 +143,13 @@ public final class DiagnosticsCommands {
             }
         }
 
-        // With lighting working, software that is simply absent is noise, so
-        // it collapses into one line with the details on hover. With nothing
-        // working, every one of them might be the answer, so each gets shown.
+        // When lighting IS working, listing software that simply isn't
+        // installed is pure noise, so it collapses down to one line with the
+        // details tucked behind a hover.
+        //
+        // When nothing is working, any one of those absences might be the
+        // answer, so every one of them gets its own line. Same data, opposite
+        // presentation, decided by whether the reader currently has a problem.
         List<BackendHealth.Diagnosis> quiet = new ArrayList<>();
         for (BackendHealth.Diagnosis d : all) {
             if (d.backendId().equals(leader)) continue;
@@ -208,9 +214,12 @@ public final class DiagnosticsCommands {
     }
 
     /**
-     * For "my effect didn't show". What owns the board says whether an effect
-     * never started or started and was drawn over, which is the first thing
-     * to know and not something anyone can tell by looking at a keyboard.
+     * Built for "my effect didn't show".
+     *
+     * <p>What owns the board is what separates "it never started" from "it
+     * started and something drew over it". That is the first thing worth
+     * knowing, it sends you to two completely different places, and there is
+     * no way on earth to tell which one happened by looking at a keyboard.
      */
     private static int effects() {
         long now = System.currentTimeMillis();
@@ -238,7 +247,8 @@ public final class DiagnosticsCommands {
             try {
                 if (!feature.isOn()) off.add(feature.name().toLowerCase(java.util.Locale.ROOT));
             } catch (RuntimeException ignored) {
-                // Config not readable yet; the report says so.
+                // Config not readable yet. The report says so itself, so there
+                // is nothing useful to add from here.
             }
         }
         if (!off.isEmpty()) {
@@ -304,8 +314,9 @@ public final class DiagnosticsCommands {
                     .append(link("[Copy it instead]", ClickEvent.Action.COPY_TO_CLIPBOARD, text, "Copy the report")));
             return 0;
         }
-        // Printed to the log as well, so a player who sends latest.log instead
-        // of the report still sends the report.
+        // Printed into the log as well, so somebody who sends latest.log
+        // instead of the report file has still, without knowing it, sent the
+        // report.
         RGBProfileMod.LOGGER.info("RGB Profile: diagnostic report written to {}:\n{}", path, text);
 
         say(title("Diagnostic report"));
@@ -364,8 +375,9 @@ public final class DiagnosticsCommands {
     /** Said once, at the first world joined after the lighting settles. */
     private static void startupNotice() {
         if (BackendHealth.gateSummary() != null) {
-            // Turning the mod off is a choice that needs no announcing; running
-            // on an unsupported system is not, so that one is said once.
+            // Turning the mod off deliberately is a choice that needs no
+            // announcing back at you. Running on an unsupported system is not
+            // a choice, so that one does get said, once.
             if (BackendHealth.gateFix() == null) {
                 say(prefix().append(gray(BackendHealth.gateSummary() + " The rest of the mod does nothing here.")));
             }
@@ -409,13 +421,19 @@ public final class DiagnosticsCommands {
     /**
      * Whether this player looks like they have RGB lighting software at all.
      *
-     * <p>The mod ships in modpacks, where most players own no RGB keyboard, and
-     * telling every one of them "no lighting connected" on every launch would
-     * be noise they learn to ignore. So the notice is kept for players with
-     * something to fix: lighting software that was found but did not connect.
-     * Not installed says nothing was found. Not running is ambiguous for
-     * Razer and OpenRGB, which are network servers and cannot tell "not
-     * running" from "not installed", so only the other three count it.
+     * <p>This mod ships inside modpacks, where the overwhelming majority of
+     * players own no RGB keyboard whatsoever. Telling every single one of them
+     * "no lighting connected" on every launch is noise, and noise is a thing
+     * people learn to scroll past, including on the day it finally matters.
+     *
+     * <p>So the notice is reserved for players who have something they could
+     * actually fix: lighting software that WAS found and then did not connect.
+     * "Not installed" means nothing was found at all, which is not a problem,
+     * it is just a PC.
+     *
+     * <p>"Not running" is ambiguous for Razer and OpenRGB, which are network
+     * servers and genuinely cannot distinguish "not running" from "not
+     * installed", so only the other three backends are allowed to count it.
      */
     private static boolean rgbSoftwareFound(List<BackendHealth.Diagnosis> all) {
         for (BackendHealth.Diagnosis d : all) {
@@ -452,8 +470,9 @@ public final class DiagnosticsCommands {
                 if (!p.modFault()) continue;
                 say(prefix().append(red("The lighting hit an error (a bug in this mod). "))
                         .append(command("report")).append(gray(" writes a file you can send us.")));
-                // Once per session: an effect that fails keeps failing, and
-                // one message says everything the next hundred would.
+                // Once per session. An effect that fails goes on failing, and
+                // the first message says everything the next hundred were
+                // going to.
                 bugNoticeDone = true;
                 break;
             }

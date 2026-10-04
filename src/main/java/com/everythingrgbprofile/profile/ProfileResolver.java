@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * The "specific first, generic after, invent something if all else fails"
- * lookup shared by biomes, bosses and dimensions.
+ * The "specific first, generic second, invent something if all else fails"
+ * lookup, shared by biomes, bosses and dimensions.
  *
  * <ol>
  *   <li><b>Exact id</b> — {@code twilightforest:dark_forest}. Someone
@@ -20,15 +20,17 @@ import java.util.function.Supplier;
  * </ol>
  *
  * <h2>Why the wildcard tier earns its keep</h2>
- * The target is a 600-mod pack. Hand-authoring an entry for every biome in
- * that is not happening, by anyone, ever. The wildcard means a mod author or
- * pack maintainer writes <i>one</i> line and every biome that mod adds gets a
- * coherent identity — and then step 3 catches whatever's left, so nothing is
- * ever colourless. Full coverage from three lines of lookup.
+ * The target here is a 600-mod pack. Hand-authoring an entry for every biome
+ * in one of those is not happening, by anyone, ever, under any circumstances.
+ * The wildcard means a mod author or a pack maintainer writes <i>one</i> line
+ * and every biome that mod adds gets a coherent identity, and then step 3
+ * mops up whatever is left so nothing is ever colourless. Full coverage out of
+ * three lines of lookup.
  *
- * <p>Generic in T because biome, boss and dimension profiles are unrelated
- * types that need identical resolution. Writing it three times would be three
- * chances to make them subtly disagree.
+ * <p>Generic in T because biome, boss and dimension profiles are completely
+ * unrelated types that need identical resolution. Writing this out three times
+ * would be three separate chances to make them subtly disagree with each
+ * other.
  */
 public final class ProfileResolver {
 
@@ -36,8 +38,9 @@ public final class ProfileResolver {
         T exact = profiles.get(resourceLocationId);
         if (exact != null) return exact;
 
-        // colon > 0, not >= 0: a leading colon means an empty mod id, which is
-        // malformed and would produce a nonsense ":*" lookup.
+        // colon > 0 rather than >= 0. A leading colon means an empty mod id,
+        // which is malformed input, and letting it through produces a
+        // nonsense ":*" lookup that could actually match something.
         int colon = resourceLocationId.indexOf(':');
         if (colon > 0) {
             String modId = resourceLocationId.substring(0, colon);
@@ -45,9 +48,10 @@ public final class ProfileResolver {
             if (wildcard != null) return wildcard;
         }
 
-        // Supplier rather than a plain value: deriving a fallback can mean
-        // hashing strings and doing HSB conversion, and the overwhelmingly
-        // common case is an exact hit that never needs it. Lazy by design.
+        // Supplier rather than a plain value, because deriving a fallback
+        // means hashing strings and doing an HSB conversion, and the
+        // overwhelmingly common case is an exact hit that never needs any of
+        // that. Lazy on purpose.
         if (fallbackEnabled && derivedFallback != null) {
             return derivedFallback.get();
         }

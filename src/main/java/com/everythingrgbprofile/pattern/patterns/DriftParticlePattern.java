@@ -17,11 +17,14 @@ import java.util.Random;
  * keyboard. One class, eight presets, zero subclasses.
  *
  * <p>Petal-drift, snow-drift, sand-drift, bubble-rise, ember-rise,
- * spore-drift, drip-fall, and the Rain Cascade overlay's rain-drift are all
- * <b>this class with different numbers</b>. Falling cherry petals and rising
- * Nether embers differ by a direction angle and a lifespan. Every preset works
- * purely through parameters with zero additional code — which is nice, because
- * that goal is usually aspirational.
+ * spore-drift, drip-fall, and the Rain Cascade overlay's rain-drift are every
+ * one of them <b>this class with different numbers in it</b>.
+ *
+ * <p>Falling cherry petals and rising Nether embers differ by a direction
+ * angle and a lifespan. That is the entire difference. Every preset works
+ * purely through parameters with zero additional code, which is genuinely
+ * pleasant, because that particular goal is usually aspirational right up
+ * until somebody needs a special case.
  *
  * <p>Lifecycle: a particle spawns just off the upstream edge, drifts across at
  * its own randomised speed, drags a short fading trail, and respawns when it
@@ -187,9 +190,9 @@ public final class DriftParticlePattern implements Pattern {
         //
         // Deliberately ctx.accentColor() and NOT ctx.resolvedAccentColor():
         // the resolved form invents an accent by lightening the base when
-        // none was configured, which would quietly turn all two dozen
-        // single-colour drift biomes into base-plus-a-paler-base without
-        // anyone asking. A null accent here means one colour, full stop.
+        // none was configured, which would quietly turn every single-colour
+        // drift biome (five of the six bundled ones, plus anything a pack
+        // adds) into base-plus-a-paler-base without anyone asking. A null accent here means one colour, full stop.
         //
         // Magnolia Woodland is what this is for: it grows pink and white
         // magnolias side by side, so drawing it in one flat pink would be
