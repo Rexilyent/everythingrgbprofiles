@@ -18,20 +18,24 @@ import java.util.Map;
  * takes.
  *
  * <h2>Why this is not a MomentaryFlashEffect</h2>
- * It was one, and it borrowed {@code shriekerDurationMillis} — 900ms — for its
- * length. Vanilla's {@code WardenAi.EMERGE_DURATION} is
- * {@code Mth.ceil(133.6)} = 134 ticks, or <b>6.7 seconds</b>. So the effect
- * covered the first thirteen percent of the emergence and then stopped, while
- * the Warden was still visibly climbing out of the ground and had not moved
- * yet. It read as the effect breaking rather than ending.
+ * It was one, and it borrowed {@code shriekerDurationMillis} — all 900ms of it
+ * — for its length. Vanilla's {@code WardenAi.EMERGE_DURATION} is
+ * {@code Mth.ceil(133.6)}, which is 134 ticks, which is <b>6.7 seconds</b>.
  *
- * <p>Padding the duration to 6700ms would mostly work, and would be wrong for
- * the same reason {@link PortalTransitionEffect} does not use a stopwatch: the
- * length of the thing being depicted is not ours to assume. The trigger is
- * observed on a one-second poll, so a fixed length drifts against the animation
- * by up to a second in either direction, and any pack that alters the Warden
- * makes the constant a lie. Instead the hold is <b>open-ended</b> and closed by
- * {@link #release} when the Warden actually leaves its emerging pose.
+ * <p>So the effect covered the first thirteen percent of the emergence and
+ * then stopped, while the Warden was still very visibly climbing out of the
+ * ground and had not taken a step yet. It read as the effect breaking rather
+ * than as the effect ending.
+ *
+ * <p>Padding the duration out to 6700ms would mostly work, and would be wrong
+ * for exactly the same reason {@link PortalTransitionEffect} does not use a
+ * stopwatch: the length of the thing being depicted is not ours to assume.
+ *
+ * <p>The trigger is observed on a one-second poll, so a fixed length drifts
+ * against the animation by up to a second in either direction, and any pack
+ * that alters the Warden turns the constant into a lie. So the hold is
+ * <b>open-ended</b> and closed by {@link #release} when the Warden genuinely
+ * leaves its emerging pose.
  *
  * <h2>Why Tier 2</h2>
  * Identical reasoning to {@link PortalTransitionEffect}. Tier 3 blanks

@@ -20,12 +20,12 @@ import java.util.Random;
  * existing streak comes out brighter rather than replacing it:
  *
  * <ol>
- *   <li><b>The soak.</b> A dim, uneven red across the whole board. Without it
- *       the drips read as red rain on a dead keyboard; with it the board reads
- *       as something that has been bled on.</li>
- *   <li><b>Stains.</b> Every key a drip passes over holds colour and gives it
- *       up slowly. This is the layer that makes it blood — rain leaves nothing
- *       behind, blood leaves a streak.</li>
+ *   <li><b>The soak.</b> A dim, uneven red across the entire board. Without
+ *       it the drips read as red rain falling on a dead keyboard. With it the
+ *       board reads as something that has been bled on.</li>
+ *   <li><b>Stains.</b> Every key a drip passes over holds the colour and then
+ *       gives it up slowly. This is the layer that makes it blood rather than
+ *       liquid: rain leaves nothing behind it, blood leaves a streak.</li>
  *   <li><b>Drip heads.</b> The bright point, which hangs and swells at the top
  *       before it lets go.</li>
  * </ol>

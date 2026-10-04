@@ -16,21 +16,27 @@ import java.util.Map;
  * <p>Replaces a flat shimmer, which gave the biome a yellow wash and no
  * flowers in it.
  *
- * <h2>What moves is the wave, not the flowers</h2>
- * This is the one thing that makes the pattern work, and it is the opposite of
- * how every other animated biome in the mod is built. The particle engines move
- * objects across the board; the noise engines move a field past the keys. A
- * crop does neither. The plants are rooted — nothing travels — and what crosses
- * the field is the <i>phase</i> of their movement, each row bending a moment
- * after the row upwind of it. So the heads here have fixed positions for the
- * life of the pattern, and the only thing with a velocity is a number.
+ * <h2>What moves is the wave. Not the flowers.</h2>
+ * This is the single thing that makes the pattern work, and it is the opposite
+ * of how every other animated biome in this mod is built.
  *
- * <p>That is also why this cannot be built out of {@code twinkle-particle} with
- * a yellow palette, which was the obvious cheap version. Twinkles fire
- * independently, and independent is exactly wrong: a field reads as a field
- * because everything in it is doing the same thing slightly out of step, and
- * the moment the heads stop agreeing with their neighbours the board goes back
- * to being scattered lights.
+ * <p>The particle engines move objects across the board. The noise engines
+ * move a field past the keys. A crop does neither of those things. The plants
+ * are ROOTED, nothing travels anywhere, and what crosses the field is the
+ * <i>phase</i> of their movement, with each row bending a moment after the row
+ * upwind of it.
+ *
+ * <p>So the heads in here have fixed positions for the entire life of the
+ * pattern, and the only thing that has a velocity is a number.
+ *
+ * <p>That is also exactly why this cannot be built out of
+ * {@code twinkle-particle} with a yellow palette, which was the obvious cheap
+ * version and was tried.
+ *
+ * <p>Twinkles fire independently, and independent is precisely wrong here. A
+ * field reads as a field because everything in it is doing the same thing
+ * slightly out of step with its neighbours. The moment the heads stop agreeing
+ * with each other, the board goes straight back to being scattered lights.
  *
  * <h2>They all face the same way, which is a gift</h2>
  * Every sunflower Minecraft places faces east. It is a detail nobody asks

@@ -9,30 +9,31 @@ import java.util.List;
 
 /**
  * The last few hundred times an effect started or stopped, and who owned the
- * board at each, kept whether or not debug logging is on.
+ * board at each one, kept whether or not debug logging is switched on.
  *
  * <p>{@link Diagnostics} answers "did my effect fire, or fire and get drawn
- * over" in the log, but only with {@code [debug] enabled} switched on — and
- * nobody switches it on until after the thing they wanted to catch has
- * happened. A player saying "the portal effect didn't show" has, by then, lost
- * the only evidence there was. This keeps that evidence by default, for
- * {@code /rgbprofiles effects} and the report.
+ * over" in the log, but only with {@code [debug] enabled} turned on. And
+ * nobody turns that on until after the thing they were trying to catch has
+ * already happened. Somebody saying "the portal effect didn't show" has, by
+ * that point, lost the only evidence there ever was. So this keeps the
+ * evidence by default, for {@code /rgbprofiles effects} and for the report.
  *
  * <p>The cost is one {@code isActive} call per effect per frame, which the
- * compositor makes anyway, and nothing allocated unless something changed.
- * Like {@link Diagnostics}, it finds changes by comparing the active set frame
- * to frame, so no effect can be added without being covered.
+ * compositor was making anyway, and zero allocation unless something actually
+ * changed. Same approach as {@link Diagnostics}: changes get found by
+ * comparing the active set frame to frame, so there is no way to add an effect
+ * and accidentally leave it uncovered.
  *
- * <p>Sampled on the SDK worker thread; read from the game thread through
- * {@link #recent} and {@link #current}, which copy under a lock.
+ * <p>Sampled on the SDK worker thread, read from the game thread through
+ * {@link #recent} and {@link #current}, both of which copy under a lock.
  */
 public final class EffectTimeline {
 
-    /** One effect starting or stopping. {@code board} is who owned the board just after. */
+    /** One effect starting or stopping. {@code board} is whoever owned the board immediately after. */
     public record Event(long atMillis, String effectId, String tier, int priority, boolean started, String board) {
     }
 
-    /** What is active right now. */
+    /** Whatever is active right this second. */
     public record Snapshot(long atMillis, List<String> active, String board) {
     }
 
@@ -49,8 +50,9 @@ public final class EffectTimeline {
     /** Called once per rendered frame from the worker loop. */
     public static void sample(EffectManager manager, long nowMillis) {
         if (tracked == null) {
-            // Effects are all registered before the render loop starts and
-            // never after, so the list is taken once instead of every frame.
+            // Every effect gets registered before the render loop starts and
+            // none are ever added after, so the list is grabbed once here
+            // rather than rebuilt on every single frame.
             List<EffectController> all = manager.all();
             tracked = all.toArray(new EffectController[0]);
             wasActive = new boolean[tracked.length];
@@ -86,7 +88,7 @@ public final class EffectTimeline {
         current = new Snapshot(nowMillis, List.copyOf(names), board);
     }
 
-    /** Oldest first. */
+    /** Oldest first, which is the order you want when reading it as a story. */
     public static List<Event> recent() {
         synchronized (EVENTS) {
             return new ArrayList<>(EVENTS);
@@ -105,7 +107,7 @@ public final class EffectTimeline {
         };
     }
 
-    /** An effect throwing from {@code isActive} is the compositor's to report, not this. */
+    /** An effect throwing out of {@code isActive} is the compositor's problem to report, not ours. */
     private static boolean safeActive(EffectController c, long nowMillis) {
         try {
             return c.isActive(nowMillis);

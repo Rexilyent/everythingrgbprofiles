@@ -13,19 +13,25 @@ import java.util.concurrent.atomic.AtomicInteger;
  * JSON over HTTP to a vendor service on this machine. Used by the SteelSeries
  * and Razer backends, both of which are local REST servers rather than DLLs.
  *
- * <h2>Two ways to send, on purpose</h2>
- * {@link #send} blocks and throws. It is for the handful of setup calls in
- * {@code connect}, where an answer is required before anything else can happen
- * and blocking the worker thread for a second is harmless.
+ * <h2>Two ways to send, and the split is deliberate</h2>
+ * {@link #send} blocks and throws. It is for the handful of setup calls inside
+ * {@code connect}, where an answer is genuinely required before anything else
+ * can happen and blocking the worker thread for a second costs nobody
+ * anything.
  *
- * <p>{@link Lane#fire} never blocks. It is for frames, which arrive about thirty
- * times a second from the render loop. If the vendor service stalls — and a
- * desktop app that is busy updating itself will — a blocking frame send would
- * freeze every animation in the mod for as long as the stall lasts. So a lane
- * allows exactly one request in flight and simply declines a new one while it
- * is busy; the backend keeps its colours marked dirty and the next frame sends
- * the latest state instead. Latest-wins is the right semantics for lighting: a
- * frame that could not be delivered on time is worthless, not queued.
+ * <p>{@link Lane#fire} never blocks. It is for frames, which turn up roughly
+ * thirty times a second from the render loop. When the vendor service stalls,
+ * and a desktop app busy updating itself absolutely will, a blocking frame
+ * send would freeze every animation in this mod for as long as that stall
+ * lasts.
+ *
+ * <p>So a lane permits exactly one request in flight and declines any new one
+ * while it is busy. The backend keeps its colours marked dirty and the next
+ * frame sends the latest state instead.
+ *
+ * <p>Latest-wins is the correct semantics for lighting specifically: a frame
+ * that could not be delivered on time is worthless, not backlogged. Queuing it
+ * would only guarantee you show somebody the past.
  *
  * <h2>Threading</h2>
  * The async completions run on the HTTP client's own threads, which is why they

@@ -12,38 +12,48 @@ import com.everythingrgbprofile.sdk.BackendHealth;
 import com.everythingrgbprofile.sdk.SdkWorkerThread;
 
 /**
- * The bouncer. Three checks, cheapest first, and nothing touches JNA or a
- * native class until all three pass. This is the <b>only</b> place in the
- * entire mod allowed to decide "yes, we're talking to hardware today."
+ * The bouncer. Four checks, cheapest first, and nothing in this mod touches
+ * JNA or a native class until every one of them passes. This is the
+ * <b>only</b> place allowed to decide "yeah alright, we're talking to hardware
+ * today."
  *
- * <h2>Why the ordering is deliberate</h2>
- * Each step is more expensive than the one before it, so the common
- * "this machine will never use this mod" cases bail out having done almost
- * nothing:
+ * <h2>Why the order is the order</h2>
+ * Every step costs more than the one before it, so the enormous number of
+ * people who are never going to use this mod bail out having done
+ * approximately nothing:
  *
  * <ol>
  *   <li>An enum comparison.</li>
  *   <li>A boolean read.</li>
  *   <li>A system property lookup.</li>
- *   <li>Spawning the worker thread, which then asks each lighting backend
- *       whether its vendor software is present.</li>
+ *   <li>Spawning the worker thread, which goes and asks each lighting backend
+ *       whether its vendor software is even installed.</li>
  * </ol>
  *
- * <p>Someone on a dedicated server pays for an enum comparison and then this
- * class is done with them forever. "Zero cost when irrelevant", made literal.
+ * <p>Somebody running a dedicated server pays for one enum comparison and then
+ * never hears from this class again. "Zero cost when irrelevant", except
+ * literally.
  *
- * <h2>Why there is no "is iCUE running" check any more</h2>
- * An earlier version had a fourth step that scanned the process list for iCUE
- * and stopped if it wasn't found. That was a reasonable shortcut while Corsair
- * was the only backend. Once Razer, Logitech, SteelSeries and OpenRGB were
- * added, it became a bug: a user with a Razer keyboard and no iCUE would be
- * turned away here, before the code that knows how to talk to Razer ever ran.
- * Every backend's {@code connect} is already its own cheap presence check
- * (a file lookup, a localhost request, or a DLL path), so the gate no longer
- * guesses on their behalf.
+ * <h2>RIP the iCUE check</h2>
+ * An earlier version had an extra gate in here that scanned the running
+ * process list for iCUE and stopped dead if it wasn't there. Which was fine
+ * while Corsair was the only backend, because back then "no iCUE" and "no
+ * lighting" genuinely were the same sentence.
  *
- * <p>Called exactly once, from {@code FMLClientSetupEvent} — which already
- * guarantees we're client-side. Step 1 re-checks anyway.
+ * <p>Then Razer, Logitech, SteelSeries and OpenRGB got added and that check
+ * became one vendor answering on behalf of five. No iCUE? Cool, nothing to
+ * see here, everybody go home, pay no attention to the Synapse sitting right
+ * there in the tray. It would have turned away a completely working Razer
+ * setup without ever running a line of the Razer code.
+ *
+ * <p>So it's gone and the gate just lets all of them have a go. Every backend
+ * already does its own cheap "are you even here" check inside {@code connect}:
+ * a file lookup, a localhost request, or a DLL path. Asking each one directly
+ * is more correct AND less code than having this class guess on their behalf,
+ * which it was never qualified to do.
+ *
+ * <p>Called exactly once, from {@code FMLClientSetupEvent}, which already
+ * guarantees we're on the client. Step 1 checks again regardless. See step 1.
  */
 public final class StartupGate {
 
@@ -51,26 +61,34 @@ public final class StartupGate {
 
     public static synchronized void run() {
         if (started) {
-            // Idempotent, so a future manual "recheck" command could call
-            // this again without starting a second worker thread and having
-            // two of them fight over one hardware connection.
+            // Idempotent on purpose. If a "recheck my lighting" command ever
+            // gets added, it can call this as many times as it likes without
+            // spawning a second worker thread and starting a turf war over
+            // one hardware connection.
             return;
         }
 
         // --- Step 1: are we a dedicated server? ---------------------------
-        // Unconditional. The lighting layer has zero server-side presence
-        // regardless of the optional sculk relay. This is the third redundant
-        // check of this exact condition (see RGBProfileMod) and it is staying
-        // there, because the failure mode is "load a vendor DLL on a headless
-        // Linux box" and no amount of redundancy is too much for that.
+        // Unconditional. The lighting layer has no server-side presence at
+        // all, and since the sculk relay got deleted, neither does anything
+        // else in this mod.
+        //
+        // Yes, this is the third time this exact condition gets checked: the
+        // client setup event only firing on the client is the first, and the
+        // guard in RGBProfileMod.clientSetup is the second. It's staying.
+        // The failure mode being insured against is "load a vendor's Windows
+        // DLL on somebody's headless Linux server", and there is no amount of
+        // paranoia about that which counts as excessive.
         if (FMLEnvironment.getDist() != Dist.CLIENT) {
             RGBProfileMod.LOGGER.debug("RGB Profile: dedicated server side, skipping lighting pipeline entirely.");
             return;
         }
 
-        // --- Step 2: did the user turn us off? ----------------------------
-        // INFO not DEBUG: someone who disabled this deliberately should be able
-        // to confirm it took effect without enabling debug logging.
+        // --- Step 2: did someone turn us off? -----------------------------
+        // INFO rather than DEBUG. If you deliberately switched the mod off you
+        // should be able to confirm that it took, without first having to
+        // enable debug logging to investigate why the thing you disabled is
+        // disabled.
         if (!RGBProfileConfig.GENERAL_ENABLED.get()) {
             RGBProfileMod.LOGGER.info("RGB Profile: disabled via config (general.enabled = false), skipping lighting pipeline.");
             BackendHealth.gateClosed("The mod is turned off in the config, so no lighting software was tried.",
@@ -79,16 +97,24 @@ public final class StartupGate {
         }
 
         // --- Step 3: is this Windows? -------------------------------------
-        // Corsair's and Logitech's SDKs are Windows DLLs, and Razer Synapse
-        // and SteelSeries GG are Windows desktop programs. OpenRGB is the one
-        // backend that exists elsewhere, but it has not been tried on Linux or
-        // macOS, so rather than ship an untested path the mod stays
-        // Windows-only for now.
+        // Corsair's and Logitech's SDKs ship as Windows DLLs, and Synapse and
+        // SteelSeries GG are Windows desktop apps. OpenRGB is the one backend
+        // that genuinely does exist on Linux and macOS, but nobody on this
+        // project has ever tested it there, and shipping an untested path so
+        // it can fail in exciting new ways on a stranger's machine helps
+        // precisely nobody. Windows only for now.
         //
-        // Locale.ROOT on the lowercase because Turkish locales lowercase 'I'
-        // to a dotless 'ı', which would make "WINDOWS".toLowerCase() not
-        // contain "win". A well-known bug that has shipped in real software
-        // more than once.
+        // Locale.ROOT on the lowercase: in a Turkish locale, uppercase 'I'
+        // lowercases to a dotless 'ı', so "WINDOWS".toLowerCase() comes back
+        // as "wındows", which does not contain "win", and the mod quietly
+        // switches itself off for an entire country.
+        //
+        // Full disclosure though: os.name is "Windows 11" here, and its 'i' is
+        // already lowercase, so it survives a Turkish lowercase completely
+        // fine. This particular call was almost certainly never broken. It's
+        // Locale.ROOT anyway because it costs nothing, and because the day
+        // somebody copies this pattern somewhere the input isn't already
+        // conveniently shaped is the day it stops being free.
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         if (!os.contains("win")) {
             RGBProfileMod.LOGGER.info("RGB Profile: non-Windows OS ({}) detected; the lighting backends are Windows-only, skipping.", os);
@@ -97,17 +123,17 @@ public final class StartupGate {
             return;
         }
 
-        // --- Step 4: hand over to the worker. -----------------------------
-        // First point in the entire mod's lifetime that a JNA or native class
-        // gets loaded, and it happens on the worker thread, not here.
-        // Everything above exists to protect this line.
+        // --- Step 4: hand off to the worker. ------------------------------
+        // The first moment in this mod's entire lifetime that a JNA or native
+        // class gets loaded, and it happens over on the worker thread rather
+        // than here. Every line above exists to protect this one.
         //
-        // Note there is deliberately NO retry or polling loop. If the vendor
-        // software starts after Minecraft does, the mod stays off for the
-        // session and the log says which backends were tried. A background
-        // poll that might spring the lighting to life ten minutes into a
-        // session is a worse experience than "restart the game", and a lot
-        // more code.
+        // There is deliberately no retry or polling loop. Start iCUE after
+        // Minecraft and the mod stays dark for that session, with the log
+        // saying which backends it tried. Having your keyboard spontaneously
+        // burst into colour ten minutes in, because a background poll finally
+        // caught something, is a worse experience than "restart the game" and
+        // considerably more code to get wrong.
         started = true;
         Path extractDir = com.everythingrgbprofile.RGBProfileFiles.dllExtractDirectory();
         SdkWorkerThread.startAsync(extractDir);
