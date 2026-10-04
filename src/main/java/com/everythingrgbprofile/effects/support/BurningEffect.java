@@ -16,21 +16,22 @@ import java.util.Map;
  * bottom, higher the worse the burning is, and lets it die down when the fire
  * goes out.
  *
- * <p>Built the same way as {@link DrowningEffect}, and a Tier 2 overlay for the
- * same reason: it is information laid over wherever you are, and the biome
- * above the flames is what makes their height readable.
+ * <p>Built the same way as {@link DrowningEffect}, and Tier 2 for the same
+ * reason: information laid over wherever you are, with the biome above the
+ * flames doing the work of making their height readable.
  *
- * <h2>Why the height is not the time left burning</h2>
- * The drowning meter shows air, which the client is sent. The obvious fire
- * equivalent — how long until you stop burning — is not: the client clears its
- * own copy of the fire timer every tick, and only the "on fire" flag is
- * synced. So the height is how dangerous the burning is right now instead,
- * chosen by the event layer from things the client does know: whether Fire
- * Resistance is protecting you, whether you are standing in fire, and whether
- * you are in lava.
+ * <h2>Why the height is not "time left burning"</h2>
+ * The drowning meter shows air, and the client is sent air. The obvious fire
+ * equivalent, how long until you stop burning, is simply not available: the
+ * client wipes its own copy of the fire timer every tick and the only thing
+ * synced is the "on fire" flag.
  *
- * <p>Base is the hot colour at the bottom of the flames and accent is the
- * tips.
+ * <p>So the height shows how DANGEROUS the burning is right now instead,
+ * chosen by the event layer out of things the client genuinely does know:
+ * whether Fire Resistance is protecting you, whether you are standing in fire,
+ * and whether you have walked into lava.
+ *
+ * <p>Base is the hot colour at the bottom of the flames, accent is the tips.
  */
 public final class BurningEffect implements EffectController {
 

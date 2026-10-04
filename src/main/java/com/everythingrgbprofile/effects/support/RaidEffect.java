@@ -14,13 +14,15 @@ import com.everythingrgbprofile.priority.EffectTier;
 import java.util.Map;
 
 /**
- * A raid on the village you are in, from the Raid Omen counting down to the
- * last firework or the last jeer. See {@link RaidHordePattern} for the drawing.
+ * A raid on whichever village you are standing in, from the Raid Omen counting
+ * down all the way to the last firework or the last jeer. See
+ * {@link RaidHordePattern} for the drawing itself.
  *
  * <p>The event layer reports which phase the raid is in and when the horn
- * blows; this class remembers when each phase began, which the victory and
- * defeat animations are timed from, and eases the horde's glow from one phase
- * to the next so it builds and drains rather than stepping.
+ * blows. This class remembers when each phase began, which is what the victory
+ * and defeat animations are timed from, and eases the horde's glow from one
+ * phase into the next so that it builds and drains rather than stepping
+ * abruptly between states.
  */
 public final class RaidEffect implements EffectController {
 

@@ -13,12 +13,15 @@ import java.util.Map;
 
 /**
  * A raid, drawn the way Terraria draws a goblin army: a horde glowing up from
- * the bottom of the board with an army marching across it.
+ * the bottom of the board with an army "marching across it."
  *
- * <p>Terraria's invasions and Minecraft's raids are the same event in
- * different clothes — an army that comes in waves until you break it — so the
- * look is borrowed whole. The army is scenery, not a map: it says a raid is on
- * and how it is going, not where anyone is standing.
+ * <p>Terraria's invasions and Minecraft's raids are the same event wearing
+ * different clothes: an army that keeps coming in waves until you break it. So
+ * the look is borrowed whole rather than reinvented badly.
+ *
+ * <p>Note the army is SCENERY and not a map. It tells you a raid is on and
+ * roughly how it is going. It does not tell you where anybody is standing, and
+ * it is not trying to.
  *
  * <ul>
  *   <li><b>The omen</b>, counting down to the raid: a heartbeat in the horde's
@@ -34,8 +37,8 @@ import java.util.Map;
  *       behind a pale leading edge, draining down the board into the band,
  *       the army's heads flashing white with it.</li>
  *   <li><b>Victory</b>: the army breaks and runs off the board, the horde
- *       drains away, and fireworks go up in the green of Hero of the Village,
- *       as the villagers set them off in game.</li>
+ *       drains away, and fireworks go up the way the villagers set them off
+ *       in game, here in the green of Hero of the Village.</li>
  *   <li><b>Defeat</b>: the army stops where it stands and jumps, which is how
  *       raiders celebrate, while the horde flares and throbs.</li>
  * </ul>

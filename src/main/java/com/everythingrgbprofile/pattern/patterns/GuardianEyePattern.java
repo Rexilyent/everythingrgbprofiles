@@ -20,12 +20,16 @@ import java.util.Map;
  * silhouette in the game after the creeper.
  *
  * <h2>Why the eye is a ring with a hole in it</h2>
- * {@code LightBudget} only ever adds light, so a dark iris cannot be painted
- * over a lit body — there is no subtraction to be had. The body is therefore
- * drawn as an annulus and the iris is simply the gap left between it and the
- * pupil: unlit keys, which on a keyboard is exactly what dark looks like.
- * Attempting the obvious layering instead gives a pale disc with a paler dot
- * in it, and nothing about it says eye.
+ * {@code LightBudget} only ever ADDS light, which means a dark iris cannot be
+ * painted over a lit body. There is no subtraction available to do it with.
+ *
+ * <p>So the body gets drawn as an annulus and the iris is simply the gap left
+ * between it and the pupil: unlit keys, which on a keyboard is precisely what
+ * dark looks like anyway.
+ *
+ * <p>Attempting the obvious layering instead gets you a pale disc with a
+ * slightly paler dot sitting in the middle of it, and nothing about that says
+ * eye to anybody.
  *
  * <h2>The eye is an oval, and that is the point</h2>
  * Aspect-corrected, a full-size board is about 21 key widths across and 5.5
@@ -53,8 +57,8 @@ import java.util.Map;
  * must never be mistaken for. So the beam grows out of the eye along the
  * board's long axis, brightening and thickening across the three seconds the
  * Elder Guardian spends locked on, and the pupil constricts while it does.
- * That whole tell is real: 60 ticks of charge, synced, the longest wind-up of
- * any attack in vanilla.
+ * That whole tell is real: 60 ticks of charge, synced to the client (an
+ * ordinary guardian takes 80).
  */
 public final class GuardianEyePattern implements Pattern {
 
@@ -63,10 +67,11 @@ public final class GuardianEyePattern implements Pattern {
      * correction. 1 would draw a true circle; 0.55 makes the eye a little
      * under twice as wide as it is tall.
      *
-     * <p>Chosen against the board rather than by taste: at this squash an
-     * outer radius of 4.6 key widths is 9.2 keys across and just over five
-     * rows tall, which on a full-size keyboard is most of the width and all of
-     * the height. The eye is as large as the board can hold.
+     * <p>Chosen against the board rather than by taste: at this squash the
+     * bristling radius of 4.85 key widths is 9.7 keys across and just over
+     * five rows tall, which on a full-size keyboard is most of the width and
+     * all of the height, and the swimming 4.05 is about eight across and four
+     * and a half tall. The eye is as large as the board can hold.
      */
     private static final double EYE_SQUASH = 0.55;
 

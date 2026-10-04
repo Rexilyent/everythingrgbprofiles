@@ -14,9 +14,10 @@ import java.util.Random;
 /**
  * The default title-screen theme: sky over grass, with clouds drifting across.
  *
- * <p>Deliberately the most obvious thing in the world — a horizon, blue above
- * it, green below, a few slow clouds — because a theme that ships on by default
- * should look like the game rather than like somebody's taste.
+ * <p>This is what you get if you just installed the mod. It is deliberately
+ * the most obvious thing in the world — a horizon, blue above it, green below,
+ * a few slow clouds — because a default should look like the game rather than
+ * like somebody's taste.
  *
  * <p>This was that default for as long as the game's own title panorama was a
  * landscape. Minecraft 26.2 replaced it with a sulfur cave, so the theme that

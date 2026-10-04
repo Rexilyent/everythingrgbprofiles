@@ -28,12 +28,14 @@ import java.util.Map;
  *   <li><b>DYING</b> — rings firing outward across the 200-tick death.</li>
  * </ul>
  *
- * <h2>Why the fight draws a dragon rather than tinting the board</h2>
- * A phase-tinted pulse was the first attempt and it read as "purple, and now
- * slightly different purple" — the board never said <i>dragon</i>, only
- * <i>something</i>. Terraria's RGB solves this by drawing the boss: the point
- * of its Moon Lord effect is that the keyboard becomes an eye. Posing an
- * actual silhouette makes the phase legible as behaviour — it is gliding, it
+ * <h2>Why the fight draws a dragon instead of tinting the board</h2>
+ * A phase-tinted pulse was the first attempt, and what it actually read as was
+ * "purple, and now slightly different purple". The board never once said
+ * <i>dragon</i>. It said <i>something</i>, at best.
+ *
+ * <p>Terraria's RGB solves this by drawing the boss outright: the entire point
+ * of its Moon Lord effect is that the keyboard becomes an eye. Posing a real
+ * silhouette makes the phase legible as BEHAVIOUR — it is gliding, it
  * is lunging at you, it has landed and is breathing — instead of as a colour
  * you would have to learn.
  */
@@ -42,7 +44,21 @@ public final class EnderDragonEffect implements EffectController {
     public enum State { IDLE, RITUAL, FIGHT, DYING }
 
     /** What the dragon is doing, collapsed from the eleven vanilla phases. */
-    public enum Pose { GLIDE, LUNGE, PERCHED, BREATHING, HOVER }
+    public enum Pose { GLIDE, LUNGE, LANDING, PERCHED, BREATHING, HOVER }
+
+    /**
+     * Where a landed dragon sits. Below the middle, because it is on the
+     * ground now and the board has a ground.
+     */
+    private static final double PERCH_Y = 0.62;
+    /** Wings pulled in, so a perched dragon stops spanning the entire board. */
+    private static final double PERCH_SCALE = 0.62;
+    /** Wingtips held up over the back. Without this, a perch is a flat bar. */
+    private static final double PERCH_ARCH = 0.75;
+    /** How long the drop onto the portal takes to draw. */
+    private static final double LANDING_SECONDS = 1.3;
+    /** Catch-up time when a perch arrives without a landing in front of it. */
+    private static final double SETTLE_SECONDS = 0.8;
 
     private final int priority;
     private final EndRitualPattern ritual = new EndRitualPattern();
@@ -61,6 +77,14 @@ public final class EnderDragonEffect implements EffectController {
     private volatile boolean breathBurning = false;
     private volatile double breathOriginX = 0.5;
     private volatile double breathReach = 1.0;
+
+    // --- pose transition state, touched only from render() ------------
+    /** Geometry as last drawn, so a pose change has somewhere to ease out of. */
+    private double drawnX = 0.5, drawnY = 0.5, drawnScale = 1.0, drawnArch = 0;
+    /** The same, frozen at the moment the pose changed. */
+    private double fromX = 0.5, fromY = 0.5, fromScale = 1.0, fromArch = 0;
+    private Pose renderedPose = Pose.HOVER;
+    private long poseSinceMillis = Long.MIN_VALUE;
 
     public EnderDragonEffect(int priority) {
         this.priority = priority;
@@ -191,7 +215,22 @@ public final class EnderDragonEffect implements EffectController {
         double glowScale = 0.85 + 0.45 * hurt;
         RGBColor accent = accentColor.lerp(ColorPalette.END_DRAGON_FLAME, 0.55 * hurt);
 
-        switch (pose) {
+        // Note where it was the instant the pose changes. Cutting straight
+        // from a full-span glide to a folded perch moved the dragon, resized
+        // it and reshaped it all on the same frame, which looked like the
+        // effect had been swapped out rather than like anything had landed.
+        Pose currentPose = pose;
+        if (currentPose != renderedPose || poseSinceMillis == Long.MIN_VALUE) {
+            fromX = drawnX;
+            fromY = drawnY;
+            fromScale = drawnScale;
+            fromArch = drawnArch;
+            renderedPose = currentPose;
+            poseSinceMillis = nowMillis;
+        }
+        double sincePose = Math.max(0, (nowMillis - poseSinceMillis) / 1000.0);
+
+        switch (currentPose) {
             case GLIDE -> {
                 // Crosses the board and wraps, so it reads as circling
                 // overhead rather than sitting still and flapping.
@@ -199,32 +238,46 @@ public final class EnderDragonEffect implements EffectController {
                 double t = (seconds % cycle) / cycle;
                 // Out past the edge at both ends, so it enters and leaves
                 // rather than popping into existence mid-board.
-                silhouette.setPose(-0.35 + t * 1.7, 0.5, 1.0, 1.0);
+                place(-0.35 + t * 1.7, 0.5, 1.0, 0);
                 silhouette.setWings(0.75 + 0.5 * hurt, 1.0);
                 silhouette.setGlow(0.9 * glowScale);
             }
             case LUNGE -> {
                 // Straight at you: it swells in place and beats hard.
                 double swell = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.9 * seconds);
-                silhouette.setPose(0.5, 0.5, 1.0 + 0.30 * swell, 1.0);
+                place(0.5, 0.5, 1.0 + 0.30 * swell, 0);
                 silhouette.setWings(1.7, 1.0);
                 silhouette.setGlow((1.15 + 0.35 * swell) * glowScale);
             }
+            case LANDING -> {
+                // Drops from wherever it was last drawn and slides to the
+                // middle, because the portal it lands on is dead centre of the
+                // island whichever End you are standing in. Braking beats on
+                // the way down, easing off as it settles.
+                double t = ease(sincePose / LANDING_SECONDS);
+                settleToward(t, PERCH_ARCH);
+                silhouette.setWings(2.3 - 1.5 * t, 1.0 - 0.6 * t);
+                silhouette.setGlow((1.05 - 0.25 * t) * glowScale);
+            }
             case PERCHED -> {
-                // Landed on the portal, wings mostly folded. This is the
-                // window where you can actually reach its head, so it is the
-                // calmest the board gets during the fight.
-                silhouette.setPose(0.5, 0.5, 0.92, 1.0);
-                silhouette.setWings(0.28, 0.22);
-                silhouette.setGlow(0.7 * glowScale);
+                // Down on the portal with its wings folded up over its back.
+                // This is the window where you can actually reach its head, so
+                // it is the calmest the board gets during the fight: the shape
+                // shuffles rather than beats.
+                settleToward(ease(sincePose / SETTLE_SECONDS), PERCH_ARCH);
+                silhouette.setWings(0.55, 0.30);
+                silhouette.setGlow(0.8 * glowScale);
             }
             case BREATHING -> {
-                silhouette.setPose(0.5, 0.5, 0.92, 1.0);
-                silhouette.setWings(0.35, 0.25);
+                // Same posture, wings clamped in and holding. The movement
+                // drops away on purpose so the head is the only thing doing
+                // anything, which is where the fire is coming from.
+                settleToward(ease(sincePose / SETTLE_SECONDS), PERCH_ARCH * 1.15);
+                silhouette.setWings(0.9, 0.16);
                 silhouette.setGlow(1.05 * glowScale);
             }
             case HOVER -> {
-                silhouette.setPose(0.5, 0.5, 1.0, 1.0);
+                place(0.5, 0.5, 1.0, 0);
                 silhouette.setWings(0.5 + 0.3 * hurt, 0.8);
                 silhouette.setGlow(0.85 * glowScale);
             }
@@ -249,5 +302,34 @@ public final class EnderDragonEffect implements EffectController {
                 breathFireColor.lightened(0.62), 0, PatternParams.EMPTY);
         budget.addLayer(breathFire.render(fireCtx, nowMillis), 1.0);
         return budget.resolve();
+    }
+
+    /**
+     * Puts the silhouette somewhere and remembers where, so whatever pose
+     * comes next has a starting point to ease out of.
+     */
+    private void place(double x, double y, double scale, double arch) {
+        drawnX = x;
+        drawnY = y;
+        drawnScale = scale;
+        drawnArch = arch;
+        silhouette.setPose(x, y, scale, 1.0);
+        silhouette.setWingArch(arch);
+    }
+
+    /** Eases from wherever the pose change caught it toward the perched geometry. */
+    private void settleToward(double t, double arch) {
+        place(lerp(fromX, 0.5, t), lerp(fromY, PERCH_Y, t),
+                lerp(fromScale, PERCH_SCALE, t), lerp(fromArch, arch, t));
+    }
+
+    private static double lerp(double a, double b, double t) {
+        return a + (b - a) * t;
+    }
+
+    /** Smoothstep, clamped. A linear landing looks dropped rather than flown. */
+    private static double ease(double t) {
+        double c = Math.max(0, Math.min(1, t));
+        return c * c * (3 - 2 * c);
     }
 }

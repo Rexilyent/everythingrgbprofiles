@@ -18,18 +18,21 @@ import java.util.Map;
  * fires.
  *
  * <p>Same approach as the dragon and the Naga — draw the boss, do not tint the
- * board — and this one is the best-suited of the three, because an Elder
- * Guardian already <i>is</i> a single enormous eye. See
+ * board — and this is comfortably the best-suited of the three, for the simple
+ * reason that an Elder Guardian already <i>is</i> a single enormous eye. See
  * {@link GuardianEyePattern} for the drawing.
  *
- * <h2>The laser is the whole point</h2>
- * An Elder Guardian's beam takes 60 ticks to charge, which is three full
- * seconds of wind-up — the longest tell in vanilla, and the one thing a player
+ * <h2>The laser is the entire point</h2>
+ * An Elder Guardian's beam takes 60 ticks to charge (an ordinary Guardian's
+ * takes 80). Three full seconds of wind-up, which is the one thing anybody
  * fighting one is actually watching for, because it is the window to break
- * line of sight. Every part of it is synced and public: whether it has a
- * target, who that target is, and how far through the charge it is. So the
- * board can show the real wind-up rather than an animation that merely implies
- * one, and the beam on the keys is in step with the beam in the water.
+ * line of sight and not die.
+ *
+ * <p>Every part of that is synced and public: whether it has a target, who
+ * that target is, and how far through the charge it currently is. Which means
+ * the board can show the REAL wind-up rather than an animation that merely
+ * implies one, and the beam on the keys stays in step with the beam in the
+ * water.
  *
  * <h2>What each input actually is</h2>
  * <ul>
@@ -43,10 +46,11 @@ import java.util.Map;
  *       because out of water vanilla drives it from {@code random.nextFloat()}
  *       every tick; a beached Guardian would otherwise strobe the crown of
  *       spikes at 20Hz.</li>
- *   <li><b>The curse</b> — Mining Fatigue, which an Elder Guardian applies to
- *       everyone within 50 blocks once a minute for five minutes. It does not
- *       change the picture, it slows it down: the water stops shimmering and
- *       starts heaving.</li>
+ *   <li><b>The curse</b> — Mining Fatigue, five minutes of it, which an Elder
+ *       Guardian checks for once a minute and puts back on anyone within 50
+ *       blocks whose dose is down to its last minute. It does not change the
+ *       picture, it slows it down: the water stops shimmering and starts
+ *       heaving.</li>
  * </ul>
  *
  * <h2>The curse follows the Guardian, not the debuff</h2>
@@ -136,7 +140,7 @@ public final class ElderGuardianEffect implements EffectController {
         this.beamFiredAtMillis = nowMillis;
     }
 
-    /** Mining Fatigue just landed — the once-a-minute curse. */
+    /** Mining Fatigue just landed, or was topped back up by the once-a-minute check. */
     public void curseLanded(long nowMillis) {
         this.curseLandedAtMillis = nowMillis;
     }

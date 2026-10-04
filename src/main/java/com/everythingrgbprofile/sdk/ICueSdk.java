@@ -11,30 +11,33 @@ import java.util.List;
 
 /**
  * JNA bindings for the Corsair iCUE SDK v4 (iCUESDK.x64_2019.dll, SDK 4.0.84).
- * The ABI contract. Get a detail wrong in here and you don't get a compile
- * error, you get memory corruption at a random point in the future.
+ *
+ * <p>This file is the ABI contract. Get a single detail wrong in here and you
+ * do not get a compile error. You get memory corruption, at a random point in
+ * the future, somewhere else entirely.
  *
  * <p>Transcribed directly from {@code iCUESDK.h} and
  * {@code iCUESDKLedIdEnum.h}, then cross-checked against the DLL's actual
- * 21-entry export table. Every function below is a real, undecorated export —
- * verified, not assumed.
+ * 21-entry export table. Every function below is a real, undecorated export
+ * that somebody confirmed exists, rather than one that ought to.
  *
- * <p>Replaces the previous CueSdkNative, which mapped the <b>removed</b> CUE
- * SDK v2 surface ({@code CorsairPerformProtocolHandshake},
+ * <p>It replaces the previous CueSdkNative, which mapped the older CUE SDK
+ * surface ({@code CorsairPerformProtocolHandshake},
  * {@code CorsairGetDeviceCount},
- * {@code CorsairSetLedsColorsBufferByDeviceIndex}). Those functions do not
- * exist in any shipping DLL. It could never have linked, on any machine, and
- * nothing about reading it suggested that.
+ * {@code CorsairSetLedsColorsBufferByDeviceIndex}) that v4 <b>removed</b>.
+ * None of those functions exist in the v4 DLL. Pointed at that DLL it could
+ * never have linked, on any machine, and absolutely nothing about reading it
+ * gave that away.
  *
  * <h2>Five ways to quietly destroy everything</h2>
- * None of these produce a compile error. Several produce no error at all until
- * much later, somewhere else entirely.
+ * Not one of these produces a compile error. Several produce no error at all
+ * until much later, in a completely different part of the program.
  *
  * <ul>
  *   <li><b>Calling convention.</b> Plain {@link Library}, NOT StdCallLibrary.
  *       The DLL is PE32+ x86-64, Win64 has exactly one calling convention, and
- *       the exports are undecorated. StdCall here would corrupt the stack on
- *       every single call.</li>
+ *       the exports are undecorated. StdCall here corrupts the stack on every
+ *       single call, forever, cheerfully.</li>
  *   <li><b>Struct arrays must be contiguous.</b> Always
  *       {@code (T[]) new T().toArray(n)}, always pass element 0. A Java array
  *       of separately-constructed Structures puts them anywhere in the heap;
@@ -241,10 +244,9 @@ public interface ICueSdk extends Library {
     /**
      * {@code struct CorsairLedColor { CorsairLedLuid id; unsigned char r, g, b, a; }}
      * <p>8 bytes. Note the <b>alpha channel</b>: 0 is fully translucent, 255
-     * fully opaque. iCUE composites this against whatever is beneath in its
-     * own layer stack — which is exactly the Tier 1 / Tier 2 transparency
-     * model this mod wants, handed to us in hardware rather than having to be
-     * faked.
+     * fully opaque, and iCUE composites it against whatever is beneath in its
+     * own layer stack. This mod always sends 255 and does its own compositing
+     * first; see CueSdkBridge.
      */
     @Structure.FieldOrder({"id", "r", "g", "b", "a"})
     class CorsairLedColor extends Structure {

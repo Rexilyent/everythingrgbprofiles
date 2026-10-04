@@ -16,23 +16,27 @@ import java.util.Map;
 /**
  * The Wither: summoned, fought, and armoured.
  *
- * <p>Three states, all read straight off public synced API — no reflection and
- * no mod imports, because this one is vanilla:
+ * <p>Three states, every one of them read straight off public synced API. No
+ * reflection and no mod imports anywhere, for the pleasant reason that this
+ * one is vanilla:
  *
  * <ul>
  *   <li><b>SUMMONING</b> — {@code getInvulnerableTicks()} counts 220 down to
- *       zero over eleven seconds while it hangs there charging. The board
- *       charges with it and the heads assemble out of the glare, so the
- *       explosion at the end lands as a release rather than a surprise.</li>
+ *       zero across eleven seconds while it hangs there charging. The board
+ *       charges along with it and the heads assemble out of the glare, so the
+ *       explosion at the end lands as a release rather than as a jump
+ *       scare.</li>
  *   <li><b>FIGHT</b> — three heads, each lit when it has locked onto
- *       something, spitting as real skulls appear.</li>
- *   <li><b>POWERED</b> — {@code isPowered()} is health at or below half, where
- *       it armours up and starts diving. The board reddens and speeds up.</li>
+ *       something, spitting as real skulls appear in the world.</li>
+ *   <li><b>POWERED</b> — {@code isPowered()} means health at or below half,
+ *       where it armours up and starts diving at you. The board reddens and
+ *       speeds up to match.</li>
  * </ul>
  *
- * <h2>Why the summon gets its own state</h2>
- * Eleven seconds is a long time to stand there, and it is the one part of the
- * fight with a guaranteed script: you know exactly how long it lasts and
+ * <h2>Why the summon gets a state all to itself</h2>
+ * Eleven seconds is a long time to stand somewhere, and it is the one part of
+ * this fight running to a guaranteed script: you know exactly how long it
+ * lasts and
  * exactly what happens at the end. That makes it the easiest thing in the mod
  * to build tension against, and wasting it on the same three heads you are
  * about to look at for five minutes would be a shame.
@@ -118,8 +122,9 @@ public final class WitherEffect implements EffectController {
 
     @Override
     public int tier3SuppressionFloor(long nowMillis) {
-        // The summon ends in an explosion that hands out advancements. Letting
-        // confetti blank the moment it is celebrating would be the usual
+        // Building a Wither hands out an advancement on the spot, at the very
+        // start of the charge, and nearby players get theirs too. Letting that
+        // confetti blank the countdown it is celebrating would be the usual
         // mistake.
         return state == State.SUMMONING ? 90 : 0;
     }

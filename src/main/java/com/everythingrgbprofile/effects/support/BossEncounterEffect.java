@@ -9,28 +9,32 @@ import com.everythingrgbprofile.priority.EffectTier;
 import java.util.Map;
 
 /**
- * Boss Encounter Lighting. Your keyboard develops a heart rate, and it
- * goes up as the boss goes down.
+ * Boss Encounter Lighting. Your keyboard develops a heart rate, and it climbs
+ * as the boss goes down.
  *
  * <p>Deliberately mod-agnostic, so any boss gets lighting for free with zero
- * per-mod code. The Forge Everything pack this was built against runs around
- * 600 mods, so per-mod integrations were never going to be a workable plan.
+ * per-mod code anywhere. The Forge Everything pack this was built against runs
+ * somewhere around 600 mods, so per-mod integrations were never once a
+ * workable plan and it would have been a waste of everyone's time to pretend
+ * otherwise.
  *
- * <p>Detection started out as a vanilla boss-bar hook. It now reads the
- * {@code c:bosses} entity tag first, with proximity plus a health threshold as
- * the fallback — see {@code LegendaryMonstersCompat} for why the boss-bar idea
- * did not hold up. This class does not care which one found the boss.
+ * <p>Detection started life as a vanilla boss-bar hook. It now looks for the
+ * boss itself near the player, and counts it only if it's in the
+ * {@code c:bosses} entity tag or has an exact entry in
+ * {@code boss_profiles.json}. See {@code LegendaryMonstersCompat} for the full
+ * story of why the boss-bar idea did not survive contact with reality. This
+ * class does not care in the slightest which of them found the boss.
  *
- * <p>Profile resolution — exact entity type → boss-bar-name pattern → mod
- * wildcard → vanilla {@code BossBarColor}-derived fallback — happens in the
- * event layer, which is where the registry access lives. By the time anything
- * reaches this class the colours are already decided; all it does is render.
+ * <p>Profile resolution (exact entity id, then mod wildcard, then a colour
+ * invented from the entity id) all happens up in the event layer, where the
+ * registry access lives. By the time anything arrives here the colours have
+ * already been decided and this class only renders.
  *
- * <h2>Known v1 simplification</h2>
- * Shows exactly one boss at a time. When several qualify at once — rare, but
- * some boss mods do it — the detector picks one: a tagged boss beats one named
- * in {@code boss_profiles.json}, which beats a mob that merely has a lot of
- * health, and ties go to the higher max health. Flagging it here as a
+ * <h2>Known v1 simplification, stated rather than hidden</h2>
+ * Shows exactly one boss at a time. When several qualify at once, which is
+ * rare but which some boss mods absolutely do, the detector picks one: a
+ * tagged boss beats one named in {@code boss_profiles.json}, and ties go to
+ * the higher max health. Flagging it here as a
  * conscious v1 choice rather than letting it be a silent gap someone discovers
  * mid-fight.
  */
@@ -53,7 +57,7 @@ public final class BossEncounterEffect implements EffectController {
         this.active = true;
     }
 
-    /** Boss bar moved. Called from the polling layer; no timestamp needed. */
+    /** The boss's health changed. Read off the entity by the polling layer; no timestamp needed. */
     public void updatePercent(double percent) {
         this.currentPercent = percent;
     }
