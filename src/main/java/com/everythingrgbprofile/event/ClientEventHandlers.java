@@ -1903,7 +1903,7 @@ public final class ClientEventHandlers {
             if (!RGBProfileConfig.RAIN_REQUIRE_SKY_EXPOSURE.get()) {
                 // No shelter check wanted, but whether it's snow or rain
                 // still depends on where you are standing.
-                return level.getBiome(feet).value().getPrecipitationAt(feet) == Biome.Precipitation.SNOW;
+                return level.getBiome(feet).value().getPrecipitationAt(feet, level.getSeaLevel()) == Biome.Precipitation.SNOW;
             }
             if (isSnowingAt(level, feet)) return true;
             return isSnowingAt(level, BlockPos.containing(
@@ -1916,7 +1916,7 @@ public final class ClientEventHandlers {
     private static boolean isSnowingAt(Level level, BlockPos pos) {
         if (!level.canSeeSky(pos)) return false;
         if (level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pos).getY() > pos.getY()) return false;
-        return level.getBiome(pos).value().getPrecipitationAt(pos) == Biome.Precipitation.SNOW;
+        return level.getBiome(pos).value().getPrecipitationAt(pos, level.getSeaLevel()) == Biome.Precipitation.SNOW;
     }
 
     private static void pollLightningFallback(EffectRegistry effects, long now) {
