@@ -12,12 +12,17 @@ import java.util.function.Predicate;
  * Corsair iCUE, as a {@link LightingBackend}.
  *
  * <p>Deliberately a thin adapter over {@link CueSdkBridge} rather than a
- * rewrite of it. That class is the most fought-over code in the mod — the
- * session-state latch, the contiguous native array, the exclusive-control trap,
- * the reused write buffers — and every one of those details was paid for with a
- * bug. Reshaping it to fit a new interface would risk all of it for no gain,
- * so the interface is satisfied by delegation and the hard-won parts are left
- * exactly where they are.
+ * rewrite of it, and that restraint is the point.
+ *
+ * <p>That class is the most fought-over code in this entire mod: the
+ * session-state latch, the contiguous native array, the exclusive-control
+ * trap, the reused write buffers. Every single one of those details was paid
+ * for with a bug, several of which did not have the decency to throw an
+ * exception on the way past.
+ *
+ * <p>Reshaping it to fit a new interface would put all of that at risk for
+ * precisely no gain. So the interface gets satisfied by delegation and the
+ * hard-won parts stay exactly where they are.
  */
 public final class CorsairBackend implements LightingBackend {
 
@@ -34,15 +39,16 @@ public final class CorsairBackend implements LightingBackend {
     }
 
     /**
-     * Connects inside {@link NativeCrashGuard}, which is why the guard lives
-     * here rather than in the bridge: the bridge's connection sequence is left
-     * exactly as it is, and only wrapped.
+     * Connects inside {@link NativeCrashGuard}, which is exactly why the guard
+     * lives out here rather than in the bridge. The bridge's connection
+     * sequence is left untouched and merely wrapped.
      */
     @Override
     public boolean connect(Path workDir, Predicate<KeyGrid.DeviceClass> deviceEnabled) {
-        // Only iCUE's own copies count towards "changed since the crash".
-        // The bundled copy is unpacked once and never changes, so counting it
-        // would only make its first unpacking look like an update.
+        // Only iCUE's own installed copies count toward "has anything changed
+        // since the crash". The bundled copy is unpacked once and then never
+        // changes again, so counting it would make its very first unpacking
+        // look like a driver update and wrongly clear the guard.
         List<Path> libraries = CueSdkBridge.installedLibraries();
         try {
             NativeCrashGuard.checkBefore(workDir, id(), displayName(), libraries);

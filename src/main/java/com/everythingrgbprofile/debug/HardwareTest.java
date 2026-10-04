@@ -7,29 +7,36 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A fixed sequence of frames that shows, by eye, whether a backend drives a
- * keyboard correctly — started from {@code /rgbprofiles test}.
+ * A fixed sequence of frames that shows, by eye, whether a backend is driving
+ * a keyboard correctly. Started from {@code /rgbprofiles test}.
  *
- * <p>Every backend except Corsair is experimental, and two of the ways they can
- * be wrong produce a board that lights up and looks broken in a way nobody can
- * describe usefully. A swapped colour channel shows a biome in the wrong colours
- * with no error anywhere; Razer's and OpenRGB's byte order rest on documentation,
- * not on a keyboard anyone here has watched. A flipped or scrambled layout sends
- * rain upward, or scatters it. Effects hide both, because nobody knows what
- * colour a forest is meant to be on a keyboard. So this draws things with only
- * one right answer, and the step names in chat say what that answer is:
+ * <p>Every backend except Corsair is experimental, and two of the ways they
+ * can be wrong produce a board that lights up and looks broken in a way nobody
+ * can usefully describe over the internet.
+ *
+ * <p>A swapped colour channel shows you a biome in the wrong colours with no
+ * error logged anywhere; Razer's and OpenRGB's byte order currently rest on
+ * documentation rather than on a keyboard anyone here has actually watched. A
+ * flipped or scrambled layout sends rain upward, or scatters it into confetti.
+ * Ordinary effects hide both of those perfectly, because nobody on earth knows
+ * what colour a forest is supposed to be on a keyboard.
+ *
+ * <p>So this draws things with exactly one right answer, and the step names in
+ * chat tell you what that answer is:
  *
  * <ol>
  *   <li>Solid red, green, blue, then white. A wrong colour names the swapped
  *       channel; a tinted white, a weak one.</li>
  *   <li>A bar sweeping left to right, then top to bottom. Backwards is a
  *       flipped axis, a scatter of keys is a wrong layout.</li>
- *   <li>W, A, S and D alone, the letters the mod targets by name.</li>
+ *   <li>W, A, S and D alone. Keys looked up by their printed label are how
+ *       the warnings find their key (H, F, T and K by default), so if these
+ *       four land in the wrong places, so will those.</li>
  * </ol>
  */
 public final class HardwareTest {
 
-    /** One step of the test: how long it runs and what the player should see. */
+    /** One step of the test: how long it runs, and what you should be seeing while it does. */
     public enum Step {
         RED(2000, "Every key should be RED"),
         GREEN(2000, "Every key should be GREEN"),
@@ -64,7 +71,7 @@ public final class HardwareTest {
         return total;
     }
 
-    /** The step running this far into the test, or null once it is over. */
+    /** Whichever step is running this far into the test, or null once it's over. */
     public static Step stepAt(long elapsedMillis) {
         if (elapsedMillis < 0) return null;
         long t = elapsedMillis;
@@ -76,8 +83,8 @@ public final class HardwareTest {
     }
 
     /**
-     * The frame for this moment of the test, covering every LED on every
-     * device, or null once the test is over.
+     * The frame for this exact moment of the test, covering every LED on every
+     * device, or null once the test has finished.
      */
     public static Map<KeyGrid.LedRef, RGBColor> frame(KeyGrid grid, long elapsedMillis) {
         Step step = stepAt(elapsedMillis);
@@ -113,7 +120,7 @@ public final class HardwareTest {
         return frame;
     }
 
-    /** A soft-edged bar travelling from 0 to 1 across one axis. */
+    /** A soft-edged bar travelling from 0 to 1 along one axis. Soft-edged so a flipped axis is obvious rather than ambiguous. */
     private static RGBColor bar(double position, double progress) {
         double centre = -0.1 + 1.2 * progress;
         double distance = Math.abs(position - centre);

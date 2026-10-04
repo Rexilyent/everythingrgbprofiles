@@ -7,50 +7,55 @@ import com.everythingrgbprofile.pattern.patterns.SpiralInPattern;
 import java.util.Map;
 
 /**
- * One entry in {@code dimension_profiles.json} — this is what drives the
+ * One entry in {@code dimension_profiles.json}, which is what drives the
  * portal effect's pillar field.
  *
- * <p>Every field except {@code color} is optional. Anything you leave out
- * falls back to the geometry fitted from the four Terraria Celestial Pillar
- * reference animations, so a perfectly good entry is:
- * {@code {"color": "#8B008B"}} and nothing else. The other thirty fields are
- * there for when you want to go deep, not because you have to.
+ * <p>Every field except {@code color} is optional. Anything left out falls
+ * back to the geometry fitted from the four Terraria Celestial Pillar
+ * reference animations, so a completely valid entry is
+ * {@code {"color": "#8B008B"}} and literally nothing else. The other thirty
+ * fields are there for when you want to go deep, not because anyone is making
+ * you.
  *
- * <h2>Two things that WILL bite you when editing the JSON</h2>
+ * <h2>Two things that WILL bite you when editing this JSON</h2>
  *
  * <p><b>1. {@code gradient} is a HUE ramp, not a brightness ramp.</b> This is
- * the single most common mistake and it looks like the pattern is broken.
+ * the single most common mistake and the symptom is that the pattern looks
+ * broken.
  *
  * <p>{@link com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern}
  * emits colour with <i>alpha equal to the field level</i>, because every
  * reference pillar's palette is one peak hue scaled linearly toward black.
- * Darkness already comes from the alpha. So every stop should be a
- * <b>saturated</b> colour — put a near-black first stop in and it darkens
- * twice, washing the arm out to nothing.
+ * The darkness is already coming from the alpha. So every stop wants to be a
+ * <b>saturated</b> colour. Drop a near-black first stop in there and it gets
+ * darkened twice, which washes the arm out to nothing and looks like a bug.
  *
- * <p>Stops that shift <i>hue</i> as they brighten are exactly right: that's
- * what the Solar pillar's dark-red → vivid-red → amber ramp does, and it's the
- * whole reason a two-point interpolation can't reproduce it.
+ * <p>Stops that shift <i>hue</i> as they brighten are exactly right. That is
+ * what the Solar pillar's dark-red to vivid-red to amber ramp is doing, and it
+ * is the whole reason a two-point interpolation cannot reproduce it.
  *
- * <p><b>2. Leave {@code spiralCenterX}/{@code spiralCenterY} unset.</b>
- * Omitted, the pattern auto-anchors on the {@code T} key — where the reference
- * pillar sits to within 0.13 key widths, and which is the same physical spot
- * on a full-size board, a TKL, and a 60%. A hardcoded 0.5/0.5 is none of those
- * things and will drift between layouts.
+ * <p><b>2. Leave {@code spiralCenterX} and {@code spiralCenterY} alone.</b>
+ * Omit them and the pattern auto-anchors on the {@code T} key, which is where
+ * the reference pillar sits to within 0.13 key widths, and which is the same
+ * physical spot on a full-size board, a TKL and a 60%. A hardcoded 0.5/0.5 is
+ * none of those things and will drift around between layouts.
  *
- * <p>Same reasoning for the radii ({@code coreRadiusKeys},
- * {@code falloffEndKeys}, {@code radialWavelengthKeys}): they're in <b>key
- * widths</b>, not normalised units, so they mean the same physical size
- * everywhere.
+ * <p>Same reasoning behind the radii ({@code coreRadiusKeys},
+ * {@code falloffEndKeys}, {@code radialWavelengthKeys}). They are in <b>key
+ * widths</b> rather than normalised units, so they mean the same physical size
+ * on every board.
  */
 public final class DimensionProfile {
     public String color;
     public String accentColor;
 
     // --- legacy spiral-in fields ---------------------------------------
-    // These belong to SpiralInPattern, which the portal no longer uses (see
-    // that class). Kept so old hand-written profiles still load without
-    // errors; they're read but have no effect on the current pillar field.
+    // These belong to SpiralInPattern, which the portal stopped using a while
+    // back (see that class). They are kept so that old hand-written profiles
+    // still load without throwing. All but one get read and then do nothing,
+    // because the current pillar field has no use for them. The exception is
+    // spiralArmCount, which toSettings() still applies as the pillar field's
+    // arm count.
     public Double spiralRotations;
     public Integer spiralArmCount;
     public Integer trailLength;
@@ -61,18 +66,19 @@ public final class DimensionProfile {
      * Multi-stop colour ramp, e.g.
      * {@code ["#3D0E00","#FD0500","#FB3F00","#FE8200","#FEA200"]}.
      *
-     * <p>Optional; without one the dimension gets a ramp derived from its base
-     * and accent. It's a LIST and not a pair because that's what the
-     * measurements demanded — a two-point interpolation cannot reproduce the
-     * references' saturated midtones (see {@link com.everythingrgbprofile.color.ColorRamp}
-     * for the numbers). Extracted by sampling every frame of the originals.
+     * <p>Optional. Without one, the dimension gets a ramp derived from its
+     * base and accent instead. It is a LIST rather than a pair because that is
+     * what the measurements demanded: a two-point interpolation genuinely
+     * cannot reproduce the references' saturated midtones. See
+     * {@link com.everythingrgbprofile.color.ColorRamp} for the actual numbers.
+     * Extracted by sampling every frame of the originals.
      */
     public java.util.List<String> gradient;
 
     /** Wave period in ms. Defaults to the measured 71 frames at 20ms. */
     public Double pillarPeriodMillis;
 
-    /** Spiral centre, normalised 0..1. Best left unset — see the class doc for why. */
+    /** Spiral centre, normalised 0..1. Best left unset; the class doc explains why. */
     public Double spiralCenterX;
     public Double spiralCenterY;
 
@@ -144,14 +150,16 @@ public final class DimensionProfile {
     public Double pillarPhaseOffset;
 
     /**
-     * Folds this profile's overrides onto the reference defaults, field by
-     * field.
+     * Folds this profile's overrides onto the reference defaults, one field at
+     * a time.
      *
-     * <p>Yes, it's thirty {@code if (x != null)} lines. That repetition is
-     * doing real work: every field is a boxed type precisely so null can mean
-     * "user didn't specify, keep the measured default". Reflection or a
-     * generic merge would be shorter and would lose the compile-time checking
-     * that keeps a renamed JSON field from silently becoming a no-op.
+     * <p>Yes, it is two dozen consecutive {@code if (x != null)} lines. Yes, that
+     * looks like something a generic merge should handle. The repetition is
+     * doing real work though: every field is a boxed type specifically so that
+     * null can mean "nobody specified this, keep the measured default".
+     * Reflection would be shorter and would throw away the compile-time
+     * checking that stops a renamed JSON field from quietly becoming a no-op
+     * nobody notices for three months.
      */
     public com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Settings toSettings() {
         var s = new com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Settings();
@@ -160,21 +168,23 @@ public final class DimensionProfile {
                 s.emission = com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Emission
                         .valueOf(emissionMode.trim().toUpperCase());
             } catch (IllegalArgumentException ignored) {
-                // A typo'd mode name keeps the default (SPIRAL) instead of
-                // throwing during profile load and taking the whole mod's
-                // startup with it. The "a malformed user edit must never crash
-                // the mod" rule, applied to enums.
+                // A typo'd mode name falls back to the default (SPIRAL)
+                // instead of throwing during profile load and taking the
+                // entire mod's startup down with it. That's the "a malformed
+                // user edit must never crash the mod" rule, applied to enums.
             }
         }
         if (spiralArmCount != null) s.arms = spiralArmCount;
-        // spiralCurve wins; spiralLogarithmic is the older spelling, kept so
-        // existing profiles don't break. New profiles should use spiralCurve.
+        // spiralCurve wins. spiralLogarithmic is the older spelling of the
+        // same idea, kept around so existing profiles don't break overnight.
+        // Anything new should be using spiralCurve.
         if (spiralCurve != null) {
             try {
                 s.curve = com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Curve
                         .valueOf(spiralCurve.trim().toUpperCase());
             } catch (IllegalArgumentException ignored) {
-                // Same deal as above.
+                // Same deal as above: keep the default, don't take startup out
+                // over a typo.
             }
         } else if (spiralLogarithmic != null && spiralLogarithmic) {
             s.curve = com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Curve.LOGARITHMIC;
@@ -195,10 +205,11 @@ public final class DimensionProfile {
         if (spiralCenterY != null) s.centerY = spiralCenterY;
         if (pillarPeriodMillis != null) s.periodMillis = pillarPeriodMillis;
 
-        // These come LAST on purpose: coreRadiusKeys must be able to override
-        // the older normalised spiralCoreRadius applied above. Newer, more
-        // precise units win. Reordering this block is how you'd introduce a
-        // very confusing bug.
+        // This block comes LAST on purpose. coreRadiusKeys has to be able to
+        // override the older normalised spiralCoreRadius that got applied
+        // further up, because the newer and more precise unit should win.
+        // Moving this block earlier is how you would introduce a genuinely
+        // baffling bug that only shows up on profiles setting both.
         if (radialWavelengthKeys != null) s.radialWavelengthKeys = radialWavelengthKeys;
         if (coreRadiusKeys != null) s.coreRadius = coreRadiusKeys;
         if (falloffEndKeys != null) s.falloffEndKeys = falloffEndKeys;
@@ -209,7 +220,7 @@ public final class DimensionProfile {
         return s;
     }
 
-    /** Legacy, for {@link SpiralInPattern}. BLOOM unless explicitly "sharp". */
+    /** Legacy, for {@link SpiralInPattern}. BLOOM unless somebody explicitly said "sharp". */
     public SpiralInPattern.ArrivalStyle resolvedArrivalStyle() {
         return "sharp".equalsIgnoreCase(arrivalFlashStyle) ? SpiralInPattern.ArrivalStyle.SHARP : SpiralInPattern.ArrivalStyle.BLOOM;
     }

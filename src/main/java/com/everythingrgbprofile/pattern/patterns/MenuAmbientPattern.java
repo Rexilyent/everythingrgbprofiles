@@ -39,26 +39,35 @@ import java.util.Random;
  *       is not, which is what makes it read as ore rather than as confetti.</li>
  * </ol>
  *
- * <p>Composited <b>here</b> rather than handed to
- * {@link com.everythingrgbprofile.priority.Compositor}, because these are one
- * Tier 1 base effect built from four parts — not four effects that happen to
- * co-occur. Registering them separately would let the priority system make
- * decisions about them independently, which is exactly what we don't want.
+ * <p>Composited <b>here</b> rather than handed off to
+ * {@link com.everythingrgbprofile.priority.Compositor}, because this is one
+ * Tier 1 base effect assembled from four parts. It is not four effects that
+ * happen to be occurring at the same time.
  *
- * <h2>Everything is additive light</h2>
- * Layers accumulate into an RGB light budget per key and are normalised once
- * at the end, instead of each layer overwriting the last with {@code put()}.
- * That is what lets a spark cross a torch pool and come out brighter, and a
- * glint sit <i>in</i> the rock rather than punching a hole through it. An
- * earlier version replaced outright, so whichever layer ran last won the key
- * whether or not it was the brighter thing.
+ * <p>Registering them separately would let the priority system start making
+ * independent decisions about them, which is precisely the thing that must not
+ * happen to a single coherent scene.
  *
- * <h2>It digs a tunnel, and it lights it as it goes</h2>
- * The drill used to teleport to a random key every sixteen seconds and the
- * torches were scattered once at startup and then never moved. Both were
- * static ideas dressed up with animation: nothing on the board was going
- * anywhere, so the scene had no direction and nothing ever changed except
- * which pixels happened to be flickering.
+ * <h2>Everything in here is additive light</h2>
+ * Layers accumulate into an RGB light budget per key and get normalised once
+ * at the very end, rather than each layer overwriting the last one with a
+ * {@code put()}.
+ *
+ * <p>That is what lets a spark cross a torch pool and come out the other side
+ * brighter, and what lets a glint sit <i>inside</i> the rock instead of
+ * punching a hole straight through it. Replace outright instead and whichever
+ * layer happened to run last wins the key, whether or not it was the brighter
+ * thing.
+ *
+ * <h2>It digs a tunnel, and it lights the tunnel as it goes</h2>
+ * The drill used to teleport to random spots around the board instead of
+ * heading anywhere, and the torches were scattered once at startup and then
+ * never moved again.
+ *
+ * <p>Both of those were static ideas wearing animation as a disguise. Nothing
+ * on the board was actually going anywhere, so the scene had no direction and
+ * nothing ever genuinely changed except which pixels happened to be flickering
+ * at that moment.
  *
  * <p>Now the drill bores a corridor across the board, and every few keys of
  * progress it drops a torch behind itself. Torches fade up as they are placed,
@@ -70,13 +79,13 @@ import java.util.Random;
  * opposite direction, a couple of rows over, the way anybody actually strip
  * mines. It never jumps: the turn happens off-board, in the margin.
  *
- * <h2>None of that motion is stored anywhere</h2>
+ * <h2>None of that motion is stored anywhere at all</h2>
  * Distance drilled is a closed-form function of elapsed time, and everything
- * else — where the drill is, where each torch was planted, how bright it is
- * now — is derived from that one number. So the whole traversal survives a
- * clock restart for free, with no reseeding and no state to go stale, which is
- * the same reason the earlier teleporting drill computed its position from a
- * slot index rather than remembering it.
+ * else falls out of that one number: where the drill currently is, where each
+ * torch was planted, how bright that torch is right now.
+ *
+ * <p>So the entire traversal survives a clock restart for free, with nothing
+ * to reseed and no state available to go stale.
  *
  * <p>Result: dark, uneven, painted-looking. If it ever reads as a clean bright
  * gamer-RGB menu, it has stopped matching the art it was made for.
@@ -554,8 +563,7 @@ public final class MenuAmbientPattern implements Pattern {
         spark.vx = Math.cos(angle) * speed - drillFacing * speed * 0.35;
         // Normalised y is compressed relative to normalised x by the board's
         // aspect ratio, so an equal PHYSICAL speed needs a larger number here.
-        // Skip the division and sparks fly out in a flat sideways fan, which
-        // is exactly the mistake the rain preset was making.
+        // Skip the division and sparks fly out in a flat sideways fan.
         spark.vy = Math.sin(angle) * speed / aspect;
         spark.startSeconds = startSeconds;
         spark.lifeSeconds = SPARK_LIFE_MIN + random.nextDouble() * SPARK_LIFE_RANGE;

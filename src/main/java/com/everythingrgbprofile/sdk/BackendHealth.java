@@ -19,35 +19,43 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * What happened to each lighting backend, in words a player can act on.
  *
- * <p>Every backend except Corsair is experimental: the only keyboard this
- * project has been tested on is a Corsair K70 RGB RAPIDFIRE. So most lighting
- * problems will arrive as a player saying "my keyboard doesn't light", on
- * hardware nobody here owns, and the only way to help them is for the mod to
- * have already worked out which of three very different things is going on:
+ * <p>Every backend except Corsair is experimental. The only keyboard this
+ * project has been tested on is a Corsair K70 RGB RAPIDFIRE.
+ *
+ * <p>Which means most lighting problems are going to arrive as somebody
+ * saying "my keyboard doesn't light", about hardware nobody here owns, over a
+ * medium with a multi-hour round trip. The only way to actually help is for
+ * the mod to have already worked out which of three very different things is
+ * happening:
  *
  * <ol>
- *   <li><b>Their software is missing or not running</b> — G HUB not installed,
- *       OpenRGB's SDK server not started. The player can fix this in a minute
- *       if they are told what to do.</li>
- *   <li><b>Their software said no</b> — iCUE with SDK control turned off, a
- *       device type switched off in the config. Also theirs to fix.</li>
- *   <li><b>The mod got it wrong</b> — a reply it could not parse, a payload the
- *       vendor rejected, an exception. Nothing the player can do but send it
- *       to us.</li>
+ *   <li><b>Their software is missing or not running.</b> G HUB not installed,
+ *       OpenRGB's SDK server never started. Fixable in about a minute by the
+ *       player, provided somebody tells them which minute to spend.</li>
+ *   <li><b>Their software said no.</b> iCUE with SDK control switched off, or
+ *       a device type turned off in this mod's own config. Also theirs to
+ *       fix, and also invisible until somebody says so.</li>
+ *   <li><b>The mod got it wrong.</b> A reply it could not parse, a payload the
+ *       vendor rejected, an exception nobody expected. Nothing the player can
+ *       do about this one except send it to us.</li>
  * </ol>
  *
- * <p>An earlier version logged each of these at DEBUG level, or not at all,
- * because most players do not own most brands and a line per missing vendor
- * looked like noise. The result was that a failure of any kind looked exactly
- * like every other failure: a dark keyboard and nothing in the log. Now every
- * backend records a {@link Diagnosis} at each way out of connecting and at the
- * moment it drops, and this class is where the log summary, the
- * {@code /rgbprofiles} command and the report file all read them from.
+ * <p>An earlier version logged all of this at DEBUG, or not at all, on the
+ * reasoning that most players do not own most brands and a line per missing
+ * vendor looks like noise. Which was true, and which produced a much worse
+ * outcome: every failure looked exactly like every other failure. A dark
+ * keyboard, and nothing in the log to tell any of them apart.
+ *
+ * <p>So now every backend records a {@link Diagnosis} at each way out of
+ * connecting and again at the moment it drops, and this class is where the log
+ * summary, the {@code /rgbprofiles} command and the report file all go to read
+ * them.
  *
  * <h2>Threading</h2>
  * Written from the SDK worker thread, read from the game thread. Diagnoses are
  * immutable records and every access to the shared collections is
- * synchronised, which is cheap because nothing here is on a per-frame path.
+ * synchronised, which costs nothing worth measuring because none of this sits
+ * on a per-frame path.
  */
 public final class BackendHealth {
 

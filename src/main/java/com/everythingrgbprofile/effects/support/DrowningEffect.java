@@ -15,21 +15,23 @@ import java.util.Map;
  * "You are running out of air." A Tier 2 overlay that floods the board from
  * the bottom as breath runs out, and drains when you surface.
  *
- * <p>Tier 2 for the same reason the rain cascade is: it is information laid
- * over wherever you happen to be, not a replacement for it. The biome keeps
- * showing above the waterline, which is what makes the line itself legible as
- * a level rather than as a colour change.
+ * <p>Tier 2 for exactly the same reason the rain cascade is: it is information
+ * laid over wherever you happen to be, rather than a replacement for it. The
+ * biome keeps showing above the waterline, and that contrast is the entire
+ * reason the line reads as a LEVEL instead of as a colour change.
  *
- * <h2>Driven by a level, not a boolean</h2>
- * {@link SustainedOverlayEffect} covers "on while a thing is true", and that
- * is the wrong shape here — the whole point is the value in between. This is
- * the same arrangement {@link NightIndicatorEffect} uses: a small effect class
- * whose only job is to hold a number and hand it to a pattern that knows what
- * to do with it.
+ * <h2>Driven by a level, not by a boolean</h2>
+ * {@link SustainedOverlayEffect} covers "on while a thing is true", which is
+ * the wrong shape here, because the whole point of this effect is the values
+ * in between.
  *
- * <p>Both colours come through the context: base is the deep water and accent
- * is the surface, so the pattern can shade by depth without either being
- * hardcoded.
+ * <p>Same arrangement {@link NightIndicatorEffect} uses: a small effect class
+ * whose only job is holding a number and handing it to a pattern that knows
+ * what to do with it.
+ *
+ * <p>Both colours arrive through the context, base being the deep water and
+ * accent the surface, so the pattern can shade by depth without either one
+ * being hardcoded anywhere.
  */
 public final class DrowningEffect implements EffectController {
 
