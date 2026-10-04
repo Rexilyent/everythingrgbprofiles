@@ -15,40 +15,44 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The thing you turn on when a keyboard is doing something inexplicable.
+ * The thing you switch on when a keyboard is doing something inexplicable.
  *
- * <p>This class is not general-purpose logging. It answers exactly three
- * questions, chosen because each one has personally cost real hours on this
- * mod and none of them could be answered from the log before.
+ * <p>This is not general-purpose logging. It answers exactly three questions,
+ * and those three specifically because each one has cost real hours on this
+ * mod and none of them could be answered from the log beforehand.
  *
- * <h2>1. Is my effect firing, or firing and being drawn over?</h2>
- * <b>These look identical on the keyboard and have nothing in common as
- * causes.</b> One is a trigger bug. The other is a compositing bug. Guessing
- * wrong sends you down a completely wasted investigation.
+ * <h2>1. Is my effect firing, or firing and getting drawn over?</h2>
+ * <b>These two look completely identical on the keyboard and have nothing
+ * whatsoever in common as causes.</b> One is a trigger bug. The other is a
+ * compositing bug. Guess wrong and you get to spend an evening investigating
+ * code that was never broken.
  *
- * <p>Case in point: the portal dwell was firing perfectly, on time, every
- * time — and being blanked by incidental Tier 3 flashes (see
- * {@code EffectController#tier3SuppressionFloor}). From outside it read as
- * "the portal effect only triggers on arrival", which is a sentence describing
- * a bug that did not exist.
+ * <p>Exhibit A: the portal dwell was firing perfectly, on time, every single
+ * time, and getting blanked by incidental Tier 3 flashes (see
+ * {@code EffectController#tier3SuppressionFloor}). From the outside it read as
+ * "the portal effect only triggers on arrival", which is a confident sentence
+ * describing a bug that did not exist.
  *
- * <p>{@link #sample} logs every activation and deactivation together with who
- * owns the board at that instant, so the two cases separate at a glance.
+ * <p>{@link #sample} logs every activation and deactivation alongside who owns
+ * the board at that exact instant, so the two cases separate at a glance
+ * instead of after an evening.
  *
  * <h2>2. Is the render thread healthy?</h2>
  * The worker runs independently of the client tick, so a client freeze
- * <i>should</i> not stall the animation. "Should" was doing a lot of work in
- * that sentence and there was no way to verify it. {@link #sample} tracks
- * achieved frame rate, render cost, and job-queue depth.
+ * <i>should</i> not stall the animation. "Should" was doing an enormous amount
+ * of work in that sentence and there was no way to check it. {@link #sample}
+ * tracks achieved frame rate, render cost and job-queue depth, so now there
+ * is.
  *
- * <h2>3. Did the hardware come up the way it should have?</h2>
- * LED identity is this mod's most reliable source of bugs (see
- * {@code KeyGrid}'s class doc for the three-namespace incident).
+ * <h2>3. Did the hardware come up the way it was supposed to?</h2>
+ * LED identity is this mod's single most reliable source of bugs; see
+ * {@code KeyGrid}'s class doc for the three-colliding-namespaces incident.
  * {@link #dumpGrid} prints the device roster, LED counts, the derived geometry
- * every pattern depends on, and whether named-key lookup actually resolves.
+ * every pattern leans on, and whether named-key lookup actually resolves
+ * anything.
  *
- * <p>All off by default, costing one boolean read per frame. All of it runs on
- * the SDK worker thread.
+ * <p>All of it off by default, costing one boolean read per frame, and all of
+ * it running on the SDK worker thread.
  */
 public final class Diagnostics {
 
@@ -89,16 +93,17 @@ public final class Diagnostics {
     /**
      * Called once per rendered frame from the worker loop.
      *
-     * <p>Transitions are found by DIFFING THE ACTIVE SET, not by
-     * instrumenting each effect's trigger method — and that choice is the
-     * whole reason this stays useful. One code path covers every effect, which
-     * means nobody can add a new effect and forget to instrument it. The
-     * diagnostics simply cannot fall behind the codebase.
+     * <p>Transitions get found by DIFFING THE ACTIVE SET rather than by
+     * instrumenting each effect's trigger method, and that decision is the
+     * entire reason this stays useful over time. One code path covers every
+     * effect, which means nobody can add a new effect and forget to wire the
+     * diagnostics into it. This cannot fall behind the codebase, because there
+     * is nothing to keep in step.
      *
-     * <p>The cost is resolution: transitions land at frame granularity
-     * (~17-33ms at default frame rates). Which is roughly two orders of
-     * magnitude finer than anything ever being diagnosed here, so it is not a
-     * cost at all.
+     * <p>The price is resolution: transitions land at frame granularity,
+     * about 33ms at the default 30 frames a second (17ms at the maximum 60). That is roughly two
+     * orders of magnitude finer than anything anyone has ever needed to
+     * diagnose in here, so calling it a price is generous.
      */
     public static void sample(EffectManager manager, long nowMillis, long renderNanos, int queueDepth,
                               boolean hardwareConnected) {
@@ -171,16 +176,18 @@ public final class Diagnostics {
     }
 
     /**
-     * Who actually owns the board this instant — the winning Tier 3 flash, the
-     * Tier 1 base, every active overlay, and any suppression floor holding
-     * flashes off.
+     * Who actually owns the board this instant: the winning Tier 3 flash, the
+     * Tier 1 base, every active overlay, and any suppression floor currently
+     * holding flashes off.
      *
-     * <p><b>This is THE line.</b> It's the one that separates "not firing"
+     * <p><b>This is THE line.</b> It is the one that separates "not firing"
      * from "firing but covered", which is question 1 in the class doc and the
-     * single most expensive ambiguity in the whole project. It reimplements
-     * the Compositor's resolution logic rather than sharing it, deliberately:
-     * diagnostics that borrow the code they're diagnosing tend to agree with
-     * it right up until the moment you need them not to.
+     * most expensive ambiguity in this entire project.
+     *
+     * <p>It reimplements the Compositor's resolution logic instead of sharing
+     * it, and that duplication is deliberate. A diagnostic that borrows the
+     * code it is diagnosing will agree with that code perfectly, right up
+     * until the exact moment you need it to disagree.
      */
     public static String ownership(EffectManager manager, long nowMillis) {
         EffectController base = null;
@@ -225,19 +232,19 @@ public final class Diagnostics {
     }
 
     /**
-     * Stamped from the client tick handler. The worker thread compares this
-     * against wall time to measure how long the main thread went unserviced.
+     * Stamped from the client tick handler. The worker thread compares it
+     * against wall time to work out how long the main thread went unserviced.
      *
      * <p><b>This number defines what is even achievable.</b> Every hook this
-     * mod can reach — tick poll, clone event, packet handling — runs on the
-     * main thread. Nothing can fire promptly while that thread is stalled, no
-     * matter how cleverly the detection is written.
+     * mod can reach (tick poll, clone event, packet handling) runs on the main
+     * thread. Nothing fires promptly while that thread is stalled, no matter
+     * how clever the detection code is.
      *
      * <p>A clean NeoForge install shows gaps around the 50ms tick period. A
-     * 600-mod pack mid dimension-load can show SECONDS. That figure is the
-     * hard floor on portal arrival latency, and knowing it is what stopped
-     * further optimisation of detection code that was already as fast as the
-     * platform permits.
+     * 600-mod pack in the middle of a dimension load can show SECONDS. That
+     * figure is the hard floor on portal arrival latency, and having it in
+     * front of us is what stopped further optimisation of detection code that
+     * was already running as fast as the platform allows.
      */
     public static void clientTickSeen(long nowMillis) {
         if (!enabled) return;
@@ -257,20 +264,23 @@ public final class Diagnostics {
      * One-shot report on whether the biome pipeline's timings can actually
      * produce a smooth transition, logged at startup.
      *
-     * <p>Two ways these settings can silently defeat each other, both caught
-     * here at startup rather than discovered by squinting at a keyboard:
+     * <p>There are two ways these settings can quietly defeat each other, and
+     * both get caught here at startup rather than discovered later by
+     * squinting at a keyboard and wondering:
      *
-     * <p><b>An inert debounce.</b> The debounce only does anything if it is
-     * LONGER than the sampling interval. {@code pollBiome} sits behind the
-     * {@code updateIntervalTicks} gate, so at the default 20 ticks the biome
-     * is sampled once per second — against a 250ms debounce. The pending timer
-     * has therefore always already expired by the time anyone looks at it, and
-     * every change commits on the second consecutive sample no matter what the
-     * debounce is set to. The setting appears to work. It does nothing.
+     * <p><b>An inert debounce.</b> The debounce only does anything at all if
+     * it is LONGER than the sampling interval. The biome is sampled every
+     * {@code biomeSampleIntervalTicks} (4 by default, 200ms) against a 250ms
+     * debounce, which is fine. Push the interval up to 5 or more and the
+     * pending timer has always already expired by the time anybody looks at
+     * it, so every change commits on the second consecutive sample regardless
+     * of what the debounce is set to. The setting looks like it works. It does
+     * nothing. (This used to be the default state, back when biome sampling
+     * shared the once-a-second {@code updateIntervalTicks} gate.)
      *
      * <p><b>A crossfade shorter than the sample interval.</b> The fade
-     * finishes before the next observation, so walking through a gradient
-     * reads as a series of discrete steps rather than a blend.
+     * finishes before the next observation even happens, so walking through a
+     * gradient reads as a series of discrete steps instead of a blend.
      */
     public static void dumpBiomeTiming(int intervalTicks, long debounceMillis, long crossfadeMillis) {
         if (!enabled) return;
@@ -279,7 +289,7 @@ public final class Diagnostics {
                 sampleMillis, intervalTicks, debounceMillis, crossfadeMillis);
         if (debounceMillis <= sampleMillis) {
             RGBProfileMod.LOGGER.warn("[rgb] biome timing: debounce ({}ms) <= sample interval ({}ms), so it is INERT — "
-                    + "every change commits on the second consecutive sample. Lower updateIntervalTicks or raise debounceMillis.",
+                    + "every change commits on the second consecutive sample. Lower biomeSampleIntervalTicks or raise debounceMillis.",
                     debounceMillis, sampleMillis);
         }
         if (sampleMillis >= crossfadeMillis) {
@@ -340,12 +350,13 @@ public final class Diagnostics {
     /**
      * The biome Holder stopped (or started) resolving to a registry key.
      *
-     * <p>WARN level on both edges, including recovery, which is unusual and
-     * intentional. While unresolved the biome cannot be named, so no sample is
-     * taken and the board just holds its last committed colour — which is
-     * indistinguishable from the effect being stuck or broken. Logging the
-     * recovery too is what lets you bound the window afterwards and say "ah,
-     * it was unresolved for 4 seconds" rather than guessing.
+     * <p>WARN on both edges, recovery included, which is unusual and entirely
+     * on purpose. While it is unresolved the biome cannot be named, so no
+     * sample gets taken and the board just sits holding its last committed
+     * colour, which is completely indistinguishable from the effect being
+     * stuck or broken. Logging the recovery as well is what lets somebody
+     * bound the window afterwards and say "ah, it was unresolved for four
+     * seconds" instead of guessing at it.
      */
     public static void biomeUnresolved(boolean unresolved, String detail) {
         if (!enabled) return;
@@ -360,7 +371,7 @@ public final class Diagnostics {
         }
     }
 
-    /** 0 = identical, 1 = black vs white. */
+    /** 0 means identical, 1 means black against white. */
     private static double colorDistance(RGBColor a, RGBColor b) {
         double dr = (a.r() - b.r()) / 255.0;
         double dg = (a.g() - b.g()) / 255.0;
@@ -368,7 +379,7 @@ public final class Diagnostics {
         return Math.sqrt((dr * dr + dg * dg + db * db) / 3.0);
     }
 
-    /** One-shot hardware and geometry report, logged after the grid is built. */
+    /** One-shot hardware and geometry report, logged once the grid is built. */
     public static void dumpGrid(KeyGrid grid) {
         if (!enabled) return;
         if (grid == null || grid.isEmpty()) {
@@ -387,11 +398,12 @@ public final class Diagnostics {
                 String.format("%.4f", grid.centerX()),
                 String.format("%.4f", grid.centerY()));
 
-        // Probes five specific keys, and 'T' is the one that matters: the
-        // pillar field anchors its centre there (see CoreEmitterPattern), so a
-        // MISS here silently relocates the entire portal spiral to the board
-        // centroid instead. Named-key resolution has broken quietly before,
-        // hence checking it out loud at startup.
+        // Probes five specific keys, and 'T' is the one that actually matters.
+        // The pillar field anchors its centre on T (see CoreEmitterPattern),
+        // so a MISS here silently relocates the entire portal spiral to the
+        // board centroid instead, which looks fine and is wrong. Named-key
+        // resolution has broken quietly before, so now it gets checked out
+        // loud at startup.
         StringBuilder named = new StringBuilder();
         for (String probe : new String[]{"T", "G", "H", "F", "K"}) {
             KeyGrid.LedRef ref = grid.namedKey(probe);
@@ -401,9 +413,9 @@ public final class Diagnostics {
     }
 
     /**
-     * {@code isActive} inside a try/catch, because a diagnostic that can crash
-     * the render loop is worse than no diagnostic at all. The debugging tool
-     * must never be the thing that breaks the lighting.
+     * {@code isActive} wrapped in a try/catch, because a diagnostic capable of
+     * crashing the render loop is worse than having no diagnostic at all. The
+     * debugging tool does not get to be the thing that breaks the lighting.
      */
     private static boolean safeActive(EffectController c, long nowMillis) {
         try {

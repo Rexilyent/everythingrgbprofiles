@@ -30,10 +30,10 @@ import java.util.function.Predicate;
  * Gigabyte, HyperX, Roccat and a long tail of other hardware, so this one
  * backend reaches all of it — for users willing to run OpenRGB's SDK server.
  *
- * <p>It also needs no native library and no vendor DLL: it is a TCP socket to
- * {@code 127.0.0.1:6742} speaking a documented binary protocol. That means no
- * JNA, no architecture-specific binaries to ship, and no chance of the exclusive
- * control problems the Corsair path has to be careful about.
+ * <p>It also needs no native library and no vendor DLL whatsoever. It is a TCP
+ * socket to {@code 127.0.0.1:6742} speaking a documented binary protocol,
+ * which means no JNA, no architecture-specific binaries to ship, and no way to
+ * land in the exclusive-control trap the Corsair path has to tiptoe around.
  *
  * <h2>Geometry comes from the zone matrix</h2>
  * Everything in this mod is geometry, so the interesting part of the controller
@@ -42,32 +42,37 @@ import java.util.function.Predicate;
  * converts straight into positions, and every pattern works with no further
  * help.
  *
- * <p>Zones without a matrix — strips, fans, single-colour devices — are laid
- * out as one horizontal line beneath the matrix zones. That is not physically
- * accurate and is not trying to be; it exists so those LEDs light at all rather
- * than being dropped, and so a user can see them and decide whether they want a
- * {@link KeyLayout} for that device.
+ * <p>Zones with no matrix at all (strips, fans, single-colour devices) get
+ * laid out as one horizontal line underneath the matrix zones. That is not
+ * physically accurate and is not pretending to be. It exists so those LEDs
+ * light up at all instead of being silently dropped, and so somebody can see
+ * them and decide whether they want to write a {@link KeyLayout} for that
+ * device.
  *
- * <h2>What is verified and what is not</h2>
+ * <h2>What is verified and what is emphatically not</h2>
  * The framing and the controller-data parser were checked against a <b>live
- * OpenRGB v5 server</b>, by decoding every attached controller and requiring
- * the parse to consume exactly the declared byte count. That is what caught the
- * missing {@code vendor} string, which had silently desynced everything after
- * it.
+ * OpenRGB v5 server</b>, by decoding every attached controller and demanding
+ * the parse consume exactly the declared byte count and not one byte more.
+ *
+ * <p>That last requirement is what caught the missing {@code vendor} string,
+ * which had been quietly desyncing everything after it and would otherwise
+ * have been somebody else's very confusing bug report.
  *
  * <p>Two things remain unverified, because the only keyboard this project has
  * been tested on is a Corsair K70 RGB RAPIDFIRE:
  *
  * <ul>
  *   <li><b>Matrix geometry.</b> On the test machine OpenRGB reports a GPU, a
- *       monitor and a motherboard — none of which expose a matrix map, because
- *       none of them are keyboards. The K70 itself is held by iCUE, and OpenRGB
- *       does not take over a device iCUE is already driving. So the matrix
- *       branch has never run against real data, and the zone-offset assumption
- *       marked below is still an assumption.</li>
- *   <li><b>Writing colour.</b> No LED has been driven through this path. The
- *       packing is the documented {@code 0x00BBGGRR}, but that is a reading of
- *       the protocol, not an observation.</li>
+ *       monitor and a motherboard, none of which expose a matrix map, on
+ *       account of none of them being keyboards. The K70 itself is held by
+ *       iCUE, and OpenRGB will not take over a device iCUE is already driving.
+ *       So the matrix branch has never once run against real data, and the
+ *       zone-offset assumption marked further down is still exactly that: an
+ *       assumption.</li>
+ *   <li><b>Writing colour.</b> No LED has ever been driven through this path.
+ *       The packing is the documented {@code 0x00BBGGRR}, but that is a
+ *       reading of the protocol rather than something anybody watched
+ *       happen.</li>
  * </ul>
  */
 public final class OpenRgbBackend implements LightingBackend {
@@ -86,16 +91,19 @@ public final class OpenRgbBackend implements LightingBackend {
      * The protocol revision this client asks for, and deliberately the floor.
      *
      * <p>OpenRGB serialises controller data at {@code min(client, server)}, and
-     * the payload has grown over time: protocol 3 inserted mode brightness
-     * fields, 4 added per-zone segments, 5 added something this code does not
-     * know about. Every one of those is a chance to desync the parser on
-     * hardware nobody here owns, and none of them carry anything this mod uses
-     * — zones, the matrix map and LED names all exist at version 1.
+     * that payload has grown over the years: protocol 3 inserted mode
+     * brightness fields, 4 added per-zone segments, 5 added something this
+     * code has never heard of.
      *
-     * <p>So this asks for 1 and gets the simplest, most stable shape from any
-     * server ever released. Verified against a live OpenRGB v5 server: version
-     * 1 parsed all three attached controllers to exactly the declared byte
-     * count, while 5 could not be parsed at all.
+     * <p>Every one of those is a fresh opportunity to desync the parser on
+     * hardware nobody here owns, and not one of them carries anything this mod
+     * actually uses. Zones, the matrix map and LED names all exist at version
+     * 1 and have not moved since.
+     *
+     * <p>So this asks for 1 and receives the simplest, most stable shape any
+     * server has ever emitted. Verified against a live OpenRGB v5 server:
+     * version 1 parsed all three attached controllers to exactly the declared
+     * byte count, while version 5 could not be parsed at all.
      */
     private static final int CLIENT_PROTOCOL = 1;
 
@@ -316,8 +324,9 @@ public final class OpenRgbBackend implements LightingBackend {
         // SIX strings, not five. There is a `vendor` between name and
         // description, and omitting it desyncs everything after this point —
         // the parser then reads a mode name as a 20,000-byte string and gives
-        // up. Confirmed by decoding a live server: it is present at every
-        // protocol version, so it is not conditional.
+        // up. OpenRGB only sends it from protocol 1 upward, and this client
+        // never speaks anything lower (see negotiateProtocol), so here it is
+        // always present. Confirmed by decoding a live server.
         String name = readString(b);
         readString(b);                    // vendor
         readString(b);                    // description
@@ -479,10 +488,11 @@ public final class OpenRgbBackend implements LightingBackend {
                         dirty = true;
                     }
                 }
-                // Unlike the Corsair path this DOES track dirtiness, because
-                // every update here is a full-device packet over a socket
-                // rather than a pointer write. Skipping an unchanged device is
-                // the difference between one packet a frame and five.
+                // An unchanged device is skipped outright, same as the Corsair
+                // path, and it matters more here: every update is a
+                // full-device packet over a socket rather than a pointer write.
+                // Skipping an unchanged device is the difference between one
+                // packet a frame and five.
                 if (dirty) sendLeds(dev);
             }
         } catch (IOException e) {

@@ -18,14 +18,16 @@ import java.util.Random;
  * longer used by any effect.
  *
  * <h2>Where it came from</h2>
- * The first portal pattern, {@link SpiralInPattern}, drew comets spiralling in
- * across an otherwise dark board. Measuring the reference footage frame by
- * frame showed that was wrong on the facts:
+ * The first portal pattern, {@link SpiralInPattern}, drew comets spiralling
+ * inward across an otherwise dark board. It looked good. Measuring the
+ * reference footage frame by frame then showed it was wrong on the facts, in
+ * more than one direction at once:
  *
  * <ul>
- *   <li><b>The board is fully lit. Always.</b> 77–94% of key pixels sit above
- *       25% brightness in <i>every frame of all four pillars</i>. There is no
- *       dark board and no sparse point on black.</li>
+ *   <li><b>The board is fully lit. Always.</b> Between 77% and 94% of key
+ *       pixels sit above 25% brightness in <i>every frame of all four
+ *       pillars</i>. There is no dark board anywhere in the reference, and no
+ *       sparse points scattered on black.</li>
  *   <li><b>All four cycle at 71 frames</b> (1.42s at 20ms/frame, ~0.70Hz).
  *       Identical timing across every pillar; only the palette differs.</li>
  *   <li><b>Frame-to-frame change is 1.2–3.9 / 255.</b> Gentle. This is a

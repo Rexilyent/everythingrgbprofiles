@@ -19,11 +19,14 @@ import java.util.Map;
  * instead, the way the attack actually behaves.
  *
  * <h2>Why draw it at all</h2>
- * Terraria's RGB does not give a boss an ambient colour, it gives you the
- * <i>boss</i>: Moon Lord turns the keyboard into an eye, Duke Fishron swims
- * across it. A purple shimmer says "something is happening"; a silhouette with
- * a wingspan says "that thing is happening". This is the same idea applied to
- * the one Minecraft boss whose silhouette everybody already knows.
+ * Terraria's RGB does not hand a boss an ambient colour and call it done. It
+ * gives you the <i>boss</i>: Moon Lord turns the keyboard into an eye, Duke
+ * Fishron swims across it.
+ *
+ * <p>A purple shimmer says "something is happening". A silhouette with a
+ * wingspan says "THAT thing is happening". This is the same idea applied to
+ * the one Minecraft boss whose silhouette every single player already has
+ * memorised.
  *
  * <h2>The board is the right shape for it</h2>
  * A keyboard is about eighteen keys wide and six tall — roughly 3:1. A dragon
@@ -57,6 +60,16 @@ public final class DragonSilhouettePattern implements Pattern {
     private volatile double flapHz = 0.75;
     /** 0 = wings barely move (perched), 1 = full beat. */
     private volatile double flapDepth = 1.0;
+    /**
+     * Standing lift of the wingtips, on top of whatever the beat is doing.
+     * 0 spreads them flat along the spine, 1 folds them right up over the back.
+     *
+     * <p>This exists because a perched dragon used to be drawn as a spread
+     * wing with the beat turned almost off, and a spread wing that does not
+     * move is, on a six-row board, a horizontal bar one row thick. It read as
+     * a dash. Real perched dragons fold up; so does this one now.
+     */
+    private volatile double wingArch = 0;
     private volatile double glow = 1.0;
     /** +1 faces right, -1 faces left. Set from travel direction. */
     private volatile double facing = 1.0;
@@ -71,6 +84,11 @@ public final class DragonSilhouettePattern implements Pattern {
     public void setWings(double flapHz, double flapDepth) {
         this.flapHz = Math.max(0.05, flapHz);
         this.flapDepth = Math.max(0, Math.min(1, flapDepth));
+    }
+
+    /** @param arch 0 = wings spread flat, 1 = folded up over the back. */
+    public void setWingArch(double arch) {
+        this.wingArch = Math.max(0, Math.min(1, arch));
     }
 
     public void setGlow(double glow) {
@@ -101,7 +119,10 @@ public final class DragonSilhouettePattern implements Pattern {
             // spine and throws most of the travel out to the tips, which is
             // what a wingbeat looks like.
             if (au <= 1.0) {
-                double membraneY = -FLAP_RISE * flap * Math.pow(au, 1.4);
+                // Arch and beat add: the arch is where the wing sits, the beat
+                // is what it does from there. Negative is up, because y counts
+                // downward from the top row.
+                double membraneY = -FLAP_RISE * (wingArch + flap) * Math.pow(au, 1.4);
                 double d = Math.abs(v - membraneY);
                 if (d < MEMBRANE_THICKNESS) {
                     double across = 1.0 - d / MEMBRANE_THICKNESS;

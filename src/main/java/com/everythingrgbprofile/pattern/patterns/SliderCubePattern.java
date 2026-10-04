@@ -15,10 +15,12 @@ import java.util.Map;
  * lines, slamming into the walls, and hunting a gold marker that is you.
  *
  * <p>Built for the Aether's Slider on the same principle as the Naga and the
- * Ender Dragon: draw the boss, do not tint the board. The Slider has no face
- * and no limbs to draw. What it has is a way of moving that nothing else in
- * the game shares — dead still, then a straight-line slide that picks up speed
- * until it hits something — and that motion is the thing to put on the keys.
+ * Ender Dragon: draw the boss, do not tint the board.
+ *
+ * <p>The Slider has no face and no limbs worth drawing. What it does have is a
+ * way of moving that nothing else in the game shares — dead still, and then a
+ * straight-line slide that keeps picking up speed until it hits something —
+ * and that motion is the thing that belongs on the keys.
  *
  * <h2>The board is the room</h2>
  * The keyboard is a map of the boss room with north at the top: the cube sits
@@ -29,31 +31,40 @@ import java.util.Map;
  * with the camera, every glance you take mid-fight would swing the cube
  * diagonally across the board, which is the one way the Slider never moves.
  *
- * <p>The room is square and the board is not, so the map is stretched: a slide
- * east-west crosses twenty-odd keys and a slide north-south crosses a few
- * rows. That is an accepted cost. A map drawn to scale would leave a thin
- * strip of room in the middle of the board with the cube barely moving
- * vertically at all.
+ * <p>The room is square and the board very much is not, so the map gets
+ * stretched: a slide east-west crosses twenty-odd keys while a slide
+ * north-south crosses a few rows. That is an accepted cost rather than an
+ * oversight.
+ *
+ * <p>A map drawn honestly to scale would leave a thin strip of room in the
+ * middle of the board with the cube barely moving vertically at all, which is
+ * accurate and useless.
  *
  * <h2>A square, not a circle</h2>
- * Everything about the cube is measured with the larger of the two distances
- * rather than the straight-line one, so it has corners. The whole mod draws in
- * soft round blobs; a soft square among them is what reads as a block of stone
- * rather than as another glowing thing. The same measure shapes the shockwave
- * a slam throws out, so it spreads as a growing square too.
+ * Everything about the cube is measured using the LARGER of the two distances
+ * rather than the straight-line one, which is what gives it corners.
+ *
+ * <p>The rest of this mod draws in soft round blobs, so a soft square sitting
+ * among them is what reads as a block of stone rather than as yet another
+ * glowing thing. The same measure shapes the shockwave a slam throws out, so
+ * that spreads as a growing square too.
  *
  * <h2>The trail</h2>
  * Fainter copies of the cube where it was a moment ago, spaced by how far it
- * has actually travelled. A cube accelerating across the board stretches its
- * trail out behind it, and one that has stopped has none — so the speed-up
- * that is the Slider's whole threat is visible without a number.
+ * has genuinely travelled rather than by a fixed interval.
+ *
+ * <p>Which means a cube accelerating across the board stretches its trail out
+ * behind it, and a cube that has stopped has no trail at all. The speed-up
+ * that IS the Slider's entire threat becomes visible without a number
+ * appearing anywhere on the keyboard.
  */
 public final class SliderCubePattern implements Pattern {
 
     /**
-     * Half the cube's side, in key widths. 2.6 keys across is a block you
-     * recognise as a block and still leaves the height of the board somewhere
-     * to slide: on a six-row board the centre travels a little over two rows.
+     * Half the cube's side, in key widths. 2.6 keys across comes out three
+     * keys wide and three rows tall on the board, around a single-key eye: a
+     * block you recognise as a block, which still leaves half the height of a
+     * six-row board, about three rows, for the centre to slide through.
      */
     private static final double CUBE_HALF_KEYS = 1.3;
     /** How much larger the cube draws at the top of its room, as it would look from above. */

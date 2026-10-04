@@ -16,16 +16,18 @@ import java.util.List;
  *
  * <p>Per-key control is a 21x6 bitmap in B, G, R, A byte order, set with
  * {@code LogiLedSetLightingFromBitmap} after targeting per-key RGB devices.
- * Constants and byte order are from Logitech's SDK header and their own
- * {@code logiPy} wrapper; the DLL location is where a current G HUB install
- * actually puts it.
+ * The constants and the byte order come from Logitech's SDK header and their
+ * own {@code logiPy} wrapper; the DLL location is where a current G HUB
+ * install actually puts it, as opposed to where the docs say it goes.
  *
- * <h2>Threading matters more than usual here</h2>
+ * <h2>Threading matters more here than anywhere else</h2>
  * Logitech document {@code LogiLedInit} as initialising the SDK <i>for the
- * current thread</i>. Every call in this class runs on the SDK worker thread,
- * which {@link LightingBackend} already guarantees — but it means this backend
- * must never be touched from anywhere else, including a "quick" call from the
- * game thread for debugging.
+ * current thread</i>. Read that again, because it is unusual.
+ *
+ * <p>Every call in this class runs on the SDK worker thread, which
+ * {@link LightingBackend} already guarantees. But it means this backend must
+ * never be touched from anywhere else, up to and including one "quick" call
+ * from the game thread while debugging something unrelated.
  *
  * <h2>What has been checked against a real G HUB install</h2>
  * The only keyboard this project has been tested on is a Corsair K70 RGB
@@ -37,10 +39,13 @@ import java.util.List;
  * true, and forty-nine changing frames went through this class without a
  * refusal.
  *
- * <p>What that cannot show is a key changing colour, because, as {@link #push}
- * explains, the SDK says true even with no keyboard attached. If a Logitech
- * board stays dark, G HUB has a setting that allows applications to control
- * lighting, and that is the first thing to check.
+ * <p>What none of that can show is a key actually changing colour, because, as
+ * {@link #push} explains at greater length, the SDK returns true quite happily
+ * with no keyboard attached to the machine at all.
+ *
+ * <p>So if a Logitech board stays dark: G HUB has a setting controlling whether
+ * applications are allowed to drive the lighting, and that is the first thing
+ * worth checking before anything in this file is suspected.
  */
 public final class LogitechBackend extends GridBackend {
 
@@ -93,8 +98,9 @@ public final class LogitechBackend extends GridBackend {
     }
 
     private void openNative(Path dll) throws BackendHealth.Unavailable {
-        // Same reason CueSdkBridge sets it: without it JNA may prefer a
-        // system-wide jnidispatch over the one bundled with the mod.
+        // Same belt-and-braces as CueSdkBridge: keep JNA on the jnidispatch
+        // inside its own jar (Minecraft's) rather than a system-wide one.
+        // Already JNA's default; see the note there.
         System.setProperty("jna.nosys", "true");
         try {
             sdk = Native.load(dll.toString(), LogitechLedSdk.class);

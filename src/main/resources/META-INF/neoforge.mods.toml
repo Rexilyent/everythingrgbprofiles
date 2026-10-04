@@ -1,7 +1,7 @@
 modLoader = "javafml"
 loaderVersion = "${loader_version_range}"
 license = "${mod_license}"
-issueTrackerURL = "https://github.com/example/rgbprofile/issues"
+issueTrackerURL = "https://github.com/Rexilyent/everythingrgbprofiles/issues"
 
 [[accessTransformers]]
 file="META-INF/accesstransformer.cfg"
@@ -11,25 +11,26 @@ modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
+logoFile = "rgb_logo.png"
 description = '''${mod_description}
 
-This mod is client-first: every feature that can be driven from client-only
-signals is, and it works on servers that do not have it installed. It carries
-one small optional server-side component (a sculk sensor/shrieker relay) that
-is currently inert, because sculk detection turned out to work from the client
-alone. On a dedicated server, or with no lighting software available, every
-part of the mod that touches lighting hardware is a complete no-op. See
-StartupGate.java for the exact gating order.
+Every biome gets its own animated scene. Bosses like the Wither and the Ender Dragon are drawn right on the keys, and things like low health, drowning, burning, lightning and raids light up as they happen.
+
+Tested with Corsair keyboards through iCUE. Razer Chroma, Logitech G HUB, SteelSeries GG and OpenRGB (with its SDK Server turned on) are supported too, but haven't been tried on real hardware yet. If you use one, please tell us how it goes: run /rgbprofiles report in game and send us the file it writes. Whichever you use, its software needs to be running.
+
+Client-side only: servers don't need it, and you can join any server with it installed.
 '''
 
-# The lighting/SDK side of this mod is strictly client-only, but the mod as a
-# whole is not client-side-only: a dedicated server may optionally load it to
-# power the optional sculk relay, so there is no blanket clientSideOnly flag
-# (which would prevent server-side loading entirely).
+# The lighting/SDK side of this mod is strictly client-only, and since the
+# optional sculk relay was removed there is no server-side behaviour left at
+# all. There is still no blanket clientSideOnly flag, because that flag
+# prevents server-side loading entirely and a pack shipping this mod on both
+# sides should keep working rather than start failing to load.
 #
-# What lets a player with this mod join a server without it, vanilla or
-# NeoForge, is its one network payload being registered as optional; see
-# NetworkHandler. A required payload would make NeoForge refuse the connection.
+# An earlier version registered one network payload for that relay, and had to
+# declare it optional so NeoForge would not refuse a connection to a server
+# without the mod. Nothing is registered now, so there is nothing to negotiate
+# and a player carrying this mod can join any server, vanilla or NeoForge.
 #
 # This uses the `[[dependencies]]` `type = "optional"` mechanism from the
 # 1.21.x NeoForge generation, and loads correctly on NeoForge for 1.21.1. If a

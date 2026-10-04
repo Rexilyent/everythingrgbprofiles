@@ -15,15 +15,16 @@ import java.util.Map;
  * fills along the bottom of the board, and when it is full it bursts upward in
  * gold and leaves the board sparkling.
  *
- * <p>Three beats, each borrowed from what the game shows at the same moment:
+ * <p>Three beats, each one borrowed from what the game itself is showing you
+ * at that exact moment:
  *
  * <ol>
  *   <li><b>The bar fills.</b> The bottom row sweeps left to right in the
  *       experience bar's green, with a bright leading edge, while a handful of
  *       orbs drop in from above and are swallowed at that edge — the orbs
  *       you picked up, arriving.</li>
- *   <li><b>Level up.</b> The full bar flashes gold and a gold wave climbs from
- *       it to the top of the board.</li>
+ *   <li><b>Level up.</b> The full bar flashes white and turns gold, and a gold
+ *       wave climbs from it to the top of the board.</li>
  *   <li><b>Sparkles.</b> Keys twinkle gold and white across the board while
  *       everything fades out.</li>
  * </ol>
@@ -73,8 +74,9 @@ public final class LevelUpPattern implements Pattern {
         LightBudget budget = new LightBudget();
 
         // --- the bar -------------------------------------------------------
-        // Eased so it accelerates into full, which is what makes the burst
-        // land as the payoff of the fill rather than as a separate event.
+        // Eased in and out: it builds speed through the middle and settles
+        // into full right as the burst lands, so the burst reads as the payoff
+        // of the fill rather than as a separate event.
         double fillT = Math.min(1, t / FILL_END);
         double fill = fillT * fillT * (3 - 2 * fillT);
         // After the burst the bar turns gold with it and then fades.
