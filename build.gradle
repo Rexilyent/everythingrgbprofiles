@@ -272,3 +272,12 @@ tasks.register('vendorProbe', JavaExec) {
         args project.property('probeArgs').split(' ')
     }
 }
+
+// Ship the licence inside the jar, so a copy of the jar found on its own still
+// carries its terms. Renamed so it cannot collide with another mod's LICENSE
+// if the jar ever ends up merged or nested somewhere.
+tasks.named('jar', Jar).configure {
+    from('LICENSE') {
+        rename { "LICENSE_${mod_id}" }
+    }
+}
