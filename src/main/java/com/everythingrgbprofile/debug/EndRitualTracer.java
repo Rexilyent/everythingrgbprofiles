@@ -16,14 +16,14 @@ import java.util.Set;
 
 /**
  * Writes a transcript of an Ender Dragon summoning ritual, so the lighting can
- * be built to match what actually happens rather than to a guess.
+ * be built to match what actually happens instead of to somebody's best guess.
  *
  * <p>YUNG's Better End Island runs the respawn as a five-stage sequence
  * ({@code START → PREPARING_TO_SUMMON_PILLARS → SUMMONING_PILLARS →
- * SUMMONING_DRAGON → END}) but keeps that state server-side and ships no
- * packets, so a client can only infer the choreography from the end crystals
- * it can see. This class records exactly what those crystals do, in enough
- * detail to reconstruct the sequence afterwards:
+ * SUMMONING_DRAGON → END}), keeps every bit of that state server-side, and
+ * ships no packets at all. So a client gets to infer the entire choreography
+ * from the end crystals it can see, and nothing else. This records exactly
+ * what those crystals do, in enough detail to rebuild the sequence afterwards:
  *
  * <ul>
  *   <li><b>Which</b> crystal — entity id, plus its distance and bearing from
@@ -31,14 +31,17 @@ import java.util.Set;
  *       the ring of obsidian pillars and identifies <i>which</i> pillar.</li>
  *   <li><b>When</b> — every line is stamped relative to the first beam, since
  *       relative timing is the whole point.</li>
- *   <li><b>Where it points</b> — classified as SKY (straight up, the central
- *       crystals' opening beams), CENTRE (in at the middle of the island, the
- *       pillars firing), or a described OTHER so nothing is silently binned.</li>
+ *   <li><b>Where it points</b> — classified as SKY (straight up from the
+ *       crystal itself), CENTRE (at the middle of the island: the towers
+ *       firing back in, and also the four central crystals, which sit about 8
+ *       blocks out and aim at (0,128,0) above the middle), or a described
+ *       OTHER so nothing is silently binned.</li>
  * </ul>
  *
  * <p>Everything is logged on CHANGE only, with a periodic snapshot while beams
- * are live. Crystals hold their beams for many seconds; logging per tick would
- * bury the transitions that matter in thousands of identical lines.
+ * are live. Crystals hold their beams for many seconds at a time, so logging
+ * per tick would bury the handful of transitions that matter under thousands
+ * of identical lines saying nothing happened.
  *
  * <p>{@code EndRitualPattern} was fitted to transcripts from this class. It
  * only runs when ritual tracing or diagnostics are switched on in the config,

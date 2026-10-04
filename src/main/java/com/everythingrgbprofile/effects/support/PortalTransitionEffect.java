@@ -18,31 +18,33 @@ import java.util.Map;
  * change and then dissolves back into the biome layer. Half two of the portal
  * sequence — {@link PortalChargeEffect} is half one.
  *
- * <p>This class has been rewritten twice for two completely different reasons.
- * Both are documented below, because both were non-obvious and both will look
- * like arbitrary complexity to whoever reads this next.
+ * <p>This class has been rewritten twice, for two entirely unrelated reasons.
+ * Both are written up below, because both were non-obvious and both are going
+ * to look like arbitrary complexity to whoever reads this next.
  *
  * <h2>Rewrite 1: it used to be a Tier 3 flash</h2>
- * Tier 3's defining behaviour is blanking everything beneath it. So what a
- * player actually experienced was: dwell overlay → <b>hard cut to black</b> →
- * spiral → whole-board white bloom → <b>hard cut back</b> to the biome layer.
+ * Tier 3's defining behaviour is blanking everything underneath it. So what a
+ * player actually experienced went: dwell overlay, <b>hard cut to black</b>,
+ * spiral, whole-board white bloom, <b>hard cut back</b> to the biome layer.
  *
  * <p>Three discontinuities and a flashbang, for something that was supposed to
- * read as one continuous event. Now:
+ * read as one continuous event. So now:
  *
  * <ul>
- *   <li><b>No arrival flash at all.</b> The {@code sharpArrival} /
- *       {@code arrivalFlashStyle} bloom is gone entirely. The field holds, then
- *       fades. Turns out the flash was never the good part.</li>
- *   <li><b>It fades into the biome instead of cutting.</b> Tier 2 now, with the
- *       pattern composited over its own black core <i>inside this class</i>
- *       before being handed over with a single global alpha. At alpha 1 that is
- *       pixel-identical to the old Tier 3 blank-then-draw — so nothing
- *       regressed — and easing that alpha to 0 gives a true crossfade down to
- *       whatever Tier 1 is rendering. No blank, no pop.</li>
+ *   <li><b>No arrival flash whatsoever.</b> The {@code sharpArrival} and
+ *       {@code arrivalFlashStyle} bloom is gone completely. The field holds,
+ *       then it fades. As it turns out, the flash was never the good part.</li>
+ *   <li><b>It fades into the biome rather than cutting to it.</b> Tier 2 now,
+ *       with the pattern composited over its own black core <i>inside this
+ *       class</i> before being handed over carrying a single global alpha.
+ *       <p>At alpha 1 that is pixel-identical to the old Tier 3
+ *       blank-then-draw, so nothing regressed on the way through, and easing
+ *       that alpha to 0 gives a genuine crossfade down to whatever Tier 1 is
+ *       drawing. No blank, no pop.</li>
  *   <li><b>The spin is continuous with the dwell.</b> {@code phaseOffsetMillis}
- *       carries the charge effect's clock across, so the arm doesn't snap back
- *       to phase zero at the exact moment you're staring at it.</li>
+ *       carries the charge effect's clock across, so the arm does not snap
+ *       back to phase zero at the precise moment somebody is staring directly
+ *       at it.</li>
  *   <li><b>It holds the board.</b> {@link #tier3SuppressionFloor} stays raised
  *       for the whole sequence, not just the dwell, so an advancement or a
  *       lightning strike landing mid-transition can no longer steal it.</li>
@@ -182,7 +184,7 @@ public final class PortalTransitionEffect implements EffectController {
      * <p>The open-ended hold is the feature that makes this necessary. An
      * arrival that is still waiting on {@code ReceivingLevelScreen} holds the
      * board at full alpha until either the release arrives or
-     * {@code maxDurationMillis} expires — 30 seconds by default. Disconnect
+     * {@code maxTotalMillis} expires — 30 seconds by default. Disconnect
      * mid-transfer and neither happens: {@code pollPortalWorldReady} is driven
      * from the client tick, and the tick loop stops looking the moment
      * {@code mc.level} goes null. The result is half a minute of portal field
@@ -286,7 +288,7 @@ public final class PortalTransitionEffect implements EffectController {
         // matters and here's why:
         //
         // CoreEmitterPattern encodes its dark core as alpha 0. Hand that
-        // straight to the Compositor and the biome shimmer reads through the
+        // straight to the Compositor and the biome layer reads through the
         // middle of the spiral — the exact class of bug the old Tier 3 blank
         // existed to work around in the first place.
         //

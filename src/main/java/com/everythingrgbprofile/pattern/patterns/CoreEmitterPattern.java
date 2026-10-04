@@ -10,17 +10,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The Terraria Celestial Pillar field — not vibed, not eyeballed,
- * <b>fitted</b> to the four reference animations frame by frame.
+ * The Terraria Celestial Pillar field. Not vibed, not eyeballed, not
+ * approximated by staring at a GIF and nodding. <b>Fitted</b> to the four
+ * reference animations, frame by frame.
  *
- * <p>This is the most carefully measured pattern in the mod, and the one whose
- * design changed the most along the way. Read the whole doc before you touch a
- * default; almost every "obviously wrong-looking" value here is wrong-looking
- * because the measurement said so.
+ * <p>This is the most carefully measured pattern in the entire mod and also
+ * the one whose design changed most on the way to being right. Read this whole
+ * doc before touching a single default, because almost every value in here
+ * that looks obviously wrong looks that way because the measurement came back
+ * and said so.
  *
  * <h2>What the reference actually does</h2>
- * Each pillar GIF is a 133-key board on a square 8px key pitch, 71 frames at
- * 20ms (1.42s per cycle). Decomposing every key's brightness over time gives
+ * Each pillar GIF is a 133-key board on a square 8px key pitch, looping every
+ * 71 frames at 20ms (1.42s per cycle; the Stardust GIF is three of those
+ * loops back to back). Decomposing every key's brightness over time gives
  * one clean answer:
  *
  * <pre>
@@ -29,47 +32,60 @@ import java.util.Map;
  *   W(r)          = clamp((r - coreRadius) / (falloffEnd - coreRadius), 0, 1) ^ falloffPower
  * </pre>
  *
- * with r and theta in <b>key widths</b> from a fixed centre. Fit that to the
- * Nebula pillar and it reproduces all 71 frames × 133 keys at <b>r = 0.992</b>
- * (RMSE 0.036 on 0..1 brightness). Vortex fits the same geometry at r = 0.986
- * with only the contrast changed.
+ * with r and theta in <b>key widths</b> measured from a fixed centre. Fit that
+ * to the Nebula pillar and it reproduces all 71 frames across all 133 keys at
+ * <b>r = 0.992</b>, RMSE 0.036 on 0..1 brightness. Vortex fits the identical
+ * geometry at r = 0.986 with nothing changed but the contrast.
  *
- * <p>To be clear about what that means: this isn't an approximation of the
- * reference. Within GIF quantisation it <i>is</i> the reference.
+ * <p>To be completely clear about what that number means: this is not an
+ * approximation of the reference animation. Within GIF quantisation it
+ * <i>is</i> the reference animation.
  *
  * <h2>Three things earlier versions got wrong</h2>
  *
- * <p><b>1. The core does not move.</b> On all three 71-frame pillars the same
- * seven keys — {@code 5 6 R T Y F G} — sit at the black level in <i>every
- * single frame</i>, per-key standard deviation exactly zero. Not "nearly
- * zero". Zero. It's a static disc of radius ~1.29 key widths.
+ * <p><b>1. The core does not move.</b> Across all three 71-frame pillars the
+ * same seven keys — {@code 5 6 R T Y F G} — sit at the black level in
+ * <i>every single frame</i>, with a per-key standard deviation of exactly
+ * zero. Not approximately zero. Zero. It is a static disc of radius about 1.29
+ * key widths and it never goes anywhere.
  *
- * <p>But you can SEE it wobble, so what gives? The wobble is real and it is
- * <b>emergent</b>. With one arm, the lit annulus is bright on one side and dim
- * on the other, and that asymmetry rotates. Track the brightness-weighted
- * centroid of the dark region and you get a circle of radius 0.46 key widths,
- * exactly one revolution per cycle. A wobble produced entirely by a core that
- * never moves. Adding {@code coreOrbit} or {@code coreWobble} on top
- * double-counts it and smears the geometry — which is why both default to 0.
+ * <p>Except you can SEE it wobble, so something has to give. The wobble is
+ * completely real and it is <b>emergent</b>. With one arm, the lit annulus is
+ * bright down one side and dim down the other, and that asymmetry rotates.
  *
- * <p><b>2. It's a spiral, not a wave, and definitely not a random field.</b>
+ * <p>Track the brightness-weighted centroid of the dark region and it traces a
+ * circle of radius 0.46 key widths, at exactly one revolution per cycle. An
+ * entirely convincing wobble, produced by a core that is not moving at all.
+ *
+ * <p>Which is why {@code coreOrbit} and {@code coreWobble} both default to 0.
+ * Adding either one on top double-counts a wobble that is already there and
+ * smears the geometry doing it.
+ *
+ * <p><b>2. It is a spiral, not a wave, and absolutely not a random field.</b>
  * An earlier version cross-correlated each frame's <i>column</i> brightness
- * against the previous frame, found a dominant horizontal shift of zero, and
- * concluded nothing travels — so per-key phases got rolled from an RNG.
+ * against the previous frame's, found a dominant horizontal shift of zero,
+ * concluded that nothing travels, and rolled the per-key phases out of an RNG.
  *
- * <p>Here's the trap: <b>a rotating spiral has zero net horizontal
- * displacement by construction.</b> Testing horizontally literally cannot see
- * it. The measurement wasn't wrong, it was answering a different question.
- * Test radially and angularly instead and it's obvious — predicting each key's
- * measured phase from {@code k_r*r + theta} alone leaves 22° of residual
- * scatter, versus the 104° a random field would give (circular concentration
- * 0.934). The phases are geometric. Nothing about them is random.
+ * <p>Here is the trap, and it is a good one: <b>a rotating spiral has zero net
+ * horizontal displacement by construction.</b> Testing horizontally cannot
+ * see it. Not "struggles to". Cannot. The measurement was not wrong, it was
+ * confidently answering a completely different question.
  *
- * <p><b>3. There's no emitter, and the crest is a pure cosine.</b> 99.3% of
- * the temporal power sits in the fundamental, so cranking
- * {@code armSharpness = 3.5} was manufacturing harmonics that do not exist in
- * the source. And no bright point rides the rim — adding one measurably
- * <i>lowers</i> the fit. Both default off.
+ * <p>Test radially and angularly instead and it stops being subtle.
+ * Predicting each key's measured phase from {@code k_r*r + theta} alone leaves
+ * 22° of residual scatter, against the 104° a genuinely random field would
+ * produce, at a circular concentration of 0.934.
+ *
+ * <p>The phases are geometric. There is nothing random about any of them.
+ *
+ * <p><b>3. There is no emitter, and the crest is a pure cosine.</b> 99.3% of
+ * the temporal power sits in the fundamental, which means cranking
+ * {@code armSharpness = 3.5} was manufacturing harmonics that simply do not
+ * exist anywhere in the source material.
+ *
+ * <p>And no bright point rides the rim. Adding one measurably <i>lowers</i>
+ * the fit, which is about as clear an answer as a measurement ever gives you.
+ * Both default off.
  *
  * <h2>Archimedean or logarithmic: why the default is Archimedean</h2>
  * Once it was clear the field was a spiral, the next question was which kind,
@@ -85,34 +101,40 @@ import java.util.Map;
  *       Less romantic, and the shape of a coiled rope or a record groove.</li>
  * </ul>
  *
- * <p>The measurement decided it. Crests satisfy {@code theta = -k_r*r + const}:
- * each key's fitted phase lies on a straight line against r, with one arm at a
- * radial wavelength of 4.92 key widths. A straight line against r is
- * necessarily a curve against {@code log r}, so the reference is Archimedean,
- * and only that setting reproduces it.
+ * <p>The measurement settled it, as usual. Crests satisfy
+ * {@code theta = -k_r*r + const}: each key's fitted phase falls on a straight
+ * line against r, with one arm at a radial wavelength of 4.92 key widths. A
+ * straight line against r is necessarily a curve against {@code log r}, so the
+ * reference is Archimedean and only that setting reproduces it.
  *
- * <p>There is a keyboard-specific reason as well. A logarithmic spiral packs
- * its tightest winding into the few keys nearest the core — exactly where this
- * field is black — and spreads out geometrically beyond, so across a board
- * only about six keys tall most of its character lands where there are no
- * LEDs to show it. {@link Curve#LOGARITHMIC} is kept as an option, with
- * {@link #GOLDEN_TURNS_PER_EFOLD} for a true golden spiral, but it is a
- * stylistic choice, not a correction.
+ * <p>There is a second, keyboard-specific reason to prefer it even if you
+ * dislike the answer. A logarithmic spiral packs its tightest winding into the
+ * handful of keys nearest the core — which is exactly where this field is
+ * solid black — and then spreads out geometrically beyond that. On a board
+ * only about six keys tall, most of its character therefore lands in places
+ * with no LEDs to show it.
  *
- * <p>Motion, for the curious: hold r fixed and advance t and it rotates; hold
- * theta fixed and advance t and the crest moves <b>outward</b>. The wave
- * propagates out while the arm winds round, which is precisely why it reads as
- * "a wave... until you look at the core and realise it's spinning".
+ * <p>{@link Curve#LOGARITHMIC} is kept as an option, with
+ * {@link #GOLDEN_TURNS_PER_EFOLD} available for a true golden spiral, but
+ * choosing it is a stylistic decision and not a correction to anything.
+ *
+ * <p>Motion, for anybody curious enough to work it out on paper: hold r fixed
+ * and advance t and the thing rotates. Hold theta fixed and advance t and the
+ * crest travels <b>outward</b>.
+ *
+ * <p>The wave propagates out while the arm winds round, which is precisely why
+ * it reads as "a wave" right up until you look directly at the core and
+ * realise the whole thing is spinning.
  */
 public final class CoreEmitterPattern implements Pattern {
 
-    /** 71 frames at 20ms. Identical across all four reference pillars. */
+    /** 71 frames at 20ms. Identical across all four reference pillars, which is itself a clue. */
     public static final double REFERENCE_PERIOD_MILLIS = 71 * 20.0;
 
     /** Radial wavelength in key widths: fitted k_r = -0.1595 rad/px at 8px pitch. */
     public static final double REFERENCE_WAVELENGTH_KEYS = 4.924;
 
-    /** Core radius in key widths. Inside this the board is hard black. */
+    /** Core radius in key widths. Inside this the board is hard black, in every frame, always. */
     public static final double REFERENCE_CORE_RADIUS_KEYS = 1.290;
 
     /** Radius in key widths where the field reaches full strength. */

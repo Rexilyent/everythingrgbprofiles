@@ -7,11 +7,16 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * {@code everythingrgbprofiles-common.toml}, section by section.
  *
  * <h2>Why COMMON and not CLIENT</h2>
- * Because a couple of toggles ({@code sculkAlertEnabled}) are read by the
- * optional server-side relay to decide whether listening is worth the
- * bother. Everything SDK- and lighting-related remains strictly client-only in
- * <i>behaviour</i>; it's only the config VALUES that are shared. A server
+ * An earlier version had an optional server-side sculk relay that read a
+ * couple of these toggles ({@code sculkAlertEnabled}) to decide whether
+ * listening was worth the bother, and COMMON was what let it. That relay is
+ * gone — sculk detection reads block state on the client, see
+ * {@code SculkBlockWatcher} — so nothing reads this file server-side any
+ * more. It stays COMMON regardless: all CLIENT would change is that a
+ * dedicated server stops loading a file it already ignores, and a server
  * reading {@code portalDurationMillis} and doing nothing with it is harmless.
+ * Everything SDK- and lighting-related is strictly client-only in
+ * <i>behaviour</i> either way.
  *
  * <h2>Reading this file</h2>
  * Field declarations at the top, all the actual definitions in one static
@@ -71,6 +76,10 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.BooleanValue PROGRESSION_EFFECTS_ENABLED;
     public static final ModConfigSpec.BooleanValue RAIN_THUNDERSTORM_ENABLED;
     public static final ModConfigSpec.BooleanValue TOUGH_AS_NAILS_ENABLED;
+    public static final ModConfigSpec.BooleanValue AETHER_ENABLED;
+    public static final ModConfigSpec.BooleanValue TWILIGHT_FOREST_ENABLED;
+    public static final ModConfigSpec.BooleanValue BUMBLEZONE_ENABLED;
+    public static final ModConfigSpec.BooleanValue UNDERGARDEN_ENABLED;
     public static final ModConfigSpec.BooleanValue PORTAL_TRANSITION_ENABLED;
     public static final ModConfigSpec.BooleanValue RAID_WARNING_ENABLED;
     public static final ModConfigSpec.BooleanValue SCULK_ALERT_ENABLED;
@@ -95,7 +104,8 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.IntValue DEATH_BLOOD_DRIP_COUNT;
     public static final ModConfigSpec.IntValue DEATH_BLOOD_DRIP_INTERVAL_MILLIS;
 
-    // [nightIndicator]
+    // [hardware], then the boss rooms, [enderDragon], [drowning], [burning]
+    // and [nightIndicator], in that order
     public static final ModConfigSpec.ConfigValue<String> LIGHTING_BACKEND;
     public static final ModConfigSpec.ConfigValue<String> OPENRGB_HOST;
     public static final ModConfigSpec.IntValue OPENRGB_PORT;
@@ -164,14 +174,12 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.ConfigValue<String> ADVANCEMENT_COLOR;
 
     // [portalTransition]
-    public static final ModConfigSpec.BooleanValue PORTAL_USE_CUSTOM_JSON;
     public static final ModConfigSpec.BooleanValue PORTAL_FALLBACK_TO_DERIVED_COLOR;
     public static final ModConfigSpec.IntValue PORTAL_DURATION_MILLIS;
     public static final ModConfigSpec.DoubleValue PORTAL_HOLD_FRACTION;
     public static final ModConfigSpec.BooleanValue PORTAL_HOLD_UNTIL_WORLD_READY;
     public static final ModConfigSpec.IntValue PORTAL_POST_ARRIVAL_HOLD_MILLIS;
     public static final ModConfigSpec.IntValue PORTAL_MAX_DURATION_MILLIS;
-    public static final ModConfigSpec.DoubleValue PORTAL_SPIRAL_ROTATIONS;
 
     // [raidWarning]
     public static final ModConfigSpec.ConfigValue<String> RAID_COLOR;
@@ -198,23 +206,20 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.IntValue SLEEP_WAKE_DURATION_MILLIS;
 
     // [biomeColors]
-    public static final ModConfigSpec.BooleanValue BIOME_USE_CUSTOM_JSON;
     public static final ModConfigSpec.BooleanValue BIOME_FALLBACK_TO_DERIVED_COLOR;
 
     // [bossEvents]
-    public static final ModConfigSpec.BooleanValue BOSS_USE_CUSTOM_JSON;
     public static final ModConfigSpec.BooleanValue BOSS_FALLBACK_TO_BOSSBAR_COLOR;
     public static final ModConfigSpec.BooleanValue BOSS_ENRAGE_INTENSITY_SCALING;
-    public static final ModConfigSpec.BooleanValue BOSS_LEGENDARY_MONSTERS_INTEGRATION;
     public static final ModConfigSpec.BooleanValue BOSS_PROXIMITY_ENABLED;
     public static final ModConfigSpec.BooleanValue BOSS_USE_BOSSES_TAG;
     public static final ModConfigSpec.IntValue BOSS_DETECTION_RADIUS;
-    public static final ModConfigSpec.DoubleValue BOSS_MIN_MAX_HEALTH;
     public static final ModConfigSpec.IntValue BOSS_GRACE_MILLIS;
     public static final ModConfigSpec.ConfigValue<String> BOSS_EXCLUDED;
 
     // [rainThunderstorm]
     public static final ModConfigSpec.ConfigValue<String> RAIN_COLOR;
+    public static final ModConfigSpec.ConfigValue<String> SNOW_COLOR;
     public static final ModConfigSpec.IntValue RAIN_PARTICLE_COUNT;
     public static final ModConfigSpec.IntValue RAIN_PARTICLE_LIFESPAN_MILLIS;
     public static final ModConfigSpec.DoubleValue RAIN_LAYER_OPACITY;
@@ -232,10 +237,6 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.ConfigValue<String> TEMPERATURE_FLASH_KEY;
     public static final ModConfigSpec.ConfigValue<String> OVERHEATING_COLOR;
     public static final ModConfigSpec.ConfigValue<String> FREEZING_COLOR;
-
-    // [toughAsNails.seasonalTint]
-    public static final ModConfigSpec.BooleanValue SEASONAL_TINT_ENABLED;
-    public static final ModConfigSpec.DoubleValue SEASONAL_TINT_INTENSITY;
 
     // [wardenEncounter]
     public static final ModConfigSpec.IntValue WARDEN_DETECTION_RADIUS;
@@ -288,42 +289,157 @@ public final class RGBProfileConfig {
         GENERAL_ENABLED = b.comment("Master kill switch for the whole mod.").define("enabled", true);
         b.pop();
 
-        // Per-feature switches. All default true: someone who installs a
-        // reactive-lighting mod wants the reactive lighting. These exist so a
-        // specific effect that clashes with someone's setup can be turned off
-        // without losing the rest.
+        // Per-feature switches. All default true, because somebody who installs
+        // a reactive-lighting mod presumably wants the reactive lighting. They
+        // exist so that one specific effect which clashes with someone's setup
+        // can be switched off without losing everything else with it.
         b.push("features");
-        HEALTH_FLASH_ENABLED = b.define("healthFlashEnabled", true);
-        NIGHT_INDICATOR_ENABLED = b.define("nightIndicatorEnabled", true);
-        BIOME_COLORS_ENABLED = b.define("biomeColorsEnabled", true);
-        BOSS_EVENTS_ENABLED = b.define("bossEventsEnabled", true);
-        HUNGER_WARNING_ENABLED = b.define("hungerWarningEnabled", true);
-        DEATH_FLASH_ENABLED = b.define("deathFlashEnabled", true);
-        PROGRESSION_EFFECTS_ENABLED = b.define("progressionEffectsEnabled", true);
-        RAIN_THUNDERSTORM_ENABLED = b.define("rainThunderstormEnabled", true);
+        HEALTH_FLASH_ENABLED = b.comment(
+                        "Pulse a key red when your health drops below healthFlash.thresholdPercent.")
+                .define("healthFlashEnabled", true);
+        NIGHT_INDICATOR_ENABLED = b.comment(
+                        "Track the sun and moon across the board so you can tell how much daylight is",
+                        "left without opening anything. Draws over the biome colour rather than",
+                        "replacing it.")
+                .define("nightIndicatorEnabled", true);
+        BIOME_COLORS_ENABLED = b.comment(
+                        "Colour the board to match the biome you are standing in. This is the base",
+                        "layer almost everything else draws on top of, so turning it off leaves the",
+                        "board dark whenever nothing more urgent is happening.")
+                .define("biomeColorsEnabled", true);
+        BOSS_EVENTS_ENABLED = b.comment(
+                        "Master switch for boss lighting, including the generic boss pulse that",
+                        "covers modded bosses. The dedicated boss animations (Wither, Ender Dragon,",
+                        "Elder Guardian and friends) have their own switches in their own sections.")
+                .define("bossEventsEnabled", true);
+        HUNGER_WARNING_ENABLED = b.comment(
+                        "Pulse a key when your food bar drops below hungerWarning.thresholdPercent.")
+                .define("hungerWarningEnabled", true);
+        DEATH_FLASH_ENABLED = b.comment(
+                        "Light the board when you die. The flash itself is the whole of it unless",
+                        "deathFlash.bloodDripEnabled is also on, which holds the board until you",
+                        "respawn.")
+                .define("deathFlashEnabled", true);
+        PROGRESSION_EFFECTS_ENABLED = b.comment(
+                        "Master switch for level-ups and advancements. Both have their own switches",
+                        "under [progressionEffects]; this turns off the pair of them at once.")
+                .define("progressionEffectsEnabled", true);
+        RAIN_THUNDERSTORM_ENABLED = b.comment(
+                        "Rain running down the board while you are out in the weather (snow instead, in",
+                        "biomes where it snows), and a flash on thunder. Shelter is detected from sky",
+                        "access, so standing under trees counts; see rainThunderstorm.shelterGraceMillis.")
+                .define("rainThunderstormEnabled", true);
         TOUGH_AS_NAILS_ENABLED = b.comment(Feature.TOUGH_AS_NAILS.configComment(
                         "Master switch for the Tough As Nails thirst/temperature effects; no-op if that mod isn't installed."))
                 .define("toughAsNailsEnabled", true);
-        PORTAL_TRANSITION_ENABLED = b.define("portalTransitionEnabled", true);
-        RAID_WARNING_ENABLED = b.define("raidWarningEnabled", true);
-        SCULK_ALERT_ENABLED = b.define("sculkAlertEnabled", true);
-        SLEEP_WAKE_ENABLED = b.define("sleepWakeEnabled", true);
-        WARDEN_ENCOUNTER_ENABLED = b.define("wardenEncounterEnabled", true);
+
+        // One switch per dimension mod with dedicated support, each covering
+        // everything this mod does for it -- the portal effect for its
+        // dimensions and any boss rooms it has -- so a pack that does not want
+        // a mod's lighting turns it off in one place instead of hunting down
+        // four sections. The switches are read through Feature, which is where
+        // the dimension-namespace mapping lives.
+        //
+        // There is no vanilla equivalent on purpose. The Overworld, the Nether
+        // and the End follow portalTransitionEnabled and nothing else.
+        AETHER_ENABLED = b.comment(
+                        "Master switch for everything this mod does for the Aether: the portal effect on",
+                        "the way in and out, and the Slider, Sun Spirit and Valkyrie Queen boss rooms.",
+                        "",
+                        "Off means the Aether is treated as a dimension this mod has never heard of. Its",
+                        "portal lights nothing -- not even a generic derived colour, because with a portal",
+                        "there is no lesser version to fall back TO, the effect is the whole feature. Its",
+                        "bosses do keep the generic boss pulse, which comes from the 'c:bosses' tag",
+                        "rather than from here, and only lose their dedicated rooms.",
+                        "",
+                        "The Overworld portal you walk into to GET to the Aether is vanilla and is not",
+                        "gated, so with this off the trip in still lights the board on the way out and",
+                        "then stops on arrival. Coming home, the Aether side lights nothing and the",
+                        "Overworld arrival plays normally.",
+                        "",
+                        "No-op if the Aether isn't installed.")
+                .define("aetherEnabled", true);
+        TWILIGHT_FOREST_ENABLED = b.comment(
+                        "Master switch for everything this mod does for Twilight Forest: the portal effect",
+                        "on the way in and out, and the Naga's serpent animation. Its other eight bosses",
+                        "are covered by the 'c:bosses' tag and keep the generic pulse either way.",
+                        "See aetherEnabled for what 'off' means in full. No-op if the mod isn't installed.")
+                .define("twilightForestEnabled", true);
+        BUMBLEZONE_ENABLED = b.comment(
+                        "Master switch for everything this mod does for the Bumblezone, which is currently",
+                        "its portal effect -- the ring-shaped field it gets in place of the usual spiral,",
+                        "and the dwell that fires off its teleport screen rather than a portal block, since",
+                        "it is entered by throwing an ender pearl at a beehive (or using certain items on",
+                        "one), with no portal block anywhere.",
+                        "See aetherEnabled for what 'off' means in full. No-op if the mod isn't installed.")
+                .define("bumblezoneEnabled", true);
+        UNDERGARDEN_ENABLED = b.comment(
+                        "Master switch for everything this mod does for the Undergarden, which is currently",
+                        "its portal effect.",
+                        "See aetherEnabled for what 'off' means in full. No-op if the mod isn't installed.")
+                .define("undergardenEnabled", true);
+
+        PORTAL_TRANSITION_ENABLED = b.comment(
+                        "Master switch for the whole portal sequence: the spiral that builds while you",
+                        "stand in a portal, and the arrival in the new dimension. Everything under",
+                        "[portalTransition] is dead without this, including chargeUpEnabled.")
+                .define("portalTransitionEnabled", true);
+        RAID_WARNING_ENABLED = b.comment(
+                        "Light the board during a village raid: the Raid Omen counting down, the horde",
+                        "marching across the bottom rows, and fireworks or a defeat if you win or lose.")
+                .define("raidWarningEnabled", true);
+        SCULK_ALERT_ENABLED = b.comment(
+                        "Master switch for sculk sensors and shriekers. Each has its own switch under",
+                        "[sculkAlert]; this turns off both and stops the block scan entirely, so it is",
+                        "also the setting to use if you want the cost back rather than just the light.")
+                .define("sculkAlertEnabled", true);
+        SLEEP_WAKE_ENABLED = b.comment(
+                        "Fade the board out when you get into a bed and back in when you get up.")
+                .define("sleepWakeEnabled", true);
+        WARDEN_ENCOUNTER_ENABLED = b.comment(
+                        "Light the board while a Warden is near you, including the moment one digs its",
+                        "way out of the floor. Separate from the sculk switches above: this is about",
+                        "the Warden itself rather than the blocks that summon it.")
+                .define("wardenEncounterEnabled", true);
         b.pop();
 
         b.push("healthFlash");
-        HEALTH_THRESHOLD_PERCENT = b.defineInRange("thresholdPercent", 25, 1, 99);
-        HEALTH_FLASH_KEY = b.define("flashKey", "H");
+        HEALTH_THRESHOLD_PERCENT = b.comment(
+                        "Health percentage below which the warning starts. 25 is five health points, or",
+                        "two and a half hearts out of ten, which is about where the game starts being",
+                        "genuinely dangerous.")
+                .defineInRange("thresholdPercent", 25, 1, 99);
+        HEALTH_FLASH_KEY = b.comment(
+                        "Which key carries the warning, by its printed label.",
+                        "",
+                        "If the label is not on your keyboard the effect lights the WHOLE board instead",
+                        "and says so in the log, which is deliberate: a typo that silently lit one",
+                        "unrelated key would be far harder to notice. Note that Logitech G HUB and",
+                        "SteelSeries GG do not report where keys are, so on those this always falls",
+                        "back to the whole board no matter what you put here.")
+                .define("flashKey", "H");
         b.pop();
 
         b.push("hungerWarning");
-        HUNGER_THRESHOLD_PERCENT = b.defineInRange("thresholdPercent", 30, 1, 99);
-        HUNGER_COLOR = b.define("color", "#FFA500");
-        HUNGER_FLASH_KEY = b.define("flashKey", "F");
+        HUNGER_THRESHOLD_PERCENT = b.comment(
+                        "Food percentage below which the warning starts. 30 is 6 food points out of 20,",
+                        "and at 6 or less you can no longer sprint, so with the default the warning comes",
+                        "on one point after sprinting stops. (Natural healing needs 18 or more, so that",
+                        "has stopped long before either.)")
+                .defineInRange("thresholdPercent", 30, 1, 99);
+        HUNGER_COLOR = b.comment("The warning colour. Amber, kept clear of the health red on purpose.")
+                .define("color", "#FFA500");
+        HUNGER_FLASH_KEY = b.comment(
+                        "Which key carries the warning. Same rules as healthFlash.flashKey: an unknown",
+                        "label falls back to the whole board and logs why.")
+                .define("flashKey", "F");
         b.pop();
 
         b.push("deathFlash");
-        DEATH_FLASH_DURATION_MILLIS = b.defineInRange("durationMillis", 800, 50, 10000);
+        DEATH_FLASH_DURATION_MILLIS = b.comment(
+                        "How long the whole-board flash at the moment of death lasts. If bloodDripEnabled",
+                        "is on, the drips take over when this finishes and hold until you respawn.")
+                .defineInRange("durationMillis", 800, 50, 10000);
         DEATH_FLASH_COLOR = b.comment("The momentary whole-board flash at the moment of death.")
                 .define("flashColor", "#FF1A1A");
         DEATH_BLOOD_ENABLED = b.comment(
@@ -384,7 +500,8 @@ public final class RGBProfileConfig {
         NAGA_ENABLED = b.comment(Feature.NAGA.configComment(
                         "Twilight Forest's Naga gets a serpent drawn on the keys instead of a generic "
                                 + "boss pulse, and it sheds body segments as you damage it — the same "
-                                + "way the real one does. Costs nothing when Twilight Forest is absent."))
+                                + "way the real one does. Costs nothing when Twilight Forest is absent. "
+                                + "Off whatever this says if twilightForestEnabled in [features] is off."))
                 .define("enabled", true);
         NAGA_SCALE_COLOR = b.comment("The body.").define("scaleColor", "#2F8F3A");
         NAGA_HIGHLIGHT_COLOR = b.comment("The head, so you can tell which end is coming at you.")
@@ -409,7 +526,8 @@ public final class RGBProfileConfig {
                         "The Aether's Slider gets its room drawn on the keys instead of a generic boss "
                                 + "pulse: the board is the boss room seen from above with north at the "
                                 + "top, the cube slides and slams where the real one does, and a gold "
-                                + "dot marks where you are standing. Costs nothing when the Aether is absent."))
+                                + "dot marks where you are standing. Costs nothing when the Aether is absent. "
+                                + "Off whatever this says if aetherEnabled in [features] is off."))
                 .define("enabled", true);
         SLIDER_STONE_COLOR = b.comment("The cube, the dust it throws up, and the dungeon floor.")
                 .define("stoneColor", "#6F7B8C");
@@ -438,7 +556,8 @@ public final class RGBProfileConfig {
                                 + "the spirit is a burning sun where the real one flies, and the fire on the "
                                 + "floor and the crystals it throws are drawn where they really are. When "
                                 + "an ice crystal freezes it, it turns blue and a ring counts down the time "
-                                + "you have to hit it. Costs nothing when the Aether is absent."))
+                                + "you have to hit it. Costs nothing when the Aether is absent. "
+                                + "Off whatever this says if aetherEnabled in [features] is off."))
                 .define("enabled", true);
         SUN_SPIRIT_SUN_COLOR = b.comment("The spirit's body.").define("sunColor", "#FFA012");
         SUN_SPIRIT_FLAME_COLOR = b.comment("Its corona, the fire on the floor, the fire crystals, and the room's glow.")
@@ -465,7 +584,8 @@ public final class RGBProfileConfig {
                                 + "with her wings folded, open or swept into a lunge. Her teleports, the "
                                 + "thunder crystals she throws and the lightning they become are drawn where "
                                 + "they happen, and each crystal's crackle speeds up as its fuse runs out. "
-                                + "Costs nothing when the Aether is absent."))
+                                + "Costs nothing when the Aether is absent. Off whatever this says if "
+                                + "aetherEnabled in [features] is off."))
                 .define("enabled", true);
         VALKYRIE_QUEEN_SILVER_COLOR = b.comment("Her body and wings, and the puff she leaves when she teleports.")
                 .define("silverColor", "#B8C4FF");
@@ -519,10 +639,12 @@ public final class RGBProfileConfig {
                                 + "aware, not just health), and the death sequence.")
                 .define("enabled", true);
         END_RITUAL_ENABLED = b.comment(
-                        "Show the summoning ritual as rays converging on the middle of the board, one "
-                                + "per end crystal currently firing a beam. Works for vanilla's "
-                                + "four-crystal respawn and for YUNG's Better End Island's staged "
-                                + "pillar ritual alike, because both are made of the same beams.")
+                        "Show YUNG's Better End Island's staged pillar ritual as rays converging on the "
+                                + "middle of the board: one ray per tower once its crystal lights, plus a "
+                                + "sweeping ray following whichever tower is being activated. Only with that "
+                                + "mod installed. Vanilla's own respawn is deliberately left dark, because "
+                                + "in a vanilla End the crystals are the dragon's healing and should only "
+                                + "ever mean that.")
                 .define("ritualEnabled", true);
         END_VOID_COLOR = b.comment("Resting colour for the whole End sequence.")
                 .define("voidColor", "#5B2C8F");
@@ -587,22 +709,43 @@ public final class RGBProfileConfig {
                         "Health, hunger and drowning warnings are unaffected — a boss fight is exactly "
                                 + "when you want those.")
                 .define("standDownForEncounters", true);
-        NIGHT_INDICATOR_COLOR = b.define("color", "#C8D6FF");
+        NIGHT_INDICATOR_COLOR = b.comment(
+                        "Moonlight. Pale blue-white, and deliberately cool so it reads as night against",
+                        "whatever the biome layer is doing underneath it.")
+                .define("color", "#C8D6FF");
         b.pop();
 
         b.push("progressionEffects");
-        LEVEL_UP_ENABLED = b.define("levelUpEnabled", true);
-        ADVANCEMENT_ENABLED = b.define("advancementEnabled", true);
+        LEVEL_UP_ENABLED = b.comment(
+                        "Flash on gaining an experience level. Also needs features.progressionEffectsEnabled.")
+                .define("levelUpEnabled", true);
+        ADVANCEMENT_ENABLED = b.comment(
+                        "Flash when an advancement toast appears. Also needs",
+                        "features.progressionEffectsEnabled. Fires for every advancement the game shows",
+                        "you a toast for, which in a large pack is more often than you might expect.")
+                .define("advancementEnabled", true);
         LEVEL_UP_COLOR = b.comment("The level-up burst: the gold wave and the sparkles.")
                 .define("levelUpColor", "#FFD700");
         LEVEL_UP_BAR_COLOR = b.comment("The experience bar that fills along the bottom of the board before it bursts.")
                 .define("levelUpBarColor", "#80FF20");
-        ADVANCEMENT_COLOR = b.define("advancementColor", "#00E5FF");
+        ADVANCEMENT_COLOR = b.comment(
+                        "The advancement flash colour. Nudged off pure cyan so it cannot be confused",
+                        "with the sculk sensor ping, which is a very different kind of news.")
+                .define("advancementColor", "#00E5FF");
         b.pop();
 
         b.push("portalTransition");
-        PORTAL_USE_CUSTOM_JSON = b.define("useCustomJsonProfiles", true);
-        PORTAL_FALLBACK_TO_DERIVED_COLOR = b.define("fallbackToDerivedColor", true);
+        PORTAL_FALLBACK_TO_DERIVED_COLOR = b.comment(
+                        "What to do about a dimension with no entry in dimension_profiles.json.",
+                        "",
+                        "On, it invents a stable colour from the dimension's id, so an obscure modded",
+                        "dimension still gets a consistent identity of its own instead of nothing. The",
+                        "same id always produces the same colour, on every machine, forever.",
+                        "",
+                        "Off makes almost no difference: an unlisted dimension still gets the full portal",
+                        "effect, in that same invented colour, when you arrive. The one change is the",
+                        "charge-up while you stand in the portal, which uses a fixed purple instead.")
+                .define("fallbackToDerivedColor", true);
         // One full rotation of the fitted portal field is 1420ms. The arrival
         // no longer contains a flash of any kind: it holds the spinning field
         // and then crossfades down into the biome layer. With
@@ -683,7 +826,6 @@ public final class RGBProfileConfig {
                         "actually changes. The gap between the two tells you whether the effect is firing late",
                         "or firing on time and being drawn over.")
                 .define("debugLogging", false);
-        PORTAL_SPIRAL_ROTATIONS = b.defineInRange("spiralRotations", 1.75, 0.25, 10.0);
         b.pop();
 
         b.push("debug");
@@ -725,24 +867,48 @@ public final class RGBProfileConfig {
         b.pop();
 
         b.push("sculkAlert");
-        SCULK_SENSOR_ENABLED = b.define("sensorEnabled", true);
-        SCULK_SHRIEKER_ENABLED = b.define("shriekerEnabled", true);
-        SCULK_SENSOR_COLOR = b.define("sensorColor", "#4FC3C3");
-        SCULK_SENSOR_DURATION_MILLIS = b.defineInRange("sensorDurationMillis", 700, 50, 10000);
-        SCULK_SENSOR_RING_THICKNESS_KEYS = b.defineInRange("sensorRingThicknessKeys", 1.0, 0.25, 5.0);
-        SCULK_SHRIEKER_COLOR = b.define("shriekerColor", "#1F8C7A");
+        SCULK_SENSOR_ENABLED = b.comment(
+                        "Ring on the board when a nearby sculk sensor picks something up. Sensors in a",
+                        "Deep Dark fire constantly, so this is the noisier half of the pair.")
+                .define("sensorEnabled", true);
+        SCULK_SHRIEKER_ENABLED = b.comment(
+                        "Ring on the board when a nearby shrieker actually shrieks. This is the half",
+                        "worth keeping if you only want one, since shrieks are what summon the Warden.")
+                .define("shriekerEnabled", true);
+        SCULK_SENSOR_COLOR = b.comment("The sensor ring. Part of the sculk family, so it stays in the teals.")
+                .define("sensorColor", "#4FC3C3");
+        SCULK_SENSOR_DURATION_MILLIS = b.comment("How long a sensor ring takes to expand and fade.")
+                .defineInRange("sensorDurationMillis", 700, 50, 10000);
+        SCULK_SENSOR_RING_THICKNESS_KEYS = b.comment(
+                        "How thick the expanding ring is, in rough key widths. The key width here is",
+                        "estimated from the board's overall size, so it is about right on a full-size",
+                        "board and comes out chunkier on smaller ones.")
+                .defineInRange("sensorRingThicknessKeys", 1.0, 0.25, 5.0);
+        SCULK_SHRIEKER_COLOR = b.comment(
+                        "The shrieker ring at its calmest, i.e. the first shriek. It climbs from here",
+                        "toward shriekerPeakColor as shrieks accumulate.")
+                .define("shriekerColor", "#1F8C7A");
         SCULK_SHRIEKER_PEAK_COLOR = b.comment(
                         "Colour at maximum escalation. Wants to be BRIGHTER than shriekerColor, not "
                                 + "darker — the ramp used to end near black, so the more shrieks you "
                                 + "set off the less you could see the warning.")
                 .define("shriekerPeakColor", "#5FF5DC");
-        SCULK_SHRIEKER_DURATION_MILLIS = b.defineInRange("shriekerDurationMillis", 900, 50, 10000);
-        SCULK_SHRIEKER_RING_THICKNESS_KEYS = b.defineInRange("shriekerRingThicknessKeys", 1.0, 0.25, 5.0);
-        SCULK_SHRIEKER_MAX_ESCALATION_LEVEL = b.defineInRange("shriekerMaxEscalationLevel", 3, 0, 10);
+        SCULK_SHRIEKER_DURATION_MILLIS = b.comment("How long a shrieker ring takes to expand and fade.")
+                .defineInRange("shriekerDurationMillis", 900, 50, 10000);
+        SCULK_SHRIEKER_RING_THICKNESS_KEYS = b.comment("Ring thickness in key widths, as above.")
+                .defineInRange("shriekerRingThicknessKeys", 1.0, 0.25, 5.0);
+        SCULK_SHRIEKER_MAX_ESCALATION_LEVEL = b.comment(
+                        "How many repeat shrieks it takes to reach full intensity. The first shriek is",
+                        "level 0, so the default of 3 reaches full intensity on the fourth shriek in a",
+                        "row, which is also the one where vanilla summons a Warden. Set 0 for no",
+                        "escalation at all and every shriek looking identical.")
+                .defineInRange("shriekerMaxEscalationLevel", 3, 0, 10);
         SCULK_SHRIEKER_ESCALATION_WINDOW_MILLIS = b.comment(
-                        "Gap within which a repeat shriek escalates rather than resetting. " +
-                        "Placeholder default — not verified against vanilla's real " +
-                        "shriek-accumulation window yet.")
+                        "Gap within which a repeat shriek escalates rather than resetting. Much " +
+                        "shorter than the game's own memory: vanilla only drops " +
+                        "its warning level after 10 minutes without a shriek, and ignores shrieks " +
+                        "within 10 seconds of the last one it counted, so the board can reset " +
+                        "while the game is still counting toward a Warden.")
                 .defineInRange("shriekerEscalationWindowMillis", 20000, 1000, 120000);
         SCULK_DETECTION_RADIUS = b.comment(
                         "How far to watch for sensors and shriekers firing. Cost scales with the "
@@ -750,49 +916,64 @@ public final class RGBProfileConfig {
                                 + "with the radius cubed — see SculkBlockWatcher.")
                 .defineInRange("detectionRadius", 16, 1, 128);
         SCULK_SCAN_INTERVAL_TICKS = b.comment(
-                        "Ticks between activation scans. A sensor stays ACTIVE for 40 ticks and a "
-                                + "shrieker shrieks for 90, so anything up to about 30 catches every "
-                                + "event; lower it only if you want tighter timing.")
+                        "Ticks between activation scans. A sculk sensor stays ACTIVE for 30 ticks, a "
+                                + "calibrated one for only 10, and a shrieker shrieks for 90. So 10 or less "
+                                + "catches every event; above 10 starts missing calibrated sensors, and above "
+                                + "30 starts missing ordinary ones.")
                 .defineInRange("scanIntervalTicks", 5, 1, 40);
         b.pop();
 
         b.push("sleepWake");
-        SLEEP_WAKE_COLOR = b.define("color", "#3355AA");
-        SLEEP_WAKE_DURATION_MILLIS = b.defineInRange("durationMillis", 1000, 50, 10000);
+        SLEEP_WAKE_COLOR = b.comment("The colour the board fades through on the way into and out of a bed.")
+                .define("color", "#3355AA");
+        SLEEP_WAKE_DURATION_MILLIS = b.comment(
+                        "How long each fade takes. The same number covers both directions: out when you",
+                        "lie down, in when you get up.")
+                .defineInRange("durationMillis", 1000, 50, 10000);
         b.pop();
 
         b.push("biomeColors");
-        BIOME_USE_CUSTOM_JSON = b.define("useCustomJsonProfiles", true);
-        BIOME_FALLBACK_TO_DERIVED_COLOR = b.define("fallbackToDerivedColor", true);
+        BIOME_FALLBACK_TO_DERIVED_COLOR = b.comment(
+                        "What to do about a biome with no entry in biome_profiles.json.",
+                        "",
+                        "On, it invents a colour from the biome's own grass and water colours, which is",
+                        "what stops a 600-mod pack from being mostly grey. The same biome is always the",
+                        "same colour.",
+                        "",
+                        "Off currently makes no difference: an unlisted biome still gets that invented",
+                        "colour. A mod-wide wildcard entry such as \"somemod:*\" in the JSON is checked",
+                        "BEFORE any of this, so one line there sets the colour for everything a mod adds.")
+                .define("fallbackToDerivedColor", true);
         b.pop();
 
         b.push("bossEvents");
-        BOSS_USE_CUSTOM_JSON = b.define("useCustomJsonProfiles", true);
-        BOSS_FALLBACK_TO_BOSSBAR_COLOR = b.define("fallbackToBossBarColor", true);
-        BOSS_ENRAGE_INTENSITY_SCALING = b.define("enrageIntensityScaling", true);
-        BOSS_LEGENDARY_MONSTERS_INTEGRATION = b.define("legendaryMonstersIntegration", true);
+        BOSS_FALLBACK_TO_BOSSBAR_COLOR = b.comment(
+                        "Despite the name, this does not read boss bars and currently changes nothing.",
+                        "A boss with no entry in boss_profiles.json (and no mod-wide wildcard) gets a",
+                        "stable colour invented from its entity id whether this is on or off.")
+                .define("fallbackToBossBarColor", true);
+        BOSS_ENRAGE_INTENSITY_SCALING = b.comment(
+                        "Let the pulse get faster and harder as a boss loses health, rather than",
+                        "pulsing at one steady rate for the whole fight. Only does anything for bosses",
+                        "whose profile sets enrageThresholdPercent.")
+                .define("enrageIntensityScaling", true);
         BOSS_PROXIMITY_ENABLED = b.comment(
-                        "Detect bosses by standing near them rather than by their boss bar. Needed for "
-                                + "every boss that is a boss the way the Warden is one — dangerous, "
-                                + "encounter-defining, and with no bar above the screen. Several "
-                                + "Legendary Monsters mobs are exactly this.")
+                        "Detect bosses by looking for them near you. This is the only way the generic "
+                                + "boss pulse finds anything (nothing reads boss bars), so turning it off "
+                                + "turns the generic boss pulse off entirely; the dedicated boss rooms "
+                                + "are unaffected. It catches the bosses that are bosses the way the Warden "
+                                + "is one, with no bar above the screen, which several Legendary Monsters "
+                                + "mobs are.")
                 .define("proximityDetectionEnabled", true);
         BOSS_USE_BOSSES_TAG = b.comment(
-                        "Treat anything in the 'c:bosses' convention tag as a boss, skipping the health "
-                                + "test. This is the mod author's own declaration of what a boss is, so "
-                                + "it beats any heuristic we could invent. Eleven mods in the Forge "
-                                + "Everything pack populate it, Legendary Monsters included.")
+                        "Treat anything in the 'c:bosses' convention tag as a boss. This is the mod "
+                                + "author's own declaration of what a boss is, and eleven mods in the "
+                                + "Forge Everything pack populate it, Legendary Monsters included. The "
+                                + "only other way something counts as a boss is an exact entry for its "
+                                + "id in boss_profiles.json, which is how to add one that isn't tagged.")
                 .define("useBossesTag", true);
         BOSS_DETECTION_RADIUS = b.comment("Blocks. Generous, because bosses are large and fight at range.")
                 .defineInRange("proximityDetectionRadius", 48, 4, 128);
-        BOSS_MIN_MAX_HEALTH = b.comment(
-                        "Max health a mob needs before proximity counts it as a boss. This is the "
-                                + "mod-agnostic half: 150 clears the Wither (300), Ender Dragon (200) "
-                                + "and Warden (500) while leaving Ravagers and Iron Golems (100 each) "
-                                + "alone. A mob with its own hand-written entry in boss_profiles.json "
-                                + "skips this test entirely — an Elder Guardian is a boss at 80 health "
-                                + "because somebody said so in the file.")
-                .defineInRange("proximityMinMaxHealth", 150.0, 1.0, 10000.0);
         BOSS_GRACE_MILLIS = b.comment(
                         "How long the encounter lighting survives the boss leaving range, so a dragon "
                                 + "circling out and back does not restart the effect each pass.")
@@ -802,17 +983,16 @@ public final class RGBProfileConfig {
                                 + "entity ids ('minecraft:warden') and mod-wide wildcards "
                                 + "('mutantmonsters:*'). Checked before everything else, so it "
                                 + "overrides the c:bosses tag and a hand-written profile alike.",
-                        "Defaults explained: the Warden has its own dedicated presence layer that "
-                                + "outranks the boss layer anyway. Mutant Monsters is excluded wholesale "
-                                + "because its mutants carry boss-sized health pools while being "
-                                + "ordinary roaming mobs — exactly the case a health threshold gets "
-                                + "wrong, and it declares no c:bosses tag to correct it.",
-                        "Ice and Fire's fire, ice and lightning dragons are the same case: no c:bosses "
-                                + "tag, health that grows past the threshold as they age, and whole "
-                                + "regions where several roam at once. Each one nearby took the board "
-                                + "for a pulse of its own, which buried the biome, weather and time of "
-                                + "day under a mess of colours. Only the dragons are listed, not "
-                                + "'iceandfire:*', so the mod's other large creatures still count.")
+                        "Defaults explained: the Warden, the Ender Dragon and the Wither have dedicated "
+                                + "layers of their own that outrank the generic one anyway. So does the Naga, "
+                                + "but its layer is held back in release builds, which with this exclusion "
+                                + "currently leaves a release build drawing nothing for the Naga at all.",
+                        "Mutant Monsters and Ice and Fire's three dragons are left over from when any "
+                                + "mob with a big enough health pool counted as a boss, which those roaming "
+                                + "mobs kept tripping. Detection now only counts the c:bosses tag and exact "
+                                + "profile entries, and neither mod tags those mobs, so these two entries do "
+                                + "nothing today. They stay so that a future update tagging them doesn't "
+                                + "bring the problem back.")
                 .define("proximityExcluded",
                         "minecraft:warden, minecraft:ender_dragon, minecraft:wither, "
                                 + "twilightforest:naga, mutantmonsters:*, "
@@ -822,11 +1002,17 @@ public final class RGBProfileConfig {
         b.push("rainThunderstorm");
         RAIN_COLOR = b.comment("Pale blue-grey. Wants to stay brighter than the biome colours it falls over.")
                 .define("rainColor", "#AECDE8");
+        SNOW_COLOR = b.comment(
+                        "Snowfall, which replaces the rain in biomes cold enough to snow. Tinted blue on",
+                        "purpose: pure white on an LED reads as a stuck key rather than as snow. Shares",
+                        "rainOpacity, requireSkyExposure and shelterGraceMillis with the rain.")
+                .define("snowColor", "#CFE9FF");
         RAIN_PARTICLE_COUNT = b.comment("Drops in flight. Some are off-board at any moment, so on-board density is lower than this.")
                 .defineInRange("rainParticleCount", 12, 1, 64);
         RAIN_PARTICLE_LIFESPAN_MILLIS = b.comment(
-                        "Must exceed the time a slow drop needs to cross the board (~2900ms) or drops "
-                                + "die partway down and the bottom rows stay dry.")
+                        "Wants to be close to the ~2900ms the slowest drop needs to cross the whole board. "
+                                + "Much shorter and drops die partway down and the bottom rows stay dry; the "
+                                + "default of 2800 gets even the slowest drops down to the bottom row.")
                 .defineInRange("rainParticleLifespanMillis", 2800, 100, 10000);
         RAIN_LAYER_OPACITY = b.comment(
                         "How much of the biome underneath survives a drop. 1.0 replaces the key "
@@ -844,27 +1030,61 @@ public final class RGBProfileConfig {
                                 + "the overlay snaps off and on as you walk under trees, since leaves "
                                 + "block sky just as effectively as stone does.")
                 .defineInRange("shelterGraceMillis", 4000, 0, 60000);
-        LIGHTNING_COLOR = b.define("lightningColor", "#F0F5FF");
-        LIGHTNING_FLASH_DURATION_MILLIS = b.defineInRange("lightningFlashDurationMillis", 400, 50, 5000);
-        LIGHTNING_DETECTION_RADIUS = b.defineInRange("lightningDetectionRadius", 64, 1, 256);
-        LIGHTNING_FALLBACK_INTERVAL_MILLIS = b.defineInRange("lightningFallbackIntervalMillis", 8000, 500, 60000);
+        LIGHTNING_COLOR = b.comment("The thunder flash. Near-white with a blue cast, like the real thing.")
+                .define("lightningColor", "#F0F5FF");
+        LIGHTNING_FLASH_DURATION_MILLIS = b.comment("How long each thunder flash lasts.")
+                .defineInRange("lightningFlashDurationMillis", 400, 50, 5000);
+        LIGHTNING_DETECTION_RADIUS = b.comment(
+                        "NOT WIRED UP YET. Nothing reads this value, so changing it does nothing.",
+                        "",
+                        "It is meant for the better version of the thunder flash: watching for actual",
+                        "lightning bolt entities appearing within this many blocks, rather than the",
+                        "fixed timer described below. That needs confirming in a running client",
+                        "first, so the setting is kept here rather than added later, so your config",
+                        "carries over unchanged to the version where it starts working.")
+                .defineInRange("lightningDetectionRadius", 64, 1, 256);
+        LIGHTNING_FALLBACK_INTERVAL_MILLIS = b.comment(
+                        "How often a flash fires during a thunderstorm: once every this many",
+                        "milliseconds, for as long as it is thundering.",
+                        "",
+                        "This is a fixed timer rather than a response to real bolts, and it is a compromise:",
+                        "the flash is roughly in step with the storm rather than exactly in step with",
+                        "the strike you just heard. Raise it for a calmer storm, lower it for a busier",
+                        "one. See lightningDetectionRadius for the version that fixes this properly.")
+                .defineInRange("lightningFallbackIntervalMillis", 8000, 500, 60000);
         b.pop();
 
+        // Everything in this section is dormant, and not because of anything you
+        // did. The Tough As Nails integration is a placeholder that never returns
+        // a reading, so none of these values reach the board yet. They are kept
+        // so your settings survive to the version where it works. See
+        // ToughAsNailsCompat for what finishing it involves.
         b.push("toughAsNails");
-        THIRST_THRESHOLD_PERCENT = b.defineInRange("thirstThresholdPercent", 30, 1, 99);
-        THIRST_COLOR = b.define("thirstColor", "#3FBFD4");
-        THIRST_FLASH_KEY = b.define("thirstFlashKey", "T");
-        TEMPERATURE_FLASH_KEY = b.define("temperatureFlashKey", "K");
-        OVERHEATING_COLOR = b.define("overheatingColor", "#FF6B35");
-        FREEZING_COLOR = b.define("freezingColor", "#A8E0F0");
-        b.push("seasonalTint");
-        SEASONAL_TINT_ENABLED = b.define("enabled", true);
-        SEASONAL_TINT_INTENSITY = b.defineInRange("intensity", 0.25, 0.0, 1.0);
-        b.pop();
+        THIRST_THRESHOLD_PERCENT = b.comment(
+                        "Thirst percentage below which the warning starts.",
+                        "Dormant until the Tough As Nails integration is finished; see above.")
+                .defineInRange("thirstThresholdPercent", 30, 1, 99);
+        THIRST_COLOR = b.comment("The thirst warning colour. Cyan, kept clear of the hunger amber.")
+                .define("thirstColor", "#3FBFD4");
+        THIRST_FLASH_KEY = b.comment(
+                        "Which key carries the thirst warning. Same rules as healthFlash.flashKey: an",
+                        "unknown label falls back to the whole board and logs why.")
+                .define("thirstFlashKey", "T");
+        TEMPERATURE_FLASH_KEY = b.comment(
+                        "Which key carries the temperature warning. One key covers both directions,",
+                        "since you cannot be overheating and freezing at the same time.")
+                .define("temperatureFlashKey", "K");
+        OVERHEATING_COLOR = b.comment("Too hot.").define("overheatingColor", "#FF6B35");
+        FREEZING_COLOR = b.comment("Too cold.").define("freezingColor", "#A8E0F0");
         b.pop();
 
         b.push("wardenEncounter");
-        WARDEN_DETECTION_RADIUS = b.defineInRange("detectionRadius", 24, 1, 128);
+        WARDEN_DETECTION_RADIUS = b.comment(
+                        "How close a Warden has to be before it takes the board, in blocks. The default",
+                        "of 24 matches the range at which a Warden senses nearby creatures to sniff out,",
+                        "so the board tends to react at about the point the Warden can start reacting to",
+                        "you.")
+                .defineInRange("detectionRadius", 24, 1, 128);
         WARDEN_EMERGENCE_COLOR = b.comment(
                         "The rings that close in while a Warden climbs out of the ground. They are "
                                 + "drawn over the dim Warden presence wash, so a dark colour here "
@@ -904,8 +1124,13 @@ public final class RGBProfileConfig {
                 .define("presenceColor", "#0C2A33");
         WARDEN_PRESENCE_GLINT_COLOR = b.comment("Glints over the presence wash.")
                 .define("presenceGlintColor", "#24C8B8");
-        WARDEN_ACTIVE_TWINKLE_COUNT = b.defineInRange("activeTwinkleCount", 7, 1, 64);
-        WARDEN_ACTIVE_TWINKLE_INTERVAL_MILLIS = b.defineInRange("activeTwinkleIntervalMillis", 1100, 50, 5000);
+        WARDEN_ACTIVE_TWINKLE_COUNT = b.comment(
+                        "How many sculk glints sit on the board while a Warden is nearby. More of them",
+                        "reads as busier and more alarming; fewer reads as something lurking.")
+                .defineInRange("activeTwinkleCount", 7, 1, 64);
+        WARDEN_ACTIVE_TWINKLE_INTERVAL_MILLIS = b.comment(
+                        "How often those glints move to new keys. Lower is more agitated.")
+                .defineInRange("activeTwinkleIntervalMillis", 1100, 50, 5000);
         b.pop();
 
         b.push("menuTheme");
@@ -981,7 +1206,8 @@ public final class RGBProfileConfig {
         b.pop();
 
         b.push("advanced");
-        UPDATE_INTERVAL_TICKS = b.comment("Polling cadence for biome/time STATE checks. Unrelated to animation frame rate.")
+        UPDATE_INTERVAL_TICKS = b.comment("Polling cadence for the slower STATE checks, such as time of day. The biome has its own,",
+                        "biomeSampleIntervalTicks. Unrelated to animation frame rate.")
                 .defineInRange("updateIntervalTicks", 20, 1, 1200);
         ANIMATION_FRAME_RATE_HZ = b.comment("How often the SDK worker thread advances any active animated pattern.")
                 .defineInRange("animationFrameRateHz", 30, 1, 60);
@@ -1017,17 +1243,40 @@ public final class RGBProfileConfig {
                  "Disabled classes are skipped during device enumeration, so they",
                  "cost nothing at all -- no LEDs read, no buffers allocated.")
          .push("devices");
-        DEVICE_KEYBOARD_ENABLED = b.define("keyboardEnabled", true);
-        DEVICE_MOUSE_ENABLED = b.define("mouseEnabled", false);
-        DEVICE_MOUSEMAT_ENABLED = b.define("mousematEnabled", false);
+        // Per-device-class switches. Keyboard is the only one on by default, on
+        // purpose: installing a Minecraft mod and having your RAM sticks and
+        // motherboard abruptly start flashing at you is not a delightful
+        // surprise, it is an alarming one. Opt in to the light show.
+        //
+        // These only matter for hardware your lighting software actually reports.
+        // Switching one on when you own nothing in that category does nothing at
+        // all, harmlessly.
+        DEVICE_KEYBOARD_ENABLED = b.comment(
+                        "Light the keyboard. This is the device everything is designed around, and",
+                        "turning it off leaves the mod running with almost nowhere to draw.")
+                .define("keyboardEnabled", true);
+        DEVICE_MOUSE_ENABLED = b.comment("Light the mouse, where the lighting software exposes one.")
+                .define("mouseEnabled", false);
+        DEVICE_MOUSEMAT_ENABLED = b.comment("Light the mousemat. Usually a strip of zones around the edge.")
+                .define("mousematEnabled", false);
         // Everything except the keyboard defaults to FALSE. Installing a
         // Minecraft mod and having your RAM and motherboard start pulsing at
         // you unprompted is a jump-scare, not a feature. Opt in.
-        DEVICE_HEADSET_ENABLED = b.define("headsetEnabled", false);
-        DEVICE_MEMORY_ENABLED = b.define("memoryEnabled", false);
-        DEVICE_COOLING_ENABLED = b.define("coolingEnabled", false);
-        DEVICE_MOTHERBOARD_ENABLED = b.define("motherboardEnabled", false);
-        DEVICE_OTHER_ENABLED = b.define("otherDevicesEnabled", false);
+        DEVICE_HEADSET_ENABLED = b.comment("Light the headset, including headset stands that report as one.")
+                .define("headsetEnabled", false);
+        DEVICE_MEMORY_ENABLED = b.comment("Light RGB RAM modules.")
+                .define("memoryEnabled", false);
+        DEVICE_COOLING_ENABLED = b.comment("Light fans, AIO pump heads and coolers. On Corsair this also covers LED strip",
+                        "controllers (Lighting Node, Commander and the like).")
+                .define("coolingEnabled", false);
+        DEVICE_MOTHERBOARD_ENABLED = b.comment("Light motherboard zones and anything plugged into its RGB headers. On Corsair",
+                        "this also covers graphics cards; OpenRGB files those under otherDevicesEnabled.")
+                .define("motherboardEnabled", false);
+        DEVICE_OTHER_ENABLED = b.comment(
+                        "Light anything that does not fall into the categories above. Whatever your",
+                        "lighting software could not classify ends up here, so this is the catch-all. On",
+                        "OpenRGB that includes graphics cards, LED strips, cases, speakers and monitors.")
+                .define("otherDevicesEnabled", false);
         b.pop();
 
         // build() locks the spec. Nothing may be defined after this, which is

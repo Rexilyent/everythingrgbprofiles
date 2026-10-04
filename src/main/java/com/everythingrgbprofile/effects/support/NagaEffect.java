@@ -17,21 +17,26 @@ import java.util.Map;
  * it, getting shorter as you cut it down.
  *
  * <p>Same idea as {@link EnderDragonEffect} — draw the boss rather than tint
- * the board — applied to a boss whose whole identity is being long.
+ * the board — applied here to a boss whose entire identity is being long.
  *
- * <h2>The body length is the health bar</h2>
- * The Naga sheds segments as it takes damage; that is its actual mechanic, not
- * a flourish. So the snake on the keyboard sheds them too, and how much of the
- * board it covers tells you how the fight is going without a number anywhere.
- * A full-length serpent filling the board means you have barely started; three
- * segments skittering around means it is nearly done.
+ * <h2>The body length IS the health bar</h2>
+ * The Naga sheds segments as it takes damage. That is its genuine mechanic
+ * rather than a visual flourish, so the snake on the keyboard sheds them too,
+ * and how much of the board it covers tells you how the fight is going without
+ * a number appearing anywhere.
+ *
+ * <p>A full-length serpent filling the board means you have barely started.
+ * Three segments skittering about means it is nearly over, one way or the
+ * other.
  *
  * <h2>Read entirely off things the client already knows</h2>
- * Health is synced, and so is velocity — that is the whole input. The Naga's
- * internal movement state (CIRCLE, CHARGE, INTIMIDATE, DAZE and friends) lives
- * in Twilight Forest's own mob-behaviour classes (Minecraft calls these "AI
- * goals"). It does sync a {@code DATA_CHARGE} flag, but that field is private
- * to a Twilight Forest class, and this mod never imports another mod's classes
+ * Health is synced and so is velocity, and that is the complete input list.
+ *
+ * <p>The Naga's internal movement state (CIRCLE, CHARGE, INTIMIDATE, DAZE and
+ * friends) lives inside Twilight Forest's own mob-behaviour classes, which
+ * Minecraft calls "AI goals". It does sync a {@code DATA_CHARGE} flag, but
+ * that field is private to a Twilight Forest class, and this mod never imports
+ * another mod's classes
  * (see {@code ModCompatRegistry} for why). Reaching for it with reflection
  * would break the first time Twilight Forest renamed it, all for something the
  * entity's own speed already tells you: a Naga bolting at you moves several
@@ -49,8 +54,8 @@ public final class NagaEffect implements EffectController {
      * sounds like finer feedback and was in fact none at all: fourteen
      * segments only fit on a keyboard at well under a key apart, so the body
      * was a smear whose length nobody could read, and the whole top half of
-     * the health bar looked identical. Ten steps you cannot see are worth less
-     * than eight you can, and the count is capped here by how many segments
+     * the health bar looked identical. Eleven steps you cannot see are worth
+     * less than eight you can, and the count is capped here by how many segments
      * the board can show as separate things — see {@code DESIGN_SEGMENTS} in
      * {@code SnakeSlitherPattern}, which must not be lower than this.
      */

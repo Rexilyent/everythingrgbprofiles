@@ -11,8 +11,9 @@ import java.util.List;
  * {@code render} takes two arguments instead of seven.
  *
  * <p>Contents: the physical key layout, which LEDs this pattern is allowed to
- * touch, its base and optional accent colour, a nominal duration, and any
- * pattern-specific tuning from a profile's {@code patternParams}.
+ * touch, its base and optional accent colour, a nominal duration, and a slot
+ * for pattern-specific tuning from a profile's {@code patternParams} (always
+ * empty today; see {@link PatternParams}).
  *
  * @param targetKeys      null means "the whole primary surface" — the common
  *                        case, and cheaper than materialising a full key list
@@ -36,9 +37,10 @@ public record PatternContext(
     /**
      * The accent, or a lightened base if nobody supplied one.
      *
-     * <p>0.6 toward white is the tuned value: enough to read as a distinct
-     * highlight against the base, not so much that everything converges on
-     * white and every biome ends up looking the same at peak brightness.
+     * <p>0.6 toward white is the tuned value: far enough to read as a distinct
+     * highlight against the base, and not so far that everything converges on
+     * white and every biome in the game ends up looking identical at peak
+     * brightness.
      */
     public RGBColor resolvedAccentColor() {
         return accentColor != null ? accentColor : baseColor.lightened(0.6);
@@ -47,13 +49,19 @@ public record PatternContext(
     /**
      * The LEDs this pattern may write to.
      *
-     * <p>Note both branches are already safe to use blindly: a null target
-     * list resolves against the <b>real</b> primary surface (an earlier version
-     * built a synthetic grid, which meant patterns could happily animate keys
-     * that don't physically exist), and an explicit list has already been
-     * validated — EffectRegistry resolves config labels through
-     * {@code KeyGrid.namedKey} at startup and drops anything the hardware
-     * doesn't have. So no pattern needs to bounds-check anything. Enjoy.
+     * <p>Both branches are already safe to use blindly, which is worth knowing
+     * before somebody adds a defensive check that does nothing.
+     *
+     * <p>A null target list resolves against the <b>real</b> primary surface.
+     * An earlier version built a synthetic grid here instead, which meant
+     * patterns could happily spend their time animating keys that do not
+     * physically exist on anybody's desk.
+     *
+     * <p>An explicit list has already been validated: EffectRegistry resolves
+     * config labels through {@code KeyGrid.namedKey} at startup and drops
+     * anything the hardware does not actually have.
+     *
+     * <p>So no pattern in this package needs to bounds-check anything. Enjoy.
      */
     public List<KeyGrid.LedRef> effectiveTargetKeys() {
         if (targetKeys != null) return targetKeys;
@@ -67,9 +75,9 @@ public record PatternContext(
      * (spiral, ring, sweep, emitter) that need to know where keys physically
      * are rather than just which ones exist.
      *
-     * <p>The null-check inside the loop handles a target ref with no known
-     * position, which shouldn't happen after startup validation but costs one
-     * comparison to not crash over.
+     * <p>The null-check inside the loop covers a target ref with no known
+     * position. That should not happen after startup validation, and it costs
+     * exactly one comparison to not crash over it anyway.
      */
     public List<KeyGrid.LedPosition> effectiveTargetPositions() {
         if (targetKeys == null) return grid.allKeys();
@@ -81,7 +89,7 @@ public record PatternContext(
         return out;
     }
 
-    /** Same context, different base colour. Records are immutable, so changing a field means making a copy. */
+    /** Same context, different base colour. Records are immutable, so "changing" a field means copying it. */
     public PatternContext withColor(RGBColor color) {
         return new PatternContext(grid, targetKeys, color, accentColor, durationMillis, params);
     }

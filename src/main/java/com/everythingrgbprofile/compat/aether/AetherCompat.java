@@ -10,35 +10,35 @@ import java.util.List;
 /**
  * The Aether integration.
  *
- * <p>Its three dungeon bosses are already covered by the generic detector:
- * the mod lists the Slider, the Valkyrie Queen and the Sun Spirit in
- * {@code c:bosses} itself.
+ * <p>Its three dungeon bosses are already covered by the generic detector,
+ * because the mod lists the Slider, the Valkyrie Queen and the Sun Spirit in
+ * {@code c:bosses} all by itself.
  *
  * <p>The Slider gets more than that, for the same reason the Naga does. What
- * makes it the Slider is the way it moves — a two-block cube of stone that
- * only ever travels in straight lines along the world's axes, accelerating
- * until it hits something — and a generic health pulse throws all of that
- * away. So its room is drawn on the keys with the cube in it. See
+ * makes a Slider a Slider is the way it moves: a two-block cube of stone that
+ * only ever travels in straight lines along the world axes, accelerating until
+ * it hits something. A generic health pulse throws every bit of that away. So
+ * its room gets drawn on the keys with the cube in it. See
  * {@code SliderEffect}.
  *
- * <p>The Sun Spirit gets the same treatment for a different reason: its fight
- * is a loop the board can actually help with. It cannot be hurt until one of
- * its own ice crystals is knocked back into it, and then only for the few
- * seconds it stays frozen — so where the ice crystal is, and how long the
- * freeze has left, are the two things worth putting in front of the player.
- * See {@code SunSpiritEffect}.
+ * <p>The Sun Spirit gets the same treatment for a completely different reason:
+ * its fight is a loop the board can genuinely help you with. It cannot be hurt
+ * at all until one of its own ice crystals gets knocked back into it, and then
+ * only during the few seconds it stays frozen. So where the ice crystal
+ * currently is, and how much freeze is left on the clock, are the two things
+ * worth putting in front of you. See {@code SunSpiritEffect}.
  *
- * <p>The Valkyrie Queen completes the set. Her fight is about where she is
- * and what is about to hit you: she teleports to your side, drops onto you out
- * of her jumps, and throws thunder crystals that drift after you and turn into
- * lightning fifteen seconds later. All of that has a place in her room, so her
- * room is drawn too. See {@code ValkyrieQueenEffect}.
+ * <p>The Valkyrie Queen rounds out the set. Her fight is entirely about where
+ * she is and what is about to hit you: she teleports to your side, drops on
+ * you out of her jumps, and throws thunder crystals that drift after you and
+ * become lightning fifteen seconds later. All of that has a place in her room,
+ * so her room gets drawn too. See {@code ValkyrieQueenEffect}.
  *
- * <p>This class exists to gate that, exactly as {@code TwilightForestCompat}
- * does: each poll costs one boolean read when the Aether is not installed. No
- * import of anything from the mod — entities and blocks are matched by their
- * registry ids, and whether a fight is on comes from vanilla's boss overlay
- * rather than from the Aether's own synced flags.
+ * <p>This class exists to gate all of it, exactly the way
+ * {@code TwilightForestCompat} does: each poll costs one boolean read when the
+ * Aether isn't installed. No import of anything from the mod. Entities and
+ * blocks are matched by registry id, and whether a fight is happening comes
+ * from vanilla's boss overlay rather than from the Aether's own synced flags.
  */
 public final class AetherCompat {
 
@@ -48,16 +48,17 @@ public final class AetherCompat {
     /** Registry ids, matched as strings and never imported. */
     public static final String SLIDER_ID = "aether:slider";
     public static final String SUN_SPIRIT_ID = "aether:sun_spirit";
-    /** What the Sun Spirit throws: fire crystals mostly, and every fifth one ice. */
+    /** What the Sun Spirit throws: mostly fire crystals, and every fifth one ice. */
     public static final String FIRE_CRYSTAL_ID = "aether:fire_crystal";
     public static final String ICE_CRYSTAL_ID = "aether:ice_crystal";
     public static final String VALKYRIE_QUEEN_ID = "aether:valkyrie_queen";
     /** What the Valkyrie Queen throws. */
     public static final String THUNDER_CRYSTAL_ID = "aether:thunder_crystal";
     /**
-     * The end of every block path the Silver Dungeon's walls are built from:
-     * locked angelic stone, its light variant, and the two doorway blocks set
-     * into the walls. Matched by suffix so all four count as wall.
+     * The tail end of every block path the Silver Dungeon's walls are built
+     * out of: locked angelic stone, its light variant, and the two doorway
+     * blocks set into the walls. Matched by suffix so that all four of them
+     * count as wall without listing each one.
      */
     public static final String ANGELIC_STONE_SUFFIX = "angelic_stone";
 

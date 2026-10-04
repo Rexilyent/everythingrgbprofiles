@@ -7,26 +7,26 @@ import com.everythingrgbprofile.config.Feature;
 /**
  * Twilight Forest integration.
  *
- * <p>Its nine bosses are already covered by the generic detector without a
- * line of mod-specific code, because the mod declares
- * {@code twilightforest:bosses} and nests it into the {@code c:bosses}
- * convention tag. That is the whole reason the tag-first approach was worth
- * building.
+ * <p>All nine of its bosses are already covered by the generic detector
+ * without a single line of mod-specific code, because the mod declares
+ * {@code twilightforest:bosses} and nests that into the {@code c:bosses}
+ * convention tag. This is the entire reason building the tag-first approach
+ * was worth the trouble.
  *
- * <p>The Naga gets more than that. It is the one boss in the pack whose
- * identity is a <i>shape</i> — a long segmented snake that visibly shortens as
- * you cut it down — and a generic health pulse throws all of that away. So it
- * gets a serpent drawn on the keys, the same way the Ender Dragon gets a
- * wingspan. See {@code NagaEffect}.
+ * <p>The Naga gets more than that, though. It is the one boss in the pack
+ * whose identity is a <i>shape</i>: a long segmented snake that visibly gets
+ * shorter as you cut it down. A generic health pulse throws all of that in the
+ * bin. So it gets an actual serpent drawn on the keys, the same way the Ender
+ * Dragon gets a wingspan. See {@code NagaEffect}.
  *
- * <p>This class exists to gate that: the Naga poll costs nothing at all if
- * Twilight Forest is not installed, since the modid check fails first and no
- * entity scan ever runs. As always, no import of anything from the mod —
- * detection is a modid string and the entity is matched by its registry id.
+ * <p>This class exists to gate that. The Naga poll costs literally nothing if
+ * Twilight Forest isn't installed, because the modid check fails first and the
+ * entity scan never runs at all. And as always: no import of anything from the
+ * mod. Detection is a modid string, the entity is matched by registry id.
  */
 public final class TwilightForestCompat {
 
-    /** Registry id of the Naga. Matched as a string; never imported. */
+    /** Registry id of the Naga. Matched as a string, never imported. */
     public static final String NAGA_ID = "twilightforest:naga";
 
     public static void logStatusIfPresent() {

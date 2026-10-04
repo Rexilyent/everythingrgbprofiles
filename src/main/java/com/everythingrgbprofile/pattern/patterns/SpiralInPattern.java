@@ -16,12 +16,16 @@ import com.everythingrgbprofile.pattern.PatternContext;
  * arm count, trail length, wobble and arrival style so each dimension gets a
  * genuinely distinct signature rather than one motion with the hue swapped.
  *
- * <h2>Status: superseded, kept deliberately</h2>
- * The portal effect no longer uses this — {@link CoreEmitterPattern} does. See
- * that class for the measurement work showing the Terraria pillars this was
- * modelled on are a single rotating spiral fixed around a static core, with
- * nothing travelling in from the edges — which rules out a pattern whose
- * entire premise is comets travelling in from the edges.
+ * <h2>Status: superseded, and kept deliberately</h2>
+ * The portal effect does not use this any more. {@link CoreEmitterPattern}
+ * does.
+ *
+ * <p>See that class for the measurement work, which showed that the Terraria
+ * pillars this was modelled on are a single rotating spiral fixed around a
+ * completely static core, with nothing travelling in from the edges at all.
+ *
+ * <p>Which fairly comprehensively rules out a pattern whose entire premise is
+ * comets travelling in from the edges.
  *
  * <p>It stays because it is a good comet-spiral in its own right, the three
  * genuinely hard problems below are already solved in it, and it is still the
@@ -122,7 +126,8 @@ public final class SpiralInPattern implements Pattern {
 
         // How far back in TIME the tail reaches.
         //
-        // The spec is genuinely ambiguous here: its parameter table calls
+        // The original design notes are genuinely ambiguous here: their
+        // parameter table calls
         // trailLength "keys trailing behind each arm's head", while the prose
         // says "across trailLength preceding frames". Read either way
         // literally, the tail is 2-5 units long — on a 109-LED board that's a
@@ -131,8 +136,8 @@ public final class SpiralInPattern implements Pattern {
         //
         // So each unit is treated as TAIL_FRAMES_PER_UNIT frames of travel.
         // That produces the sweeping arc the Terraria-pillar comparison
-        // actually implies, and keeps trailLength doing its job: Nether at 2
-        // is short and sharp, End at 5 is long and soft.
+        // actually implies, and keeps trailLength doing its job: a trail of 2
+        // is short and sharp, a trail of 5 is long and soft.
         //
         // Expressing the tail in time rather than distance is also what makes
         // a fast spiral throw a long tail and a slow one a short tail — which
