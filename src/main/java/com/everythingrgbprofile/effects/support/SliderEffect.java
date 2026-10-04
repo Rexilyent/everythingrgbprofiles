@@ -16,20 +16,23 @@ import java.util.Map;
  * The Aether's Slider: its boss room on the keys, with the cube in it.
  *
  * <p>Same idea as {@link NagaEffect} — draw the boss rather than tint the
- * board — for a boss whose identity is how it moves. See
- * {@link SliderCubePattern} for the drawing and for why the board is a
- * north-up map of the room.
+ * board — applied to a boss whose entire identity is HOW it moves. See
+ * {@link SliderCubePattern} for the drawing itself, and for why the board ends
+ * up being a north-up map of the room.
  *
  * <h2>Read entirely off things the client already knows</h2>
- * Position and health are vanilla and synced. Everything else is worked out
- * from them, or from vanilla state that happens to line up with the Aether's:
+ * Position and health are vanilla and synced. Everything else gets worked out
+ * from those, or from vanilla state that happens to line up neatly with the
+ * Aether's:
  *
  * <ul>
- *   <li><b>Awake</b> — the Slider keeps a synced {@code awake} flag, but it is
- *       private to an Aether class, and this mod never imports another mod's
- *       classes (see {@code ModCompatRegistry}). The same fact is visible
- *       another way: its boss bar is created hidden, shown by the hit that
- *       wakes it, hidden again when it resets, and plays boss music. So "a boss
+ *   <li><b>Awake</b> — the Slider does keep a synced {@code awake} flag, and
+ *       it is private to an Aether class, and this mod never imports another
+ *       mod's classes (see {@code ModCompatRegistry}). So that route is
+ *       closed.
+ *       <p>The same fact is visible from another angle entirely: its boss bar
+ *       is created hidden, shown by the hit that wakes it, hidden again when
+ *       it resets, and it plays boss music. So "a boss
  *       bar with music is up, and a Slider is in range" is "the Slider is
  *       awake", through vanilla's public boss overlay alone. Movement counts
  *       too, because a sleeping Slider cannot move at all — which covers you

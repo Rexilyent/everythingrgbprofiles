@@ -13,17 +13,19 @@ import java.util.Map;
  * A serpent winding across the board, head first, body trailing behind it.
  *
  * <p>Built for the Twilight Forest Naga on the same principle as the Ender
- * Dragon's silhouette: draw the boss, do not tint the board and hope. A green
- * pulse says something is happening; a snake with a head and a tail crossing
- * the keys says <i>that</i> is happening.
+ * Dragon's silhouette: draw the boss, do not tint the board and hope for the
+ * best. A green pulse says something is happening. A snake with a head and a
+ * tail crossing the keys says <i>that</i> is happening.
  *
  * <h2>The body is the head's past, not a simulation</h2>
- * There is no per-segment state and nothing is integrated frame to frame. The
- * head sits at a position {@code u} along a fixed winding track, and body
- * segment {@code i} simply sits a fixed distance behind it along the same
- * track. A snake IS its own history, so expressing it that way makes the body
- * follow perfectly by construction — it cannot drift, stretch, or come apart,
- * and it behaves identically at 10fps and 60.
+ * There is no per-segment state anywhere in here and nothing gets integrated
+ * frame to frame. The head sits at position {@code u} along a fixed winding
+ * track, and body segment {@code i} sits a fixed distance behind it along that
+ * same track. That is the whole model.
+ *
+ * <p>A snake IS its own history, so expressing it that way makes the body
+ * follow perfectly by construction. It cannot drift, cannot stretch, cannot
+ * come apart, and behaves identically at 10fps and at 60.
  *
  * <h2>Why the track wraps cleanly</h2>
  * The track is {@code y = centre + amplitude * sin(2*pi*WAVES*u + drift)} with
