@@ -1,0 +1,93 @@
+Everything RGB Profiles License
+
+Copyright (c) 2026 Forge Everything Team (Rexilyent and Team)
+
+This is a source-available license, not an open-source one. You can read the
+code, change it for yourself and help improve it, but you cannot share or
+re-upload the mod or versions of it. The full terms are below.
+
+1. Definitions
+
+"The Mod" means Everything RGB Profiles: its source code, compiled builds,
+default profile files, images, documentation and every other file in this
+repository or in a release of it, except the Third-Party Components listed in
+section 6.
+
+"Official Sources" means the Mod's own project pages on Modrinth and
+CurseForge, and the releases page of its GitHub repository.
+
+2. What you may do
+
+a. Download the Mod from an Official Source and use it, including in videos,
+   streams and screenshots, whether or not those are monetised.
+
+b. Include the Mod in a modpack published anywhere, as long as the modpack
+   does not contain or re-host the Mod's files and instead has them downloaded
+   from an Official Source when the pack is installed. For example:
+   - a modpack on Modrinth or CurseForge that uses the Mod's project page on
+     that platform;
+   - a packwiz (or similar) modpack, hosted on GitHub or anywhere else, whose
+     entry for the Mod points to a download on an Official Source.
+   Committing, bundling or mirroring the Mod's jar inside the modpack itself,
+   or in the modpack's repository, counts as redistribution under section 3a.
+
+c. Read and study the source code, change it, and build changed versions for
+   your own personal use.
+
+d. Fork the repository on GitHub in order to contribute changes back to the
+   Mod through pull requests.
+
+3. What you may not do without written permission from the copyright holders
+
+a. Redistribute the Mod, in compiled or source form, changed or unchanged,
+   except as section 2 allows. This includes uploading it to any website,
+   launcher or file host other than the Official Sources.
+
+b. Publish, share or distribute a changed version of the Mod, or any other
+   work that copies a substantial part of its source code or files.
+
+c. Sell the Mod, charge for access to it, or put it behind a paywall.
+
+d. Present the Mod, or any part of it, as your own work, or misrepresent
+   where it came from.
+
+4. Contributions
+
+If you submit a contribution to the Mod (for example, a pull request), you
+confirm that you have the right to submit it, and you grant the copyright
+holders a perpetual, worldwide, non-exclusive, royalty-free and irrevocable
+license to use, change, distribute and sublicense it as part of the Mod, under
+this license or any later license the Mod is released under.
+
+5. Ending of rights
+
+If you break the terms of this license, the rights it gives you end
+automatically.
+
+6. Third-party components
+
+The following files are not part of the Mod for the purposes of this license
+and are not licensed by it. They remain the property of their owners and are
+covered by their owners' own terms.
+
+- iCUESDK.x64_2019.dll (the Corsair iCUE SDK runtime), copyright Corsair and
+  its licensors, included unmodified so the Mod can talk to Corsair hardware.
+
+7. Trademarks and affiliation
+
+Minecraft is a trademark of Mojang Synergies AB. Corsair, iCUE, Razer, Razer
+Chroma, Logitech, G HUB, SteelSeries, OpenRGB and Terraria are trademarks of
+their respective owners. They are named only to describe what the Mod works
+with or takes inspiration from. The Mod is not an official Minecraft product
+and is not approved by or associated with Mojang, Microsoft or any of those
+companies.
+
+8. No warranty
+
+THE MOD IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE MOD
+OR THE USE OF OR OTHER DEALINGS IN THE MOD, INCLUDING ANY EFFECT ON LIGHTING
+HARDWARE OR THE SOFTWARE THAT CONTROLS IT.

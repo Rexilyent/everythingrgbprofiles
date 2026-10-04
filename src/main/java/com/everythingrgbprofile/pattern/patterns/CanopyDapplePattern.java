@@ -12,25 +12,31 @@ import java.util.Map;
 /**
  * Sunlight coming through a jungle canopy, and the wind moving it about.
  *
- * <p>Replaces a flat shimmer on the three jungle biomes. A shimmer says "this
+ * <p>Replaces a flat shimmer on the jungle and forest biomes. A shimmer says "this
  * place is green"; it does not say anything about what the place is like.
  *
  * <h2>Dappled light, not a wave</h2>
  * The obvious reference here is Terraria, which runs a green-to-teal gradient
- * across the keyboard as a wave. It looks good and it means nothing — the
- * colours are a choice and the wave has no cause. What a jungle actually looks
- * like from underneath is a dark canopy with pools of light punched through
- * it, and those pools shifting whenever the wind moves the leaves overhead.
- * That is a thing that can be drawn, so this draws it.
+ * across the keyboard as a wave. It looks good and it means nothing: the
+ * colours are somebody's choice and the wave has no cause behind it.
  *
- * <h2>One green, dimmed — not two colours</h2>
- * This originally ran a teal-to-lime ramp, on the reasoning that shade under a
- * canopy is lit by sky and goes cool while light through leaves comes out warm.
- * That is true of actual jungles and it looked wrong on actual hardware: the
- * two ends sat eighty-odd degrees apart on the colour wheel, so instead of one
- * place with light falling through it, the board read as a teal thing with a
- * yellow-green thing on top. Physical accuracy was never the goal; the jungle
- * is supposed to look green.
+ * <p>What a jungle actually looks like from underneath is a dark canopy with
+ * pools of light punched through it, and those pools shifting every time the
+ * wind moves the leaves overhead. That is a thing which can be drawn, with a
+ * reason attached, so this draws that instead.
+ *
+ * <h2>One green, dimmed. Not two colours.</h2>
+ * This originally ran a teal-to-lime ramp, reasoning that shade under a canopy
+ * is lit by sky and therefore goes cool, while light coming through leaves
+ * arrives warm.
+ *
+ * <p>That is entirely true of actual jungles, and it looked wrong on actual
+ * hardware. The two ends sat eighty-odd degrees apart on the colour wheel, so
+ * rather than one place with light falling through it, the board read as a
+ * teal thing with a separate yellow-green thing sitting on top of it.
+ *
+ * <p>Physical accuracy was never the goal here. The jungle is supposed to look
+ * green.
  *
  * <p>So the ramp is now a single hue — the biome's own green at both ends, a
  * few degrees and a lot of brightness apart — and the dapple is carried
@@ -58,6 +64,32 @@ import java.util.Map;
  *       also drags the noise sample sideways, so the canopy visibly stirs
  *       rather than just getting brighter under a moving spotlight.</li>
  * </ol>
+ *
+ * <h2>Flowers, for exactly one biome</h2>
+ * The flower forest is the forest with the floor carpeted, so it's this
+ * engine with a fourth layer rather than a pattern of its own. A flower is one
+ * key. Not a drawn flower like the sunflower plains' heads, which need a stalk
+ * and petals and several keys to read: at forest-floor distance a flower is a
+ * dot of colour, and a dot of colour is exactly what a key is.
+ *
+ * <p>The flowers are down on the floor, under the same canopy as everything
+ * else, so the light pools pass over them. In shade a flower is dimmed but
+ * still clearly its colour; when a pool drifts across it, it lights up. That
+ * is all the motion they get and all they need: the canopy is already moving,
+ * so the flowers glint on and off as the light finds them, which is what
+ * flowers under trees actually do. They don't wander about, because flowers
+ * don't.
+ *
+ * <p>Their colours are a fixed palette rather than the profile's. A profile has
+ * two colour slots and both of them are the forest's greens; the flowers need
+ * the rest of the colour wheel, seven colours of it. Loosely grouped by a
+ * coarse noise field, so the floor has drifts of poppies and patches of
+ * cornflowers rather than an even sprinkle, which at this density reads as
+ * confetti.
+ *
+ * <p>Which keys are flowers comes from a hash of the key itself, so the rule
+ * below still holds with them in: nothing is stored, and whether a key is a
+ * flower is a pure function of which key it is.
  *
  * <h2>No state at all</h2>
  * Every value here is a pure function of elapsed time and key position. There
@@ -106,10 +138,19 @@ public final class CanopyDapplePattern implements Pattern {
      * the floors look low written down and are not.
      */
     private final double shadeFloor;
+    /** Share of keys that are flowers. Zero for every preset except the flower forest. */
+    private final double flowerDensity;
 
     private CanopyDapplePattern(double noiseScale, double verticalStretch,
                                 double lightLow, double lightHigh,
                                 double sharpness, double shadeFloor) {
+        this(noiseScale, verticalStretch, lightLow, lightHigh, sharpness, shadeFloor, 0);
+    }
+
+    private CanopyDapplePattern(double noiseScale, double verticalStretch,
+                                double lightLow, double lightHigh,
+                                double sharpness, double shadeFloor, double flowerDensity) {
+        this.flowerDensity = flowerDensity;
         this.noiseScale = noiseScale;
         this.verticalStretch = verticalStretch;
         this.lightLow = lightLow;
@@ -129,6 +170,30 @@ public final class CanopyDapplePattern implements Pattern {
     private static final double GUST_BOOST = 0.85;
     /** How far a gust drags the canopy sideways, in noise cells. */
     private static final double GUST_SWAY = 0.45;
+
+    // --- Flowers -------------------------------------------------------
+    /**
+     * The flower palette: poppy, tulip orange, dandelion, pink tulip, allium,
+     * cornflower, and a daisy white. Saturated rather than true to the block
+     * textures, for the reason {@code DesertDunesPattern} gives about sand: a
+     * pale colour on an LED is a white key with an opinion. The daisy is the
+     * one exception, since a daisy IS white, and it's the rarest of the seven
+     * so the floor doesn't go pale.
+     */
+    private static final RGBColor[] FLOWER_COLORS = {
+            RGBColor.fromHex("#FF1414"), RGBColor.fromHex("#FF6400"), RGBColor.fromHex("#FFCC00"),
+            RGBColor.fromHex("#FF3C9C"), RGBColor.fromHex("#C828FF"), RGBColor.fromHex("#2E50FF"),
+            RGBColor.fromHex("#FFF2DC")};
+    /** How often each colour turns up, index for index. The daisy gets a sliver. */
+    private static final double[] FLOWER_WEIGHTS = {1.0, 0.8, 1.0, 0.8, 0.9, 0.9, 0.35};
+    /**
+     * Flower brightness in full shade. High on purpose: a flower is the one
+     * thing on the floor that's a different colour, and a flower you can't
+     * see in the shade isn't carpeting anything.
+     */
+    private static final double FLOWER_SHADE = 0.42;
+    /** How patchy the colours are: noise cells per board width. Low means bigger drifts. */
+    private static final double FLOWER_PATCH_SCALE = 2.2;
 
     @Override
     public Map<KeyGrid.LedRef, LayerPixel> render(PatternContext ctx, long elapsedMillis) {
@@ -180,9 +245,75 @@ public final class CanopyDapplePattern implements Pattern {
             // sunlit leaf, it is a differently coloured one.
             RGBColor color = shade.lerp(sun, light);
             double alpha = shadeFloor + (1.0 - shadeFloor) * light;
+
+            if (flowerDensity > 0 && keyHash(key.ref(), 1) < flowerDensity
+                    && !isWideKey(key, ctx.grid())) {
+                // The flower takes the whole key, lit by whatever the canopy
+                // is letting through onto it.
+                color = flowerColor(key);
+                alpha = FLOWER_SHADE + (1.0 - FLOWER_SHADE) * light;
+            }
             out.put(key.ref(), new LayerPixel(color, alpha));
         }
         return out;
+    }
+
+    /**
+     * Which colour this flower is. Mostly decided by where it is, so nearby
+     * flowers tend to match, with a bit of per-key jitter so the drifts have
+     * ragged edges instead of looking like territories on a map.
+     */
+    private static RGBColor flowerColor(KeyGrid.LedPosition key) {
+        // The patch is a coarse cell, hashed, not a noise sample. An earlier
+        // version sampled value noise here, and value noise clusters around
+        // the middle of its range, so the colours in the middle of the list
+        // won: the floor came out mostly allium and pink with the odd poppy.
+        // A hashed cell is uniform. One flower in four ignores its patch, which
+        // is what gives the drifts ragged edges.
+        double pick = keyHash(key.ref(), 3) < 0.25
+                ? keyHash(key.ref(), 2)
+                : hash((int) Math.floor(key.x() * FLOWER_PATCH_SCALE * 2) + 401,
+                        (int) Math.floor(key.y() * FLOWER_PATCH_SCALE * 1.4) + 79);
+        double total = 0;
+        for (double w : FLOWER_WEIGHTS) total += w;
+        double at = pick * total;
+        for (int i = 0; i < FLOWER_COLORS.length; i++) {
+            at -= FLOWER_WEIGHTS[i];
+            if (at <= 0) return FLOWER_COLORS[i];
+        }
+        return FLOWER_COLORS[FLOWER_COLORS.length - 1];
+    }
+
+    /**
+     * Is this a spacebar, a shift, an Enter: a key so wide its LED has nobody
+     * close by in its own row. A flower on one of those isn't a flower, it's
+     * a purple plank, so they stay forest.
+     *
+     * <p>The grid doesn't know key sizes, only LED positions, so width is
+     * inferred from the gap to the nearest LED on the same row. 1.6 keys is
+     * the cut-off: ordinary keys sit one apart, Tab, Caps and Backspace still
+     * have a neighbour inside it and can bloom, and Enter, both Shifts and the
+     * spacebar can't. A plain scan of the board per flower, which is a hundred
+     * comparisons for a couple of dozen flowers a frame, and keeps the class
+     * free of any cached state.
+     */
+    private static boolean isWideKey(KeyGrid.LedPosition key, KeyGrid grid) {
+        double keyWidth = Math.max(1e-6, grid.keyWidthNormalised());
+        double rowStep = keyWidth / Math.max(0.05, grid.aspectRatio());
+        for (KeyGrid.LedPosition other : grid.allKeys()) {
+            if (other == key || Math.abs(other.y() - key.y()) > rowStep * 0.4) continue;
+            if (Math.abs(other.x() - key.x()) < keyWidth * 1.6) return false;
+        }
+        return true;
+    }
+
+    /**
+     * A stable 0..1 for one LED. Hashed off its identity rather than its
+     * position so it survives the grid being rebuilt, and salted so "is it a
+     * flower" and "which colour" aren't secretly the same question.
+     */
+    private static double keyHash(KeyGrid.LedRef ref, int salt) {
+        return hash(ref.luid() * 31 + salt * 977, ref.deviceId().hashCode() + salt);
     }
 
     // ---------------------------------------------------------------
@@ -280,5 +411,71 @@ public final class CanopyDapplePattern implements Pattern {
      */
     public static CanopyDapplePattern darkForest() {
         return new CanopyDapplePattern(4.8, 1.0, 0.56, 0.78, 2.8, 0.14);
+    }
+
+    /**
+     * Forest: oak and birch, a closed canopy but nowhere near a jungle's. Sits
+     * between the dense and sparse jungle presets — pools a little larger and
+     * more common than the jungle's, with the same deep shade between them, so
+     * it still reads as being under trees rather than out in a clearing.
+     */
+    public static CanopyDapplePattern forest() {
+        return new CanopyDapplePattern(3.8, 1.0, 0.40, 0.70, 2.0, 0.15);
+    }
+
+    /**
+     * Flower forest: the forest, exactly, with the floor covered in flowers.
+     * Same canopy numbers as {@link #forest()}, so walking between the two
+     * changes what's on the ground and nothing overhead, which is also what
+     * happens in the game.
+     *
+     * <p>About a quarter of the keys. Fewer and it's a forest with some
+     * flowers in it; more and the canopy stops reading, because there's no
+     * floor left for the light to land on.
+     */
+    public static CanopyDapplePattern flowerForest() {
+        return new CanopyDapplePattern(3.8, 1.0, 0.40, 0.70, 2.0, 0.15, 0.25);
+    }
+
+    /**
+     * Birch forest: birch leaves are small and the crowns are thin, so this is
+     * the brightest canopy of the set. The threshold is dropped furthest and the
+     * sharpening eased off, giving broad, soft-edged patches of light, and the
+     * floor is lifted so the shade stays pale rather than deep.
+     */
+    public static CanopyDapplePattern birchForest() {
+        return new CanopyDapplePattern(3.2, 1.0, 0.34, 0.66, 1.5, 0.20);
+    }
+
+    /**
+     * Old growth birch forest: the same thin cover, but the trees are twice as
+     * tall. A mild vertical stretch hints at light coming down past long bare
+     * trunks — far less than bamboo's, which would turn it into slots — and the
+     * pools tighten slightly because a taller forest has more leaves overhead.
+     */
+    public static CanopyDapplePattern oldGrowthBirchForest() {
+        return new CanopyDapplePattern(3.6, 1.5, 0.38, 0.68, 1.8, 0.18);
+    }
+
+    /**
+     * Spruce forest: tall, dense conifers packed close together. Light gets down
+     * in thin shafts between the trunks rather than in pools through leaves, so
+     * this borrows bamboo's vertical stretch at a lower strength, with a raised
+     * threshold and a low floor to keep the needles overhead dark.
+     */
+    public static CanopyDapplePattern spruceForest() {
+        return new CanopyDapplePattern(4.6, 2.2, 0.48, 0.74, 2.4, 0.13);
+    }
+
+    /**
+     * Old growth pine taiga: the spruce forest's twin, and the difference you
+     * notice standing in it is the tree tops. Both giant trees use the same
+     * trunk, but the pine's foliage only runs 3 to 7 blocks down from the top
+     * where the spruce's runs 13 to 17, so the pine is mostly bare trunk. So the shafts get
+     * longer (more stretch) and a bit more light gets through (lower
+     * threshold, slightly higher floor). Same forest, more daylight in it.
+     */
+    public static CanopyDapplePattern oldGrowthPineTaiga() {
+        return new CanopyDapplePattern(4.6, 2.7, 0.44, 0.72, 2.4, 0.15);
     }
 }

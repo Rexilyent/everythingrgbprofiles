@@ -4,39 +4,54 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A tiny typed window onto the freeform {@code patternParams} blob that
- * profile JSON entries can carry — {@code spiralRotations},
- * {@code spiralArmCount}, {@code twinkleCount}, {@code particleCount},
- * {@code direction}, and friends.
+ * A tiny typed window onto the freeform {@code patternParams} blob that a biome
+ * profile entry can carry.
  *
- * <h2>Why everything has a default</h2>
+ * <p><b>Nothing reads it yet.</b> No pattern calls any of the getters below,
+ * {@code BiomeProfile.resolvedParams()} has no callers, and
+ * {@code BiomeColorEffect} hands every pattern {@link #EMPTY}. So a
+ * {@code patternParams} block in {@code biome_profiles.json} loads without
+ * complaint and changes nothing. No bundled profile sets one. The plumbing
+ * below is what it would go through once something does.
+ *
+ * <h2>Why absolutely everything has a default</h2>
  * Because the patterns are built as "one parameterised engine" rather than "a
- * subclass per preset", and that choice only pays off if a profile with zero
- * overrides still animates perfectly. Otherwise every new biome someone adds
- * needs a complete parameter set copy-pasted from a working one, and the "just
- * tweak one number" workflow dies immediately.
+ * subclass per preset", and that choice only pays off if a profile carrying
+ * zero overrides still animates perfectly.
+ *
+ * <p>Get that wrong and every new biome anybody adds needs a complete
+ * parameter set copy-pasted out of a working one, at which point the "just
+ * tweak one number" workflow is dead and the whole design collapses back into
+ * subclasses with extra steps.
  *
  * <p>So every getter takes a default and returns it for missing keys, wrong
  * types, nulls, and anything else the JSON throws. {@code {}} is a completely
  * valid params object.
  *
- * <p>No validation, no schema, no warnings on unknown keys — deliberately.
- * This reads hand-edited files; being strict here means a stray key someone
- * added while experimenting bricks their whole profile. Unknown keys are
- * ignored and unparseable values fall back, silently and on purpose.
+ * <p>No validation, no schema, and no warnings about unknown keys, all
+ * deliberately. This reads hand-edited files, and being strict here means a
+ * stray key somebody added while experimenting takes their entire profile down
+ * with it.
+ *
+ * <p>Unknown keys are ignored and unparseable values fall back. Silently, and
+ * on purpose.
  */
 public final class PatternParams {
 
-    /** The no-overrides case. Shared singleton — it's immutable in practice. */
+    /** The no-overrides case. A shared singleton, since it is immutable in practice. */
     public static final PatternParams EMPTY = new PatternParams(Map.of());
 
     private final Map<String, Object> raw;
 
     /**
-     * Defensive copy: the caller's map came from a JSON parser and we have no
-     * idea what it plans to do with it afterwards. Patterns read this from the
-     * worker thread while profiles get reloaded from elsewhere, so a shared
-     * mutable map is a ConcurrentModificationException with a delay fuse.
+     * Defensive copy, because the caller's map came out of a JSON parser and
+     * nobody here knows what that parser intends to do with it afterwards.
+     *
+     * <p>Profiles are only loaded once today, so nothing currently mutates
+     * that map behind a pattern's back. The copy is so that stays true if a
+     * reload ever appears: patterns read this from the worker thread, and a
+     * shared mutable map is a ConcurrentModificationException with a delay
+     * fuse attached.
      */
     public PatternParams(Map<String, Object> raw) {
         this.raw = new HashMap<>(raw);

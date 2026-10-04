@@ -22,18 +22,20 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Biome Color — the resting state. This is what your keyboard is doing
- * whenever nothing more interesting is happening, which is most of the time,
- * which is exactly why it has to be right.
+ * Biome Color, otherwise known as the resting state. This is what your
+ * keyboard is doing whenever nothing more interesting is happening, which is
+ * the overwhelming majority of the time, which is precisely why it has to be
+ * right.
  *
- * <p>Always animated, never a solid fill. Resolved exact -> wildcard ->
- * derived via {@link ProfileResolver}, then crossfaded on a biome change over
+ * <p>Always animated, never a solid fill. Resolved exact, then wildcard, then
+ * derived via {@link ProfileResolver}, and crossfaded on a biome change over
  * {@code biomeCrossfadeMillis}.
  *
  * <h2>Four rules that make a transition look like a transition</h2>
- * Walking from a forest into a swamp used to produce a visible lurch. It was
- * four unrelated things stacked, and each one has a rule attached that the
- * code below refers to by name. Break any of them and the lurch comes back.
+ * Walking out of a forest into a swamp used to produce a visible lurch. It
+ * turned out to be four completely unrelated problems stacked on top of each
+ * other, and each one now has a rule attached that the code below refers to by
+ * name. Break any single one of them and the lurch comes straight back.
  *
  * <p><b>Rule 1 — the outgoing pattern keeps its own clock.</b> The naive
  * crossfade renders the outgoing pattern with
@@ -51,10 +53,11 @@ import java.util.Set;
  * rather than as a transition, because there is no correspondence between them
  * to interpolate. The realisation that fixes it: a biome transition is a
  * crossfade of <b>colour</b>, not of pattern. When both biomes resolve to the
- * same pattern — nearly always, since most things are {@code shimmer} — the
- * running instance is kept with its phases and clock intact, and only the
- * colour moves. Blending two patterns is reserved for a genuine change like
- * shimmer to pulse-slow, where a change of motion is the point.
+ * same pattern and preset (the five End biomes, a run of modded biomes all on
+ * the shimmer fallback) the running instance is kept with its phases and clock
+ * intact, and only the colour moves. When they differ the two patterns are
+ * blended, and since most vanilla biomes now have a scene of their own, that
+ * is the usual case when walking between them.
  *
  * <p><b>Rule 3 — fade from what is on screen, not from a stored value.</b>
  * Stashing {@code currentColor} while a fade is already running stashes a
@@ -128,6 +131,10 @@ public final class BiomeColorEffect implements EffectController {
     public void onBiomeChanged(String biomeId, RGBColor derivedFallbackColor, boolean fallbackEnabled, long nowMillis) {
         if (biomeId.equals(currentBiomeId)) return;
 
+        // No derived-profile supplier is passed, so fallbackEnabled cannot
+        // change what comes back: an unlisted biome resolves to null either
+        // way and takes the derived colour on the next line. That is what the
+        // fallbackToDerivedColor TOML comment documents; change one, change both.
         BiomeProfile profile = ProfileResolver.resolve(profiles, biomeId, fallbackEnabled, null);
         RGBColor resolvedColor = profile != null ? profile.resolvedColor(derivedFallbackColor) : derivedFallbackColor;
         RGBColor resolvedAccent = profile != null ? profile.resolvedAccentColor() : null;
@@ -258,9 +265,10 @@ public final class BiomeColorEffect implements EffectController {
         boolean blendingPatterns = previousPattern != null
                 && transitionStartMillis != Long.MIN_VALUE
                 && (nowMillis - transitionStartMillis) < crossfadeMillis();
-        // The common path, and the fast one: same pattern, colour already
-        // interpolated above, nothing more to do. Most biome changes never
-        // reach the blending code below at all.
+        // The fast path: same pattern (or the blend has finished), colour
+        // already interpolated above, nothing more to do. Between two vanilla
+        // biomes with different scenes, the first crossfadeMillis after the
+        // change go through the blending code below instead.
         if (!blendingPatterns) {
             return newFrame;
         }

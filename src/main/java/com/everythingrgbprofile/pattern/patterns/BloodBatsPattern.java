@@ -12,18 +12,23 @@ import java.util.Map;
  * Vampire forest: blood running down a black keyboard, with bats crossing in
  * front of it.
  *
- * <p>The blood is {@link BloodDripPattern} — the same engine as the death
- * screen, because the vampire forest wants exactly the same thing and writing
- * a second copy would only have been a way of pretending otherwise. Only the
- * numbers differ: fewer drips, further apart, because this is wallpaper you
- * stand in for ten minutes rather than a three-second "you died".
+ * <p>The blood is {@link BloodDripPattern}, which is to say the exact same
+ * engine the death screen uses, because the vampire forest wants precisely the
+ * same thing and writing a second copy would only have been a way of
+ * pretending otherwise. I mean come on, it's just asking for a blood drip.
+ *
+ * <p>Only the numbers differ: four drips running at once against the death
+ * screen's seven, because this is wallpaper somebody stands in for ten minutes
+ * rather than a three-second "you died".
  *
  * <h2>The bats are holes, not shapes</h2>
- * Every other creature in this mod is drawn by adding light. The bats are
- * drawn by taking it away — they carve the blood layer down to nothing where
- * they pass. That is not a shortcut, it is the only version that looks right:
- * a bat is something you notice because it blocks what is behind it, and an
- * LED keyboard renders "unlit" far more convincingly than it renders "dark
+ * Every other creature in this mod is drawn by ADDING light. The bats are
+ * drawn by taking it away: they carve the blood layer down to nothing
+ * wherever they pass.
+ *
+ * <p>That is not a shortcut, it is the only version that looks right. A bat is
+ * something you notice because it blocks whatever is behind it, and an LED
+ * keyboard renders "unlit" enormously more convincingly than it renders "dark
  * brown".
  *
  * <p>A coloured bat was the obvious alternative, and every candidate colour
@@ -61,7 +66,7 @@ public final class BloodBatsPattern implements Pattern {
 
     /**
      * One bat's flight plan. Nothing here changes after construction — a bat
-     * is nine constants and a clock.
+     * is ten constants and a clock.
      */
     private static final class Bat {
         final double sweepHzX, sweepHzY, jitterHzX, jitterHzY;
@@ -287,8 +292,8 @@ public final class BloodBatsPattern implements Pattern {
                 new Bat(0.087, 0.139, 0.53, 0.67, 2.3, 4.4, 1.8, 0.9, 4.3, 0.82),
                 new Bat(0.142, 0.101, 0.71, 0.59, 4.7, 3.1, 5.2, 4.1, 3.1, 1.12),
         };
-        // Fewer and slower drips than the death screen. Standing in a forest is
-        // not the same event as bleeding out, and a board running with blood at
+        // Fewer drips than the death screen's default seven, at the same 900ms
+        // gap. Standing in a forest is not the same event as bleeding out, and a board running with blood at
         // full death-screen rate would be exhausting to actually play in.
         return new BloodBatsPattern(bats, new BloodDripPattern(4, 900));
     }

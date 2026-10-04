@@ -12,18 +12,21 @@ import java.util.Map;
 /**
  * {@code fade}: the whole zone smoothly ramps up or down. The simplest
  * pattern in the mod, and quietly one of the most important, because
- * {@link #easeInOutCubic} is the shared easing curve half the codebase
- * borrows — spiral-in's radius easing and the Tier 1 biome-border crossfades
- * both call straight into it.
+ * {@link #easeInOutCubic} is a shared easing curve — the Tier 1 biome-border
+ * crossfades call straight into it, and so does spiral-in's radius easing,
+ * though nothing draws spiral-in any more.
  *
  * <p>Used directly by Sleep/Wake, which wants a calm fade and nothing else.
  *
- * <h2>Why eased and not linear</h2>
- * A linear brightness ramp reads as mechanical — your eye catches the exact
- * moment it starts and stops, because the velocity jumps from 0 to constant
- * instantly. Ease-in-out cubic starts and ends at zero velocity, so the fade
- * appears to "arrive" rather than "cut". Same duration, completely different
- * feel, one line of maths.
+ * <h2>Why eased rather than linear</h2>
+ * A linear brightness ramp reads as mechanical, and the reason is specific:
+ * your eye catches the exact moment it starts and the exact moment it stops,
+ * because the velocity jumps from zero to constant instantaneously at both
+ * ends.
+ *
+ * <p>Ease-in-out cubic starts AND ends at zero velocity, so the fade appears
+ * to arrive somewhere rather than to cut. Identical duration, completely
+ * different feel, one line of maths separating them.
  */
 public final class FadePattern implements Pattern {
 
@@ -39,10 +42,9 @@ public final class FadePattern implements Pattern {
      * Ease-in-out cubic, the standard formulation. Accelerates out of 0,
      * decelerates into 1, symmetric around the midpoint.
      *
-     * <p>Public and static because everything else eases with it too. If you
-     * ever change this curve, you are changing the feel of the biome
-     * crossfades and the portal spiral at the same time. Choose violence
-     * knowingly.
+     * <p>Public and static because other things ease with it too. If you ever
+     * change this curve, you are changing the feel of every biome crossfade
+     * along with the sleep fade. Choose violence knowingly.
      */
     public static double easeInOutCubic(double p) {
         return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
