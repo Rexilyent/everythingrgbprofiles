@@ -9,9 +9,11 @@ import com.sun.jna.ptr.IntByReference;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -24,59 +26,75 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The part that actually talks to a Corsair keyboard. Everything else in this
- * mod is arithmetic on colours; this is the one file that can hard-crash the
- * JVM, which is why it is written as defensively as it is.
+ * mod is arithmetic on colours. This is the one file capable of hard-crashing
+ * the JVM, which is why it is written as defensively as it is and why it has
+ * more comment than code in places.
  *
- * <p>Owns the iCUE SDK v4 connection. Rewritten against the real headers,
- * because an earlier version targeted the <b>removed</b> CUE SDK v2 surface
- * — meaning it could not have linked against any shipping DLL, ever, on any
- * machine. It was code that looked correct and was structurally incapable of
- * working.
+ * <p>It owns the iCUE SDK v4 connection, and it was rewritten against the real
+ * headers because an earlier version targeted the older CUE SDK surface that
+ * v4 <b>removed</b>. Meaning it could not have linked against the v4 DLL it
+ * was loading, on any machine, under any circumstances. Code that read
+ * perfectly well and was structurally incapable of working.
  *
- * <h2>Five things that changed, and why each one matters</h2>
+ * <h2>Five things that changed, and why every one of them matters</h2>
  *
  * <p><b>1. Connection is asynchronous.</b> {@code CorsairConnect} returns
- * immediately; the session is only usable once the state callback reports
- * {@code CSS_Connected}. Treating the return code as a handshake result — the
- * obvious reading — gives you a "successful" connection you then can't use. We
- * wait on a latch with a bounded timeout instead.
+ * immediately, and the session is only usable once the state callback reports
+ * {@code CSS_Connected}.
  *
- * <p><b>2. No exclusive control.</b> We call {@code CorsairSetLayerPriority}
- * rather than {@code CorsairRequestControl}. iCUE draws at 127 and SDK clients
- * default to 128, so sitting at 130 puts us on top without seizing the device.
+ * <p>Treating that return code as a handshake result — which is the obvious
+ * reading, and the wrong one — hands you a "successful" connection you then
+ * cannot use for anything. So this waits on a latch with a bounded timeout
+ * instead, and the latch is what actually decides whether we are connected.
  *
- * <p>This one is genuinely important for users, not just tidiness: with
- * exclusive control, an unclean Minecraft exit — a crash, a task-kill, a power
- * cut — leaves the keyboard stuck displaying our lighting with the user's own
- * iCUE profile locked out. Shutdown hooks do not run when the process is
- * killed. Layer priority has no such failure mode; iCUE simply resumes drawing
- * when we stop.
+ * <p><b>2. No exclusive control.</b> This calls
+ * {@code CorsairSetLayerPriority} rather than {@code CorsairRequestControl}.
+ * iCUE draws at 127 and SDK clients default to 128, so sitting at 130 puts us
+ * on top without seizing the device out from under anybody.
  *
- * <p><b>3. Alpha is used.</b> {@code CorsairLedColor} carries an alpha channel
- * that iCUE composites in its own layer stack, so Tier 2 overlays can be
- * genuinely translucent rather than the opaque per-key overwrite an earlier
- * Compositor did.
+ * <p>That distinction genuinely matters to real people rather than being
+ * tidiness for its own sake. With exclusive control, an unclean Minecraft exit
+ * — a crash, a task-kill, a power cut — leaves the keyboard stuck displaying
+ * OUR lighting with the owner's iCUE profile locked out of their own hardware.
+ * Shutdown hooks do not run when a process is killed.
  *
- * <p><b>4. Only changed LEDs are pushed.</b> An earlier loop wrote a full board
- * every frame at 30Hz whether or not anything had moved — and
- * {@code debounceMillis} was defined in config and read by absolutely nothing.
+ * <p>Layer priority has no such failure mode. We stop drawing, iCUE carries on
+ * as though nothing happened.
+ *
+ * <p><b>3. Alpha goes out as 255, always.</b> {@code CorsairLedColor} carries
+ * an alpha channel that iCUE would composite against its own layers, and it
+ * is deliberately not used for that. Every LED is sent fully opaque; all the
+ * translucency (Tier 2 over Tier 1, fades, dissolves) is worked out in the
+ * {@code Compositor} before the frame gets here, so iCUE only ever receives
+ * finished colours.
+ *
+ * <p><b>4. Unchanged devices get skipped.</b> An earlier loop wrote the full
+ * board every frame at 30Hz whether or not a single pixel had moved. Now a
+ * device whose LEDs all match the last frame gets no native call at all
+ * (one with any change still sends its whole array; see applyFrame). And
+ * {@code debounceMillis} sat in the config, fully defined, read by absolutely
+ * nothing at all.
  *
  * <p><b>5. Struct arrays are contiguous.</b> Everything goes through
- * {@code Structure.toArray}. An earlier version built Java arrays of individually
- * allocated Structures, which are scattered anywhere in memory — and then
- * handed the first one's pointer to native code that would walk forward
- * expecting the rest to follow. It reads whatever happened to be next in the
- * heap. That's not a bug you debug, it's a bug you survive.
+ * {@code Structure.toArray}, without exception.
+ *
+ * <p>An earlier version built Java arrays of individually allocated
+ * Structures, which get scattered anywhere in memory the allocator fancied,
+ * and then handed the first one's pointer to native code that walks forward
+ * expecting the rest to be right behind it. So it reads whatever happened to
+ * be sitting next in the heap and treats it as colour data.
+ *
+ * <p>That is not a bug you debug. That is a bug you survive.
  */
 public final class CueSdkBridge {
 
-    /** CONNECTED = talking to hardware. NO_OP = everything still runs, nothing is sent. */
+    /** CONNECTED means talking to real hardware. NO_OP means everything still runs and nothing is sent anywhere. */
     public enum Mode { CONNECTED, NO_OP }
 
     private static final String DLL_RESOURCE = "/everythingrgbprofiles/native/iCUESDK.x64_2019.dll";
     private static final String DLL_FILE_NAME = "iCUESDK.x64_2019.dll";
 
-    /** Config key labels we ask the SDK to resolve to real luids at startup. */
+    /** The config key labels we ask the SDK to resolve into real luids at startup. */
     private static final char[] NAMED_KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".toCharArray();
 
     private static final String ID = "corsair";
@@ -84,10 +102,10 @@ public final class CueSdkBridge {
 
     /**
      * Where iCUE installs its own copy of the SDK. Hardcoded paths, which is
-     * inelegant and also correct: these are Corsair's fixed install locations
-     * and there is no registry key or env var that reliably beats just
-     * looking. iCUE5 first (newer), then iCUE4, then the x86 program-files
-     * variant.
+     * inelegant and also simply correct: these are Corsair's fixed install
+     * locations, and there is no registry key or environment variable that
+     * reliably beats going and looking. iCUE5 first because it is newer, then
+     * iCUE4, then the x86 program-files variant.
      */
     private static final String[] ICUE_INSTALL_DLLS = {
             "C:\\Program Files\\Corsair\\CORSAIR iCUE5 Software\\iCUESDK.x64_2019.dll",
@@ -164,13 +182,16 @@ public final class CueSdkBridge {
      */
     public void connect(Path dllExtractDir, java.util.function.Predicate<KeyGrid.DeviceClass> deviceEnabled) {
         try {
-            // jna.nosys=true — small line, real war story.
+            // jna.nosys=true tells JNA to use the jnidispatch native packed
+            // inside its own jar rather than one found on the system library
+            // path, where a mismatched system-wide copy (a 7.0.0 has been seen
+            // in the wild) would clash with it.
             //
-            // Another mod in a 600-mod pack may ship its own JNA, and the
-            // machine may ALSO have a system-wide jnidispatch (a 7.0.0 has
-            // been seen in the wild). Left to its own devices JNA will happily
-            // discover the wrong one and the version clash takes the whole
-            // lighting layer down. This forces it to use the copy we embed.
+            // Belt and braces rather than a fix: JNA 5's default for this is
+            // already "true" (Native.java in 5.14.0, the version Minecraft
+            // ships and this mod uses), so the line only changes anything if
+            // something else set it to false before JNA initialised. The mod
+            // embeds no JNA of its own; it runs on Minecraft's.
             System.setProperty("jna.nosys", "true");
 
             Path dllPath = resolveDll(dllExtractDir);
@@ -527,13 +548,13 @@ public final class CueSdkBridge {
     // ---------------------------------------------------------------------
 
     /**
-     * Finds a DLL: bundled copy first, then whatever iCUE installed.
+     * Finds a DLL: the bundled copy first, then whatever iCUE installed.
      *
-     * <p>The fallback settles the redistribution question rather neatly — it
-     * sidesteps shipping Corsair's DLL entirely if you'd rather not, <i>and</i>
-     * it guarantees the SDK build matches the user's actual installed iCUE
-     * instead of whatever version happened to be current when the mod was
-     * released. Two problems, one fallback.
+     * <p>That fallback settles the redistribution question rather neatly. It
+     * means shipping Corsair's DLL can be skipped entirely by anyone who would
+     * rather not, <i>and</i> it guarantees the SDK build matches the iCUE the
+     * player actually has installed rather than whatever version happened to
+     * be current on the day this mod was released. Two problems, one fallback.
      */
     private Path resolveDll(Path extractDir) throws IOException {
         Path bundled = extractBundledDll(extractDir);
@@ -550,24 +571,81 @@ public final class CueSdkBridge {
     }
 
     /**
-     * Unpacks the bundled DLL to disk, once. Returns the existing file if it's
-     * already there — no re-extraction, no version check.
+     * Unpacks the bundled DLL to disk, and makes sure what is on disk IS the
+     * bundled DLL before anything loads it.
      *
-     * <p>(Worth knowing: that means updating the mod with a new DLL won't
-     * replace an already-extracted one. Deleting {@code config/<modid>/native/}
-     * forces a fresh extract.)
+     * <p>An earlier version extracted once and then trusted whatever file sat
+     * at that path forever, which went wrong three ways. A crash or a full
+     * disk part way through the write left a truncated DLL that failed to load
+     * on every launch after it. A mod update shipping a newer DLL never
+     * replaced the old one. And whatever a third party dropped at that path got
+     * loaded into the game unchecked.
+     *
+     * <h2>Why a file that doesn't match gets overwritten, not trusted</h2>
+     * Loading a DLL is not reading a file. It is running whatever code is in
+     * it, inside Minecraft, with every permission the player's Windows account
+     * has. There is no sandbox and no "only touch the keyboard" mode. A broken
+     * one takes the game down with a native crash that no Java try/catch can
+     * see coming. A malicious one can do anything the player could: read their
+     * files, install things, lift saved logins. All without a single prompt,
+     * because as far as Windows is concerned the player just launched it.
+     *
+     * <p>And this path sits in a folder that any program running as the player
+     * can write to, so "it's in our folder" proves nothing about who put it
+     * there. The only DLL this code has any business vouching for is the
+     * exact one shipped inside the jar, so that is the only one it loads. Any
+     * other file at this path, whatever it is and however it got there, is
+     * treated as damage and replaced. Trusting it because it is sitting where
+     * ours should be is precisely how DLL planting works.
+     *
+     * <p>The fallback in {@link #resolveDll} loads iCUE's own installed copy
+     * without this check, and that is not the same gamble: it lives under
+     * Program Files, which an ordinary program cannot write to without an
+     * administrator prompt.
+     *
+     * <p>So the copy on disk is compared byte for byte against the one in the
+     * jar on every connect. Half a megabyte, once per launch, which is nothing.
+     * A mismatch is rewritten through a temporary file and a rename, so the
+     * path only ever holds either the old complete file or the new complete
+     * file, never half of one.
+     *
+     * <p>One case cannot be rewritten: on Windows a DLL another running
+     * Minecraft has loaded is locked. Then the existing copy is used as it is,
+     * which is no worse than what the old version always did, and the log says
+     * so.
      */
     private Path extractBundledDll(Path dir) throws IOException {
-        Path target = dir.resolve(DLL_FILE_NAME);
-        if (Files.isRegularFile(target)) return target;
+        byte[] bundled;
         try (InputStream in = CueSdkBridge.class.getResourceAsStream(DLL_RESOURCE)) {
-            if (in == null) return null; // not bundled in this build; caller falls back
-            Files.createDirectories(dir);
-            try (OutputStream out = Files.newOutputStream(target)) {
-                in.transferTo(out);
-            }
+            if (in == null) return null; // not bundled in this build, so the caller falls back to iCUE's copy
+            bundled = in.readAllBytes();
+        }
+        Path target = dir.resolve(DLL_FILE_NAME);
+        if (Files.isRegularFile(target) && Files.size(target) == bundled.length
+                && Arrays.equals(Files.readAllBytes(target), bundled)) {
             return target;
         }
+
+        Files.createDirectories(dir);
+        Path temp = Files.createTempFile(dir, DLL_FILE_NAME, ".tmp");
+        try {
+            Files.write(temp, bundled);
+            try {
+                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            if (Files.isRegularFile(target)) {
+                RGBProfileMod.LOGGER.warn("RGB Profile: could not refresh {} ({}), probably because another "
+                        + "running game has it loaded. Using the existing copy.", target.getFileName(), e.toString());
+                return target;
+            }
+            throw e;
+        } finally {
+            Files.deleteIfExists(temp);
+        }
+        return target;
     }
 
     /** iCUE's installed copies of the SDK, for {@link NativeCrashGuard} to notice an iCUE update by. */
