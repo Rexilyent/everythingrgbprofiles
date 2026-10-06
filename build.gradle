@@ -47,7 +47,10 @@ repositories {
 }
 
 base {
-    archivesName = mod_id
+    // The loader and Minecraft version go in the file name, so a player can
+    // tell which jar is which at a glance. Kept out of `version`, which is
+    // also what the in-game mod list shows.
+    archivesName = "${mod_id}-neoforge-${minecraft_version}"
 }
 
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
@@ -231,7 +234,7 @@ tasks.register('copyToModpack', Copy) {
         // on the jar in build/libs and in the in-game mod list.
         from(tasks.jar.archiveFile)
         into(destDir)
-        rename { "${mod_id}-${mod_version}.jar" }
+        rename { "${mod_id}-neoforge-${minecraft_version}-${mod_version}.jar" }
         doFirst {
             // Deleted rather than overwritten. The App keeps its own copy of
             // each file it tracks and links the one in the mods folder to it,
@@ -240,7 +243,7 @@ tasks.register('copyToModpack', Copy) {
             // Also clears the versioned names earlier builds were copied as.
             fileTree(destDir).matching { include "${mod_id}*.jar" }.each { it.delete() }
         }
-        doLast { logger.lifecycle("Copied to: ${destDir}/${mod_id}-${mod_version}.jar") }
+        doLast { logger.lifecycle("Copied to: ${destDir}/${mod_id}-neoforge-${minecraft_version}-${mod_version}.jar") }
     } else {
         doFirst { logger.warn("modpack_mods_dir not set in local.properties — skipping copy.") }
     }
