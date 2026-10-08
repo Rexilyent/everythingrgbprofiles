@@ -1,0 +1,2 @@
+package org.apache.logging.log4j;
+public interface Logger { void info(String s, Object... a); void warn(String s, Object... a); void warn(String s, Throwable t); void debug(String s, Object... a); void error(String s, Object... a); }
