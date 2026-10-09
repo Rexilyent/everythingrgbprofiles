@@ -1,0 +1,2 @@
+package net.minecraft.network;
+public class RegistryFriendlyByteBuf { public void writeInt(int i){} public int readInt(){return 0;} public void writeBoolean(boolean b){} public boolean readBoolean(){return false;} }
