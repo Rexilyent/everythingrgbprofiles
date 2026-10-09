@@ -1,0 +1,2 @@
+package net.neoforged.neoforge.event.entity.player;
+public class AdvancementEvent { public static class AdvancementEarnEvent extends AdvancementEvent { public Object getAdvancement(){return null;} public Object getEntity(){return null;} } }
