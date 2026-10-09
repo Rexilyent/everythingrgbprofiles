@@ -1,0 +1,2 @@
+package net.minecraft.world.item;
+public class ItemStack { public boolean isEmpty(){return true;} public Item getItem(){return null;} public int getCount(){return 0;} public Rarity getRarity(){return Rarity.COMMON;} }
