@@ -38,7 +38,8 @@ logs - base neoforge/
 jna-5.14.0.jar
 
 # Tuning tools
-tuning/
+tuning/export/
+tuning/**/*.class
 
 # References, documentation, and other auxiliary files
 reference/
