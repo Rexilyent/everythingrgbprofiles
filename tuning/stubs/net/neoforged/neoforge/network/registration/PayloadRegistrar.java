@@ -1,0 +1,2 @@
+package net.neoforged.neoforge.network.registration;
+public class PayloadRegistrar { public <T> PayloadRegistrar playToClient(Object type, Object codec, Object handler){return this;} public PayloadRegistrar versioned(String v){return this;} }
