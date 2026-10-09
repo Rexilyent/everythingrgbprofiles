@@ -1,0 +1,2 @@
+package net.neoforged.neoforge.event.entity.player;
+public class PlayerXpEvent { public static class LevelChange extends PlayerXpEvent { public int getLevels(){return 0;} public Object getEntity(){return null;} } }

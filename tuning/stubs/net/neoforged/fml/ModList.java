@@ -1,0 +1,2 @@
+package net.neoforged.fml;
+public class ModList { public static ModList get(){return null;} public boolean isLoaded(String id){return false;} }
