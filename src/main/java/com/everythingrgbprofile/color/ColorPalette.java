@@ -61,8 +61,20 @@ public final class ColorPalette {
     // fast where the rest pulse slow, and freezing is far paler than thirst.
     // Move two of them onto the same key and the hues will not save you.
     public static final RGBColor HEALTH_RED = RGBColor.fromHex("#FF1E1E");
+    /** The low-health heartbeat, a touch deeper than HEALTH_RED so the beat has somewhere brighter to peak. */
+    public static final RGBColor HEARTBEAT_RED = RGBColor.fromHex("#D8102A");
+    /** The crest of each beat. */
+    public static final RGBColor HEARTBEAT_CREST = RGBColor.fromHex("#FF6A6A");
     public static final RGBColor HUNGER_AMBER = RGBColor.fromHex("#FFA500");
+    /**
+     * What the hunger growl carves the board down to. Black, which on an LED
+     * means off, which is the point: the pit is where the biome isn't.
+     * HUNGER_AMBER is the lip round the edge of it.
+     */
+    public static final RGBColor HUNGER_GROWL_HOLLOW = RGBColor.BLACK;
     public static final RGBColor THIRST_CYAN = RGBColor.fromHex("#3FBFD4");
+    /** The glint a thirst drop catches as it starts to dry up. Only ever on one key for a moment, so being near FREEZING_ICE costs nothing. */
+    public static final RGBColor THIRST_GLINT = RGBColor.fromHex("#C8F6FF");
     public static final RGBColor OVERHEATING_ORANGE = RGBColor.fromHex("#FF6B35");
     public static final RGBColor FREEZING_ICE = RGBColor.fromHex("#A8E0F0");
 
@@ -260,6 +272,10 @@ public final class ColorPalette {
     public static final RGBColor BURNING_CORE = RGBColor.fromHex("#FFB01F");
     /** The tips of the flames, where the fire cools to red. */
     public static final RGBColor BURNING_TIP = RGBColor.fromHex("#E8350C");
+    /** The frost at the board's edge when you are freezing: nearly white, against FREEZING_ICE at the front. */
+    public static final RGBColor FREEZING_RIM = RGBColor.fromHex("#EEF9FF");
+    /** The heat at the board's edge when you are overheating: deep red, against OVERHEATING_ORANGE at the front. */
+    public static final RGBColor OVERHEATING_RIM = RGBColor.fromHex("#B3200A");
 
     // Rain has to stay legible on top of whatever biome is underneath it, and
     // the biome it was losing to is a bright one. The earlier #7A9BB5 had a
@@ -530,6 +546,41 @@ public final class ColorPalette {
     public static final RGBColor MENU_STONE_BASE = RGBColor.fromHex("#241B16");
     public static final RGBColor MENU_EMBER = RGBColor.fromHex("#FF7A29");
     public static final RGBColor MENU_ARCANE = RGBColor.fromHex("#9B5FFF");
+
+    // ---- Pride flags (hidden patterns) -------------------------------
+    // For PrideFlagPattern, which nothing turns on unless somebody names it in
+    // a config. Top stripe first.
+    //
+    // The official hexes are pastels, and pastels are exactly what the class
+    // doc above warns about. The trans flag's pink is #F5A9B8, which is about
+    // two thirds white, so on a keycap the pink and white stripes would be the
+    // same stripe. So the pale ones here are pushed toward their dominant
+    // channel. White stays white, because white is the one colour an LED
+    // genuinely nails. These have NOT been checked on real hardware yet, so if
+    // a stripe looks off, this is the place to fix it.
+    /** Trans flag light blue. Official #5BCEFA, with the white wrung out of it. */
+    public static final RGBColor TRANS_BLUE = RGBColor.fromHex("#1EB4FF");
+    /** Trans flag pink. Official #F5A9B8, which on an LED is just white with a crush on pink. */
+    public static final RGBColor TRANS_PINK = RGBColor.fromHex("#FF4D8A");
+    public static final RGBColor FLAG_WHITE = RGBColor.WHITE;
+    /** Lesbian flag dark orange. Already saturated, kept as-is. */
+    public static final RGBColor LESBIAN_DARK_ORANGE = RGBColor.fromHex("#D52D00");
+    /** Lesbian flag orange. Official #FF9A56, pulled harder toward orange so it doesn't read as peach. */
+    public static final RGBColor LESBIAN_ORANGE = RGBColor.fromHex("#FF7A1E");
+    /** Lesbian flag pink. Official #D362A4. */
+    public static final RGBColor LESBIAN_PINK = RGBColor.fromHex("#E0369E");
+    /** Lesbian flag dark rose. Official #A30262, dark but well clear of the "looks off" floor. */
+    public static final RGBColor LESBIAN_DARK_ROSE = RGBColor.fromHex("#A30262");
+    /** Bi flag pink. Official #D60270, already about as saturated as a colour gets. */
+    public static final RGBColor BI_PINK = RGBColor.fromHex("#D60270");
+    /**
+     * Bi flag purple. Official #9B4F96, which is half white, so on a keycap it's
+     * a grey with purple aspirations. Wrung out to a proper violet, and nudged
+     * a little toward blue so it doesn't melt into the pink stripe above it.
+     */
+    public static final RGBColor BI_PURPLE = RGBColor.fromHex("#9A1FB0");
+    /** Bi flag blue. Official #0038A8, kept as-is. */
+    public static final RGBColor BI_BLUE = RGBColor.fromHex("#0038A8");
 
     /** Constants only. There is nothing here worth instantiating. */
     private ColorPalette() {
