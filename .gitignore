@@ -44,6 +44,7 @@ tuning/**/*.class
 # References, documentation, and other auxiliary files
 reference/
 images/
+SOURCE-REVIEW.md
 
 # Releases/
 jar releases/
