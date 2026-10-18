@@ -1,0 +1,69 @@
+name: Bug or crash
+description: The game crashes, the mod throws errors, or something other than the lighting itself is broken.
+title: "[Bug] "
+labels: ["bug", "status: needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If the problem is the keyboard lighting itself, use the **Lighting problem** template instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: mc-version
+    attributes:
+      label: Minecraft version
+      options:
+        - "26.3"
+        - "26.2"
+        - "26.1.2"
+        - "1.21.11"
+        - "1.21.10"
+        - "1.21.8"
+        - "1.21.5"
+        - "1.21.4"
+        - "1.21.3"
+        - "1.21.1"
+        - "Other"
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+    validations:
+      required: true
+  - type: input
+    id: neoforge-version
+    attributes:
+      label: NeoForge version
+    validations:
+      required: true
+  - type: textarea
+    id: mods
+    attributes:
+      label: Other mods
+      description: A modpack name and version, or a list of the other mods installed.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Crash report or log
+      description: |
+        Attach `crash-reports/crash-....txt` if the game crashed, otherwise `logs/latest.log`.
+        Upload large logs to https://mclo.gs and paste the link instead.
+    validations:
+      required: true

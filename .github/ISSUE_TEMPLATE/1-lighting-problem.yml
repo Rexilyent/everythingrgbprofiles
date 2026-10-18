@@ -1,0 +1,102 @@
+name: Lighting problem
+description: The keyboard stays dark, shows the wrong colours, lights the wrong keys, or goes back to its normal lighting.
+title: "[Lighting] "
+labels: ["bug", "area: lighting", "status: needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, run these in chat. Most lighting problems are explained by one of them.
+        - `/rgbprofiles status` shows which lighting software is in use, or why none is.
+        - `/rgbprofiles test` checks that the keyboard shows the right colours on the right keys.
+        - `/rgbprofiles report` writes `logs/everythingrgbprofiles-report.txt`. **Please attach it.** It contains no personal details.
+
+        Only Corsair iCUE and OpenRGB have been tested on real hardware so far. Razer Chroma, Logitech G HUB, SteelSeries GG, ASUS Aura and MSI Mystic Light are experimental, so reports for those are especially useful.
+  - type: dropdown
+    id: software
+    attributes:
+      label: Lighting software
+      description: Which program controls your keyboard's lighting?
+      options:
+        - Corsair iCUE
+        - OpenRGB
+        - Razer Synapse / Chroma
+        - Logitech G HUB
+        - SteelSeries GG
+        - ASUS Aura / Armoury Crate
+        - MSI Mystic Light
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Keyboard model
+      description: Include the layout if you know it (US, UK, DE, etc.).
+      placeholder: Corsair K70 RGB Pro, US layout
+    validations:
+      required: true
+  - type: dropdown
+    id: other-rgb
+    attributes:
+      label: Other RGB programs running
+      description: Other programs that control the same lights can override the mod. Leave blank if nothing else is running.
+      multiple: true
+      options:
+        - SignalRGB
+        - ASUS Armoury Crate / Aura
+        - Another vendor's software
+        - Not sure
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected the keyboard to show, and what it showed instead. Include where you were and what you were doing, for example the biome, boss or status effect.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Join a world
+        2. Walk into a Swamp
+        3. Keyboard stays on the Plains colours
+  - type: dropdown
+    id: mc-version
+    attributes:
+      label: Minecraft version
+      options:
+        - "26.3"
+        - "26.2"
+        - "26.1.2"
+        - "1.21.11"
+        - "1.21.10"
+        - "1.21.8"
+        - "1.21.5"
+        - "1.21.4"
+        - "1.21.3"
+        - "1.21.1"
+        - "Other"
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
+      description: As shown in the mod list or the jar file name.
+    validations:
+      required: true
+  - type: input
+    id: neoforge-version
+    attributes:
+      label: NeoForge version
+  - type: textarea
+    id: report
+    attributes:
+      label: Diagnostic report
+      description: |
+        Attach `logs/everythingrgbprofiles-report.txt` from `/rgbprofiles report`. If that failed, attach `logs/latest.log` instead.
+        If the file is too large to attach, upload it to https://mclo.gs and paste the link instead.
+    validations:
+      required: true
