@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest a new effect, a change to an existing profile, support for new hardware, or anything else.
+title: "[Feature] "
+labels: ["enhancement", "status: needs triage"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feature?
+      options:
+        - New effect or event (damage, status effect, weather, etc.)
+        - Change to a biome, dimension or boss profile
+        - Support for new RGB hardware or software
+        - Config or settings
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What should happen, and when. For colours, describe them or include hex codes.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What this would add, or what problem it solves.
+  - type: dropdown
+    id: mc-version
+    attributes:
+      label: Minecraft version
+      options:
+        - "26.3"
+        - "26.2"
+        - "26.1.2"
+        - "1.21.11"
+        - "1.21.10"
+        - "1.21.8"
+        - "1.21.5"
+        - "1.21.4"
+        - "1.21.3"
+        - "1.21.1"
+        - "Other"
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod version
