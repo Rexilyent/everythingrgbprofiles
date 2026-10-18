@@ -123,13 +123,25 @@ public record RGBColor(int r, int g, int b) {
      * from the biome's own colours; see ClientEventHandlers.deriveBiomeColor.)
      *
      * <h2>Why a hand-rolled FNV-1a and not {@link String#hashCode()}</h2>
-     * {@code String.hashCode()} genuinely is specified in the Javadoc and it
-     * genuinely is stable in practice. Relying on it here is still the wrong
-     * call, because the requirement is not "stable within one JVM run". The
-     * requirement is "the Twilight Forest is the same green it was last
-     * Tuesday, and the same green on your friend's machine, on a different
-     * JDK, forever". Betting a user-visible value on a platform hash has no
-     * upside at all. FNV-1a is nine lines. We wrote the nine lines.
+     * Not for stability. {@code String.hashCode()} is pinned down exactly in
+     * the Java spec, so every JDK on earth gives the same answer, and an
+     * earlier version of this comment implied otherwise. It's stable. It's
+     * just bad at this particular job.
+     *
+     * <p>The job is telling apart ids that are nearly identical, which is
+     * what modded ids love to be. {@code String.hashCode()} is
+     * {@code 31 * hash + char}, so bumping the last character by one bumps
+     * the hash by one, and the hue by one degree. {@code mymod:layer_1},
+     * {@code _2} and {@code _3} come out at 145, 144 and 143 degrees: three
+     * dimensions, one green, zero ways to tell them apart.
+     *
+     * <p>FNV-1a multiplies every character by a big prime, so a one-letter
+     * difference gets smeared across all 64 bits. Same three ids land on 130,
+     * 39 and 308 degrees. Green, orange, pink. That's the whole point.
+     *
+     * <p>Bonus: 64 bits instead of 32, which leaves room for the hue,
+     * saturation and value slices below. FNV-1a is nine lines. We wrote the
+     * nine lines.
      */
     public static RGBColor deterministicFromKey(String key) {
         long hash = fnv1a(key);
@@ -164,7 +176,8 @@ public record RGBColor(int r, int g, int b) {
     /**
      * FNV-1a, 64-bit. Textbook apart from one thing: it hashes UTF-16 chars
      * rather than bytes, which is identical for the plain-ASCII ids it gets
-     * fed. Zero cleverness, aggressively boring on purpose. The entire value proposition of this method is that
+     * fed. Zero cleverness, aggressively boring on purpose.
+		 * The entire value proposition of this method is that
      * it returns the same number on every machine until the heat death of the
      * universe, and cleverness is how you lose that.
      */
