@@ -109,6 +109,8 @@ public final class SdkWorkerThread {
     private volatile long framesSent;
     private volatile long lastLoopMillis;
     private volatile String stoppedBecause;
+    /** Nothing connected at startup, so the loop never ran. See {@link #runLoopInner}. */
+    private volatile boolean idle;
     /** When the hardware test was asked to start, or {@link Long#MIN_VALUE} for no test. */
     private volatile long testStartMillis = Long.MIN_VALUE;
 
@@ -118,9 +120,13 @@ public final class SdkWorkerThread {
      * @param lastLoopMillis when the render loop last went round; a stale value
      *                       with {@code stoppedBecause} null means it is stuck
      * @param stoppedBecause why the render loop ended, or null while it runs
+     * @param idle           nothing connected at startup, so the loop was never
+     *                       started on purpose. Not a failure, and kept apart
+     *                       from {@code stoppedBecause} so nothing reports it as one
      */
     public record Status(String displayName, boolean connected, boolean connecting, KeyGrid grid,
-                         long framesSent, long lastLoopMillis, String stoppedBecause, long testStartMillis) {
+                         long framesSent, long lastLoopMillis, String stoppedBecause, boolean idle,
+                         long testStartMillis) {
     }
 
     private SdkWorkerThread() {
@@ -160,8 +166,8 @@ public final class SdkWorkerThread {
 
     /**
      * Hands a small state-change job to the worker. Safe from any thread, and
-     * a <b>silent no-op</b> if the worker was never started — gating failed,
-     * no hardware, mod disabled, wrong OS.
+     * a <b>silent no-op</b> if the worker isn't running: never started (mod
+     * disabled, wrong OS), or gone idle because no hardware connected.
      *
      * <p>That silence is the point. Every event handler in the mod can call
      * this unconditionally without first asking whether lighting exists, which
@@ -192,7 +198,7 @@ public final class SdkWorkerThread {
         SdkWorkerThread w = instance;
         if (w == null) return null;
         return new Status(w.publishedName, w.publishedConnected, !BackendHealth.connectFinished(),
-                w.publishedGrid, w.framesSent, w.lastLoopMillis, w.stoppedBecause, w.testStartMillis);
+                w.publishedGrid, w.framesSent, w.lastLoopMillis, w.stoppedBecause, w.idle, w.testStartMillis);
     }
 
     /**
@@ -207,9 +213,16 @@ public final class SdkWorkerThread {
         return true;
     }
 
+    /**
+     * The effects, or null whenever there's no point feeding them: the worker
+     * was never started, it went idle because nothing connected, or the game
+     * is shutting down. Every caller already treats null as "do nothing", so
+     * this one check is what takes the tick handler and every event handler
+     * out of the picture on a PC with no RGB at all.
+     */
     public static EffectRegistry effects() {
         SdkWorkerThread current = instance;
-        return current != null ? current.effects : null;
+        return current != null && current.running.get() ? current.effects : null;
     }
 
     public static void shutdown() {
@@ -260,6 +273,37 @@ public final class SdkWorkerThread {
             List<String> followers = bridge instanceof BackendRegistry.Mirror mirror
                     ? mirror.followerIds() : List.of();
             BackendHealth.connectFinished(connected ? bridge.id() : null, followers);
+
+            // Nothing answered, so go idle for the rest of the session. This is
+            // the PC that got the mod through a modpack and has no RGB anything,
+            // and it should cost that person nothing.
+            //
+            // An earlier version carried on regardless: registered every effect,
+            // rendered thirty frames a second into an empty key list and threw
+            // them away, and kept the tick handler polling the game to feed it.
+            // Cheap, since there were no keys to draw, but not free, and all of
+            // it for a session that could never use any of it, because there's
+            // no retry (see StartupGate) and so nothing can connect later.
+            //
+            // Clearing running is what does the work: enqueue() drops jobs and
+            // effects() returns null from here on, so every handler bails at its
+            // existing null check. The queue is emptied of anything that piled
+            // up while connect() was busy, and the executor is told to wind
+            // down so its thread actually exits once this task returns, rather
+            // than sitting parked for the whole session waiting for work that
+            // isn't coming. The finally block still calls bridge.shutdown(),
+            // which with nothing connected has nothing to do.
+            if (!connected) {
+                idle = true;
+                running.set(false);
+                jobQueue.clear();
+                queuedJobs.set(0);
+                executor.shutdown();
+                RGBProfileMod.LOGGER.info("RGB Profile: nothing to light, so the lighting thread is idle for "
+                        + "this session. Start your lighting software and restart Minecraft to use it.");
+                return;
+            }
+
             // Effects are registered AFTER connecting, because several of them
             // resolve config key labels against the real KeyGrid and need to
             // know what hardware actually exists.
@@ -313,7 +357,9 @@ public final class SdkWorkerThread {
                 boolean live = bridge.connected();
                 publishedConnected = live;
                 try {
-                    // No hardware, but STILL RENDER. Looks wasteful; isn't.
+                    // Hardware dropped out mid-session, but STILL RENDER. Looks
+                    // wasteful; isn't. (No hardware at startup never gets this
+                    // far; that goes idle above.)
                     //
                     // Effects hold timing state — activation timestamps,
                     // envelope positions, escalation levels — that only

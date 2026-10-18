@@ -19,7 +19,11 @@ first, and again after every branch switch:
 Then compile the tools. One line covers the colour tuner and everything it
 leans on:
 
-    javac -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java tuning\GifWriter.java tuning\BossThemes.java tuning\EffectThemes.java tuning\GameVersion.java
+    javac --release 21 -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java tuning\GifWriter.java tuning\BossThemes.java tuning\EffectThemes.java tuning\GameVersion.java
+
+`--release 21` matters as soon as you launch through Gradle (below). Gradle
+runs the mod's Java 21, and a class compiled by a newer `javac` won't load
+there, it just dies with `UnsupportedClassVersionError`.
 
 Editing a tool only needs its `javac` line again. `gradlew compileJava` is only
 for changes to the mod itself.
@@ -32,7 +36,12 @@ keyboard checkbox just tells you what's missing.
 
 ## ColorTuner: colour on the real board
 
+    gradlew colorTuner
     java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner
+
+Same tool both ways. The Gradle task runs it on the mod's full runtime
+classpath, which is what lets **drive my real keyboard** use every lighting
+backend. The plain `java -cp` launch is Corsair only. See [Hardware](#hardware).
 
 Every biome, portal, boss and effect the mod has, rendering its real pattern
 with its colours on hue / saturation / brightness sliders, optionally mirrored
@@ -49,7 +58,7 @@ Trust the hardware and the numbers, not the pixels.
 ### Headless modes
 
     java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner --check
-    java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner --probe
+    gradlew colorTuner -PtunerArgs=--probe
 
 **`--check`** is the thing to run first when the list looks wrong, because a
 bad config path otherwise looks exactly like an empty list. It prints:
@@ -69,9 +78,12 @@ bad config path otherwise looks exactly like an empty list. It prints:
 - the palette ranked by white fraction, most washed out first (see
   [The `white` number](#the-white-number))
 
-**`--probe`** connects to the Corsair board, builds the mapping from the drawn
-keyboard to the real LEDs, prints it and disconnects. It's read-only and never
-pushes a frame, so whatever the keyboard is showing stays put.
+**`--probe`** connects to whatever lighting answers, builds the mapping from
+the drawn keyboard to every real device, prints it and disconnects. It never
+pushes a frame. Connecting can still nudge things for a moment: Aura takes
+control from Armoury Crate and hands it back, and MSI switches areas to a
+static style and puts them back. Launched with plain `java -cp` it does the
+same for the Corsair board alone.
 
 ### Where the profiles come from
 
@@ -119,8 +131,9 @@ so a biome never shows boss controls and a boss never shows the painter.
 - **Encounter**: stage, progress and loop controls for bosses and effects.
   See [Bosses and effects](#bosses-and-effects).
 - **Key painter**: only for [Paint your own](#paint-your-own).
-- **Keyboard**: **drive my real keyboard** puts the board on your Corsair
-  keyboard while it's ticked.
+- **Keyboard**: **drive my real keyboard** puts the board on your real
+  lighting while it's ticked. Every backend under `gradlew colorTuner`,
+  Corsair only under plain `java -cp`.
 - **Tuning log**: a note box and **log tweak**. See
   [Getting colours into the game](#getting-colours-into-the-game).
 - At the bottom, always visible: **copy JSON**, **reset** (throw away slider
@@ -144,16 +157,28 @@ wrongness, so read it against what the thing is supposed to look like.
 
 ### Hardware
 
-**drive my real keyboard** connects through `HardwareBridge`, which talks to
-iCUE through the mod's own `ICueSdk` bindings. It's Corsair only; the tuning
-tools don't use the other backends. iCUE has to be running with SDK access
-enabled, and the status line says so when it isn't.
+**drive my real keyboard** connects through `HardwareBridge`, and what it can
+reach depends on how the tool was launched.
 
-It's a separate class from the mod's `CueSdkBridge` on purpose. That one logs
-through `RGBProfileMod`, which drags NeoForge in, which isn't on a plain
-`java -cp` classpath, and the result is a `NoClassDefFoundError` that looks
-like a missing JNA jar and is nothing of the sort. The SDK bindings are still
-shared; only the connect-and-push logic is duplicated.
+**`gradlew colorTuner`** (or `gradlew patternStudio`): every backend, through
+the mod's own backend classes, the exact ones the game uses. Corsair, OpenRGB,
+ASUS Aura, Razer, Logitech, SteelSeries and MSI all get tried, and everything
+that answers gets driven at once: keyboard, mouse, RAM, whatever's there. Each
+device is mapped straight from the drawn board with the mod's `SurfaceMapper`.
+All backend calls run on one worker thread, same rule as in game, and the
+newest frame wins if a slow backend falls behind. OpenRGB is tried at
+127.0.0.1:6742; point it elsewhere with
+`gradlew colorTuner -Dtuner.openrgb.host=<host> -Dtuner.openrgb.port=<port>`.
+
+**Plain `java -cp`**: Corsair only, through the mod's `ICueSdk` bindings and
+a small connect-and-push of its own. The mod's backends log through
+`RGBProfileMod`, which drags NeoForge in, which isn't on a plain classpath,
+and the result is a `NoClassDefFoundError` that looks like a missing JNA jar
+and is nothing of the sort. The status line says which of the two you got.
+
+Either way, the backend's software has to be running (iCUE with SDK access
+enabled, OpenRGB with its SDK server on, and so on), and the status line says
+what didn't answer.
 
 The on-screen board is always the drawn ANSI full-size layout. Connecting
 doesn't replace it. Instead each real LED is matched to the drawn key it
@@ -476,6 +501,7 @@ All passed as `-D<name>=<value>` before the class name.
 
 ## PatternStudio: pattern shape
 
+    gradlew patternStudio
     java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" PatternStudio
 
 ColorTuner tunes colour. PatternStudio tunes *shape*: an animated keyboard at
@@ -494,13 +520,16 @@ game once per tweak.
 - **Copy JSON** puts the settings on the clipboard as a
   `dimension_profiles.json` block.
 - **PNG** saves the board to `preview3/studio_<timestamp>.png`.
-- **Drive real keyboard** mirrors the frames onto the Corsair board through
-  the same `HardwareBridge` as the colour tuner. `HardwareBridge` isn't loaded
-  until the box is ticked, so the studio runs fine without JNA.
+- **Drive real keyboard** mirrors the frames onto your lighting through the
+  same `HardwareBridge` as the colour tuner: every backend under
+  `gradlew patternStudio`, Corsair only under plain `java -cp`.
+  `HardwareBridge` isn't loaded until the box is ticked, so the studio runs
+  fine without JNA.
 
 ## Hardware backends, without the hardware
 
-The mod drives Corsair, Razer, Logitech, SteelSeries and OpenRGB. The only
+The mod drives Corsair, OpenRGB, ASUS Aura, Razer, Logitech, SteelSeries and
+MSI. The only
 keyboard this project has been tested on is a Corsair K70 RGB RAPIDFIRE, so
 every other backend is experimental, and checked as far as the vendor's
 software alone allows and no further.
@@ -508,7 +537,7 @@ software alone allows and no further.
 The two Gradle tasks run against the mod's real runtime classpath plus
 `tuning/`, so compile the probes first:
 
-    javac -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\VendorProbe.java tuning\OpenRgbProbe.java tuning\MirrorCheck.java
+    javac --release 21 -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\VendorProbe.java tuning\OpenRgbProbe.java tuning\MirrorCheck.java
 
 Then:
 
