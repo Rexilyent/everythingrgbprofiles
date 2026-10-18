@@ -1,11 +1,15 @@
 import com.everythingrgbprofile.color.ColorPalette;
 import com.everythingrgbprofile.effects.support.BurningEffect;
 import com.everythingrgbprofile.effects.support.DrowningEffect;
+import com.everythingrgbprofile.effects.support.HeartbeatEffect;
+import com.everythingrgbprofile.effects.support.HungerGrowlEffect;
 import com.everythingrgbprofile.effects.support.MomentaryFlashEffect;
 import com.everythingrgbprofile.effects.support.NightIndicatorEffect;
 import com.everythingrgbprofile.effects.support.RaidEffect;
 import com.everythingrgbprofile.pattern.patterns.RaidHordePattern;
 import com.everythingrgbprofile.effects.support.SustainedOverlayEffect;
+import com.everythingrgbprofile.effects.support.TemperatureEdgeEffect;
+import com.everythingrgbprofile.effects.support.ThirstDropsEffect;
 import com.everythingrgbprofile.pattern.patterns.BloodDripPattern;
 import com.everythingrgbprofile.pattern.patterns.DriftParticlePattern;
 import com.everythingrgbprofile.pattern.patterns.LevelUpPattern;
@@ -64,6 +68,24 @@ final class EffectThemes {
 
     /** Shipped config defaults the scripts build with. See the class notes. */
     private static final double DROWNING_PANIC_THRESHOLD = 0.85;
+    /** healthFlash.thresholdPercent's shipped default: no heartbeat at or above this much health. */
+    private static final double HEALTH_THRESHOLD_PERCENT = 25;
+    /** ClientEventHandlers.HEARTBEAT_FLOOR: how strong the beat is the moment you drop under the threshold. */
+    private static final double HEARTBEAT_FLOOR = 0.15;
+    /** hungerWarning.thresholdPercent and toughAsNails.thirstThresholdPercent's shipped defaults. */
+    private static final double HUNGER_THRESHOLD_PERCENT = 30;
+    private static final double THIRST_THRESHOLD_PERCENT = 30;
+    /** ClientEventHandlers.HUNGER_GROWL_FLOOR and THIRST_DROPS_FLOOR. */
+    private static final double HUNGER_GROWL_FLOOR = 0.15;
+    private static final double THIRST_DROPS_FLOOR = 0.15;
+    /** ClientEventHandlers.TEMPERATURE_EDGE_FLOOR: how far in the edge sits the moment you go ICY or HOT. */
+    private static final double TEMPERATURE_EDGE_FLOOR = 0.12;
+    /**
+     * Where the temperature sliders cross into the danger zone. Before it you
+     * are merely cold or warm and nothing shows; after it the edge jumps to
+     * the floor and the rest of the slider is the damage meter filling.
+     */
+    private static final double TEMPERATURE_DANGER_AT = 0.1;
     private static final double BURNING_PANIC_THRESHOLD = 0.9;
     private static final int RAIN_PARTICLES = 12;
     private static final int RAIN_LIFESPAN_MILLIS = 2800;
@@ -150,6 +172,93 @@ final class EffectThemes {
                 .withPhases(
                         new BossThemes.Phase("rising", 0, DROWNING_PANIC_THRESHOLD),
                         new BossThemes.Phase("panic", DROWNING_PANIC_THRESHOLD, 1))));
+
+        // The slider is damage taken, so it reads left to right like the other
+        // danger effects: full health at 0, dead at 1. Most of it is the
+        // healthy stretch where nothing should show, which is worth being
+        // able to drag through and confirm.
+        out.add(overlay(new BossThemes.Theme("heartbeat", "healthFlash",
+                List.of(new BossThemes.Slot("beat", "heartbeatColor", ColorPalette.HEARTBEAT_RED),
+                        new BossThemes.Slot("crest", "heartbeatCrestColor", ColorPalette.HEARTBEAT_CREST)),
+                colors -> new HeartbeatEffect(ColorPalette.HEARTBEAT_RED, ColorPalette.HEARTBEAT_CREST),
+                (controller, memo, progress, elapsed) -> {
+                    HeartbeatEffect h = (HeartbeatEffect) controller;
+                    h.setColors(memo.colors.get(0), memo.colors.get(1));
+                    h.setLevel(heartbeatLevel(progress));
+                },
+                progress -> {
+                    double health = (1 - progress) * 100;
+                    return health >= HEALTH_THRESHOLD_PERCENT
+                            ? String.format("heartbeat - %.0f%% health, above the threshold, nothing", health)
+                            : String.format("heartbeat - %.0f%% health", health);
+                })
+                .withPhases(
+                        new BossThemes.Phase("healthy", 0, 1 - HEALTH_THRESHOLD_PERCENT / 100),
+                        new BossThemes.Phase("low", 1 - HEALTH_THRESHOLD_PERCENT / 100, 1))));
+
+        // Same left-to-right reading as the heartbeat: fed at 0, empty at 1.
+        // In game food only moves in whole points, so dragging this is
+        // smoother than anything a player will actually see; the six steps
+        // under the default threshold are all in here somewhere.
+        out.add(overlay(new BossThemes.Theme("hunger", "hungerWarning",
+                List.of(new BossThemes.Slot("lip", "color", ColorPalette.HUNGER_AMBER),
+                        new BossThemes.Slot("hollow", "growlHollowColor", ColorPalette.HUNGER_GROWL_HOLLOW)),
+                colors -> new HungerGrowlEffect(ColorPalette.HUNGER_AMBER, ColorPalette.HUNGER_GROWL_HOLLOW),
+                (controller, memo, progress, elapsed) -> {
+                    HungerGrowlEffect g = (HungerGrowlEffect) controller;
+                    g.setColors(memo.colors.get(0), memo.colors.get(1));
+                    g.setLevel(survivalLevel(progress, HUNGER_THRESHOLD_PERCENT, HUNGER_GROWL_FLOOR));
+                },
+                progress -> survivalDescription("hunger", "food", progress, HUNGER_THRESHOLD_PERCENT))
+                .withPhases(
+                        new BossThemes.Phase("fed", 0, 1 - HUNGER_THRESHOLD_PERCENT / 100),
+                        new BossThemes.Phase("hungry", 1 - HUNGER_THRESHOLD_PERCENT / 100, 1))));
+
+        out.add(overlay(new BossThemes.Theme("thirst", "toughAsNails",
+                List.of(new BossThemes.Slot("drop", "thirstColor", ColorPalette.THIRST_CYAN),
+                        new BossThemes.Slot("glint", "thirstGlintColor", ColorPalette.THIRST_GLINT)),
+                colors -> new ThirstDropsEffect(ColorPalette.THIRST_CYAN, ColorPalette.THIRST_GLINT),
+                (controller, memo, progress, elapsed) -> {
+                    ThirstDropsEffect t = (ThirstDropsEffect) controller;
+                    t.setColors(memo.colors.get(0), memo.colors.get(1));
+                    t.setLevel(survivalLevel(progress, THIRST_THRESHOLD_PERCENT, THIRST_DROPS_FLOOR));
+                },
+                progress -> survivalDescription("thirst", "thirst", progress, THIRST_THRESHOLD_PERCENT))
+                .withPhases(
+                        new BossThemes.Phase("hydrated", 0, 1 - THIRST_THRESHOLD_PERCENT / 100),
+                        new BossThemes.Phase("thirsty", 1 - THIRST_THRESHOLD_PERCENT / 100, 1))));
+
+        out.add(overlay(new BossThemes.Theme("freezing", "toughAsNails",
+                List.of(new BossThemes.Slot("front", "freezingColor", ColorPalette.FREEZING_ICE),
+                        new BossThemes.Slot("rim", "freezingRimColor", ColorPalette.FREEZING_RIM)),
+                colors -> new TemperatureEdgeEffect(ColorPalette.FREEZING_ICE, ColorPalette.FREEZING_RIM,
+                        ColorPalette.OVERHEATING_ORANGE, ColorPalette.OVERHEATING_RIM),
+                (controller, memo, progress, elapsed) -> {
+                    TemperatureEdgeEffect t = (TemperatureEdgeEffect) controller;
+                    t.setFrostColors(memo.colors.get(0), memo.colors.get(1));
+                    t.setLevels(temperatureEdgeLevel(progress), 0);
+                },
+                progress -> progress < TEMPERATURE_DANGER_AT ? "freezing - just cold, nothing yet"
+                        : String.format("freezing - ICY, frozen meter %.0f%%", temperatureMeter(progress) * 100))
+                .withPhases(
+                        new BossThemes.Phase("cold", 0, TEMPERATURE_DANGER_AT),
+                        new BossThemes.Phase("icy", TEMPERATURE_DANGER_AT, 1))));
+
+        out.add(overlay(new BossThemes.Theme("overheating", "toughAsNails",
+                List.of(new BossThemes.Slot("front", "overheatingColor", ColorPalette.OVERHEATING_ORANGE),
+                        new BossThemes.Slot("rim", "overheatingRimColor", ColorPalette.OVERHEATING_RIM)),
+                colors -> new TemperatureEdgeEffect(ColorPalette.FREEZING_ICE, ColorPalette.FREEZING_RIM,
+                        ColorPalette.OVERHEATING_ORANGE, ColorPalette.OVERHEATING_RIM),
+                (controller, memo, progress, elapsed) -> {
+                    TemperatureEdgeEffect t = (TemperatureEdgeEffect) controller;
+                    t.setHeatColors(memo.colors.get(0), memo.colors.get(1));
+                    t.setLevels(0, temperatureEdgeLevel(progress));
+                },
+                progress -> progress < TEMPERATURE_DANGER_AT ? "overheating - just warm, nothing yet"
+                        : String.format("overheating - HOT, heatstroke %.0f%%", temperatureMeter(progress) * 100))
+                .withPhases(
+                        new BossThemes.Phase("warm", 0, TEMPERATURE_DANGER_AT),
+                        new BossThemes.Phase("hot", TEMPERATURE_DANGER_AT, 1))));
 
         out.add(overlay(new BossThemes.Theme("rain", "rainThunderstorm",
                 List.of(new BossThemes.Slot("rain", "rainColor", ColorPalette.RAIN_BLUE_GRAY)),
@@ -368,6 +477,38 @@ final class EffectThemes {
     private static BossThemes.Theme overlay(BossThemes.Theme theme) {
         OVERLAYS.add(theme);
         return theme;
+    }
+
+    /** Same sum as ClientEventHandlers.pollHealth, with health read off the slider. */
+    private static double heartbeatLevel(double progress) {
+        double percent = (1 - progress) * 100;
+        if (percent >= HEALTH_THRESHOLD_PERCENT) return 0;
+        return HEARTBEAT_FLOOR + (1 - HEARTBEAT_FLOOR) * (1 - percent / HEALTH_THRESHOLD_PERCENT);
+    }
+
+    /** Same sum as ClientEventHandlers.survivalLevel, with the stat read off the slider as how much is gone. */
+    private static double survivalLevel(double progress, double threshold, double floor) {
+        double percent = (1 - progress) * 100;
+        if (percent >= threshold) return 0;
+        return floor + (1 - floor) * (1 - percent / threshold);
+    }
+
+    private static String survivalDescription(String name, String stat, double progress, double threshold) {
+        double percent = (1 - progress) * 100;
+        return percent >= threshold
+                ? String.format("%s - %.0f%% %s, above the threshold, nothing", name, percent, stat)
+                : String.format("%s - %.0f%% %s", name, percent, stat);
+    }
+
+    /** The damage meter, 0..1, for a slider position inside the danger zone. */
+    private static double temperatureMeter(double progress) {
+        return Math.max(0, (progress - TEMPERATURE_DANGER_AT) / (1 - TEMPERATURE_DANGER_AT));
+    }
+
+    /** Same sum as ClientEventHandlers.edgeLevel, with the danger zone read off the slider. */
+    private static double temperatureEdgeLevel(double progress) {
+        if (progress < TEMPERATURE_DANGER_AT) return 0;
+        return TEMPERATURE_EDGE_FLOOR + (1 - TEMPERATURE_EDGE_FLOOR) * temperatureMeter(progress);
     }
 
     private static int burningBand(double progress) {

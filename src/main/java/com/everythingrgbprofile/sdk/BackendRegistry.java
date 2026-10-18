@@ -28,11 +28,18 @@ import java.util.function.Supplier;
  * <h2>Order</h2>
  * Backends that can <i>enumerate</i> hardware go first. Corsair and OpenRGB
  * both report exactly which devices exist and precisely where their LEDs sit.
+ * ASUS Aura comes right after them: it lists devices too, and real key
+ * positions for keyboards, but only guesses at the layout of everything else.
  *
  * <p>The grid vendors (Razer, Logitech, SteelSeries) come afterwards, because
  * they cannot do that. All three of them answer "connected" whenever their
  * desktop software is running, entirely regardless of whether a keyboard is
  * plugged into the machine.
+ *
+ * <p>MSI goes dead last. It can at least say which devices exist, but it has
+ * no idea where a single LED sits, so an MSI keyboard leading would give every
+ * pattern a board drawn as one straight row of zones. Anything else with a
+ * keyboard leads first.
  *
  * <h2>Why auto drives everything that answers</h2>
  * Auto used to keep the first backend that connected, full stop. Which was
@@ -68,9 +75,11 @@ public final class BackendRegistry {
     static {
         add("corsair", "Corsair iCUE", CorsairBackend::new);
         add("openrgb", "OpenRGB", OpenRgbBackend::new);
+        add("aura", "ASUS Aura Sync", AuraBackend::new);
         add("razer", "Razer Chroma", RazerChromaBackend::new);
         add("logitech", "Logitech G HUB", LogitechBackend::new);
         add("steelseries", "SteelSeries GameSense", SteelSeriesBackend::new);
+        add("msi", "MSI Mystic Light", MysticLightBackend::new);
     }
 
     private static void add(String id, String displayName, Supplier<LightingBackend> factory) {
