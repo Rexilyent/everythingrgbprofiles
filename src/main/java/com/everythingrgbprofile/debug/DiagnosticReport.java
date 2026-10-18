@@ -27,8 +27,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * The file {@code /rgbprofiles report} writes: everything needed to work out a
@@ -46,11 +44,12 @@ import java.util.regex.Pattern;
  * the mod already worked out for itself, so the common cases get solved by
  * somebody reading the first screen and going "oh".
  *
- * <p>Nothing personal goes in it. No player name, no server address, and no
- * paths beyond the vendor install locations the mod went looking in. Some of
- * the detail lines do carry a path under the user's own folder (the extracted
- * Corsair DLL, a JVM crash log), so the finished text goes through
- * {@link #redact} on the way out, which is what keeps that promise true
+ * <p>Nothing personal goes in it. No player name, no server address, no
+ * custom OpenRGB address, and no paths beyond the vendor install locations the
+ * mod went looking in. Some of the detail lines do carry a path under the
+ * user's own folder (the extracted Corsair DLL, a JVM crash log), and OpenRGB
+ * messages name the address they tried, so the finished text goes through
+ * {@link Redaction#scrub} on the way out, which is what keeps that promise true
  * however a future detail line is worded.
  */
 public final class DiagnosticReport {
@@ -62,10 +61,10 @@ public final class DiagnosticReport {
      * Vendor programs worth knowing about, as lowercase substrings of the
      * executable name.
      *
-     * <p>The last two are not backends at all. They are in the list because
-     * they drive the same lights, and two programs driving one keyboard is not
-     * a partnership, it's a fight. Knowing one of them is running explains a
-     * whole category of "it works for a second then goes back to rainbow".
+     * <p>The last one is not a backend at all. It is in the list because it
+     * drives the same lights, and two programs driving one keyboard is not a
+     * partnership, it's a fight. Knowing it is running explains a whole
+     * category of "it works for a second then goes back to rainbow".
      */
     private static final String[][] VENDOR_PROCESSES = {
             {"Corsair iCUE", "icue"},
@@ -73,39 +72,12 @@ public final class DiagnosticReport {
             {"Razer Synapse / Chroma", "razer", "rzsdk", "rzchroma"},
             {"Logitech G HUB", "lghub"},
             {"SteelSeries GG", "steelseries"},
+            {"MSI Center / Mystic Light", "mysticlight"},
+            {"ASUS Armoury Crate / Aura", "armourycrate", "lightingservice", "aura"},
             {"SignalRGB (drives the same lights)", "signalrgb"},
-            {"ASUS Armoury Crate / Aura (drives the same lights)", "armourycrate", "lightingservice", "aura"},
     };
 
     private DiagnosticReport() {
-    }
-
-    /** Windows ({@code C:\\Users\\name}), macOS ({@code /Users/name}) and Linux ({@code /home/name}) home folders. */
-    private static final Pattern ANY_HOME = Pattern.compile(
-            "(?i)(\\b[a-z]:[\\\\/]+users[\\\\/]+|/users/|/home/)([^\\\\/\\s\"':;]+)");
-
-    /**
-     * Takes the user's name out of every path in the report.
-     *
-     * <p>Their own home folder becomes {@code ~}. Anything else that looks
-     * like a home folder (another drive, another account, a path some vendor
-     * message spelled with forward slashes) keeps its shape and loses the name,
-     * so {@code C:\\Users\\Alex\\...} reads {@code C:\\Users\\<user>\\...}. A path
-     * is still useful for working out which file went wrong; whose machine it
-     * was on is not.
-     */
-    static String redact(String text) {
-        if (text == null || text.isEmpty()) return text;
-        String home = System.getProperty("user.home");
-        if (home != null && home.length() > 3) {
-            // Both slash directions, because Java, JNA and the vendor SDKs do
-            // not agree on which one a Windows path uses.
-            for (String form : new String[]{home, home.replace('\\', '/'), home.replace('/', '\\')}) {
-                text = Pattern.compile(Pattern.quote(form), Pattern.CASE_INSENSITIVE)
-                        .matcher(text).replaceAll(Matcher.quoteReplacement("~"));
-            }
-        }
-        return ANY_HOME.matcher(text).replaceAll(m -> Matcher.quoteReplacement(m.group(1) + "<user>"));
     }
 
     /** Where the report is written: next to latest.log, which is usually asked for alongside it. */
@@ -244,8 +216,14 @@ public final class DiagnosticReport {
                 line(out, "No LEDs.");
             } else {
                 for (KeyGrid.Surface s : grid.surfaces()) {
+									/** Print details of each surface in the key grid. 
+									 *  A previous version included the device ID, this has since been
+									 *  removed to simplify the output as well as reduce clutter, and
+									 *  enable user privacy. A device identifier does little to help
+									 *  in diagnosing or understanding the lighting setup.
+									*/
                     line(out, "Device: " + s.model() + " (" + s.deviceClass() + ", " + s.leds().size()
-                            + " LEDs, id " + s.deviceId() + ")");
+                            + " LEDs)");
                 }
                 line(out, String.format(Locale.ROOT, "Geometry: key width %.4f of the board, aspect ratio %.3f",
                         grid.keyWidthNormalised(), grid.aspectRatio()));
@@ -258,7 +236,9 @@ public final class DiagnosticReport {
                         + " (missing is expected for Logitech and SteelSeries, which do not say where keys are)");
             }
             line(out, "Frames sent: " + status.framesSent());
-            if (status.stoppedBecause() != null) {
+            if (status.idle()) {
+                line(out, "Render loop: idle. Nothing connected at startup, so it was never started.");
+            } else if (status.stoppedBecause() != null) {
                 line(out, "Render loop: STOPPED. " + status.stoppedBecause());
             } else if (status.lastLoopMillis() == 0) {
                 line(out, "Render loop: not started yet.");
@@ -306,7 +286,7 @@ public final class DiagnosticReport {
             }
         }
         out.append('\n');
-        return redact(out.toString());
+        return Redaction.scrub(out.toString());
     }
 
     /**
@@ -316,7 +296,7 @@ public final class DiagnosticReport {
     public static List<String> conclusions() {
         List<String> out = new ArrayList<>();
         conclusionsInto(out);
-        out.replaceAll(DiagnosticReport::redact);
+        out.replaceAll(Redaction::scrub);
         return out;
     }
 

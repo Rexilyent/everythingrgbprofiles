@@ -268,6 +268,34 @@ tasks.register('openRgbProbe', JavaExec) {
     }
 }
 
+// Runs the MSI Mystic Light backend against an SDK DLL you point it at:
+// -PmlArgs="path/to/MysticLight_SDK_x64.dll". Switches areas to a static
+// style while connected and puts them back on shutdown.
+tasks.register('mysticLightProbe', JavaExec) {
+    group = 'verification'
+    description = 'Connects the MSI Mystic Light backend to a given SDK DLL and prints the diagnosis.'
+    dependsOn tasks.named('compileJava')
+    classpath = sourceSets.main.runtimeClasspath + files('tuning')
+    mainClass = 'MysticLightProbe'
+    if (project.hasProperty('mlArgs')) {
+        args project.property('mlArgs')
+    }
+}
+
+// Runs the ASUS Aura backend against whatever Armoury Crate installed. Takes
+// lighting control and hands it back; -PauraArgs=--send also paints every LED
+// red for two seconds.
+tasks.register('auraProbe', JavaExec) {
+    group = 'verification'
+    description = 'Connects the ASUS Aura backend through Armoury Crate and prints the diagnosis.'
+    dependsOn tasks.named('compileJava')
+    classpath = sourceSets.main.runtimeClasspath + files('tuning')
+    mainClass = 'AuraProbe'
+    if (project.hasProperty('auraArgs')) {
+        args project.property('auraArgs').split(' ')
+    }
+}
+
 // Tries the Razer, Logitech and SteelSeries backends against whatever vendor
 // software is installed. Add -PprobeArgs=--send to also push a test frame.
 tasks.register('vendorProbe', JavaExec) {
@@ -278,6 +306,27 @@ tasks.register('vendorProbe', JavaExec) {
     mainClass = 'VendorProbe'
     if (project.hasProperty('probeArgs')) {
         args project.property('probeArgs').split(' ')
+    }
+}
+
+// The colour tuner and pattern studio on the full runtime classpath, which is
+// what lets "drive my real keyboard" use every backend instead of only the
+// Corsair fallback a plain java -cp launch gets. Compile the tools with javac
+// first (see tuning/README.md). -PtunerArgs passes options through, e.g.
+// -PtunerArgs=--probe. -Dtuner.openrgb.host / .port point OpenRGB elsewhere.
+['colorTuner': 'ColorTuner', 'patternStudio': 'PatternStudio'].each { taskName, toolClass ->
+    tasks.register(taskName, JavaExec) {
+        group = 'verification'
+        description = "Runs ${toolClass} with every lighting backend available."
+        dependsOn tasks.named('compileJava')
+        classpath = sourceSets.main.runtimeClasspath + files('tuning')
+        mainClass = toolClass
+        ['tuner.openrgb.host', 'tuner.openrgb.port'].each { key ->
+            if (System.getProperty(key) != null) systemProperty key, System.getProperty(key)
+        }
+        if (project.hasProperty('tunerArgs')) {
+            args project.property('tunerArgs').split(' ')
+        }
     }
 }
 
