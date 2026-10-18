@@ -26,6 +26,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -322,15 +323,16 @@ public final class DiagnosticsCommands {
                 + "It's a free 1 MB download from MSI. No RGB on your MSI stuff (plenty of monitors have none)? "
                 + "Then you can skip this."));
         say(Component.literal(" 1. ").withStyle(ChatFormatting.WHITE)
-                .append(link("[Download from MSI]", ClickEvent.Action.OPEN_URL, MysticLightBackend.SDK_DOWNLOAD_URL,
+                .append(link("[Download from MSI]",
+                        new ClickEvent.OpenUrl(URI.create(MysticLightBackend.SDK_DOWNLOAD_URL)),
                         MysticLightBackend.SDK_DOWNLOAD_URL)));
         say(Component.literal(" 2. ").withStyle(ChatFormatting.WHITE)
                 .append(gray("Open the zip and copy " + MysticLightBackend.DLL_NAME + " (inside Mystic_light_SDK_1.0.0.08) into "))
-                .append(link("[this folder]", ClickEvent.Action.OPEN_FILE, folder.toString(), folder.toString())));
+                .append(link("[this folder]", new ClickEvent.OpenFile(folder), folder.toString())));
         say(Component.literal(" 3. ").withStyle(ChatFormatting.WHITE)
                 .append(gray("Open MSI Center and click into Mystic Light, then restart Minecraft.")));
         say(gray("Only MSI's own file is loaded; anything else with that name is refused. ")
-                .append(link("[Don't ask again]", ClickEvent.Action.RUN_COMMAND, "/" + ROOT + " msi dismiss",
+                .append(link("[Don't ask again]", new ClickEvent.RunCommand("/" + ROOT + " msi dismiss"),
                         "Stop mentioning this at startup")));
         return 1;
     }
@@ -445,7 +447,7 @@ public final class DiagnosticsCommands {
         say(prefix().append(yellow("Found MSI hardware. If it has RGB lighting, it needs a free download from MSI "
                         + "first. "))
                 .append(command("msi")).append(gray(" shows how (takes a minute). "))
-                .append(link("[Don't ask again]", ClickEvent.Action.RUN_COMMAND, "/" + ROOT + " msi dismiss",
+                .append(link("[Don't ask again]", new ClickEvent.RunCommand("/" + ROOT + " msi dismiss"),
                         "Stop mentioning this at startup")));
     }
 
