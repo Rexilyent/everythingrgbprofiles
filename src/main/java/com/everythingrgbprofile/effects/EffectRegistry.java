@@ -11,6 +11,7 @@ import com.everythingrgbprofile.effects.support.*;
 import com.everythingrgbprofile.keymap.KeyGrid;
 import com.everythingrgbprofile.gating.PackDetection;
 import com.everythingrgbprofile.pattern.Pattern;
+import com.everythingrgbprofile.pattern.PatternFactory;
 import com.everythingrgbprofile.pattern.PatternParams;
 import com.everythingrgbprofile.pattern.patterns.*;
 import com.everythingrgbprofile.priority.EffectController;
@@ -77,8 +78,12 @@ public final class EffectRegistry {
     public PortalChargeEffect portalCharge;
     public SustainedOverlayEffect thirstWarning;
     public SustainedOverlayEffect temperatureWarning;
+    public HungerGrowlEffect hungerGrowl;
+    public ThirstDropsEffect thirstDrops;
     public DrowningEffect drowning;
     public BurningEffect burning;
+    public TemperatureEdgeEffect temperatureEdge;
+    public HeartbeatEffect heartbeat;
 
     // --- Tier 3: interrupts. Highest priority wins, subject to suppression.
     public MomentaryFlashEffect deathFlash;
@@ -346,6 +351,21 @@ public final class EffectRegistry {
                 new PulsePattern(PulsePattern.Speed.SLOW), ColorPalette.OVERHEATING_ORANGE);
         manager.register(temperatureWarning);
 
+        // The slow survival stats, as whole-board overlays. Registered ahead
+        // of the water, the fire, the temperature edge and the heartbeat, so
+        // every one of those lands on top: you can be peckish later, the lava
+        // is a now problem. Body colours come from the same keys as the
+        // warning keys above, so recolouring hunger recolours both.
+        hungerGrowl = new HungerGrowlEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HUNGER_COLOR.get(), ColorPalette.HUNGER_AMBER),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HUNGER_GROWL_HOLLOW_COLOR.get(), ColorPalette.HUNGER_GROWL_HOLLOW));
+        manager.register(hungerGrowl);
+
+        thirstDrops = new ThirstDropsEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.THIRST_COLOR.get(), ColorPalette.THIRST_CYAN),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.THIRST_GLINT_COLOR.get(), ColorPalette.THIRST_GLINT));
+        manager.register(thirstDrops);
+
         // Level-driven rather than on/off, so it gets its own small class
         // instead of a SustainedOverlayEffect. Priority is meaningless in
         // Tier 2; it draws alongside everything else, which is right — rain
@@ -364,6 +384,25 @@ public final class EffectRegistry {
                 RGBColor.fromHexOrDefault(RGBProfileConfig.BURNING_CORE_COLOR.get(), ColorPalette.BURNING_CORE),
                 RGBColor.fromHexOrDefault(RGBProfileConfig.BURNING_TIP_COLOR.get(), ColorPalette.BURNING_TIP));
         manager.register(burning);
+
+        // Frost or heat closing in from the edges, for Tough As Nails. After
+        // the fire on purpose: heatstroke while you're on fire is entirely
+        // plausible, and the ring round the outside should stay readable on
+        // top of flames rising up the middle, not get buried under them.
+        temperatureEdge = new TemperatureEdgeEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.FREEZING_COLOR.get(), ColorPalette.FREEZING_ICE),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.FREEZING_RIM_COLOR.get(), ColorPalette.FREEZING_RIM),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.OVERHEATING_COLOR.get(), ColorPalette.OVERHEATING_ORANGE),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.OVERHEATING_RIM_COLOR.get(), ColorPalette.OVERHEATING_RIM));
+        manager.register(temperatureEdge);
+
+        // Last of the level-driven overlays, so it lands on top of them. Of
+        // everything in this tier, "you are about to die" is the one that
+        // should never be the thing getting drawn over.
+        heartbeat = new HeartbeatEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HEARTBEAT_COLOR.get(), ColorPalette.HEARTBEAT_RED),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HEARTBEAT_CREST_COLOR.get(), ColorPalette.HEARTBEAT_CREST));
+        manager.register(heartbeat);
 
         // ============ Tier 3 ============
         // THE PRIORITY LADDER. This is the most consequential list of numbers
@@ -500,6 +539,11 @@ public final class EffectRegistry {
      * is the only theme that is about the overworld rather than about a cave.
      */
     private static Pattern menuPattern() {
+        // Unlisted styles: the hidden patterns (rainbow, flags) work here too.
+        // The style comment in the config doesn't mention them, deliberately;
+        // see PatternFactory.hiddenPattern.
+        Pattern hidden = PatternFactory.hiddenPattern(RGBProfileConfig.MENU_STYLE.get());
+        if (hidden != null) return hidden;
         return switch (menuStyle()) {
             case MINESHAFT -> new MenuAmbientPattern(
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_EMBER_COLOR.get(), ColorPalette.MENU_EMBER),
@@ -565,6 +609,11 @@ public final class EffectRegistry {
     private static MenuStyle menuStyle() {
         String style = RGBProfileConfig.MENU_STYLE.get();
         if (style == null) return MenuStyle.SULFUR;
+        // A hidden pattern ignores the theme colours anyway, so there's no
+        // reason to go poking at the disk for pack detection over one. Asked of
+        // PatternFactory rather than listed here, because a list here is a list
+        // somebody forgets to update when the next flag goes in.
+        if (PatternFactory.hiddenPattern(style) != null) return MenuStyle.SULFUR;
         return switch (style.trim().toLowerCase(java.util.Locale.ROOT)) {
             case "mineshaft" -> MenuStyle.MINESHAFT;
             case "vanilla" -> MenuStyle.VANILLA;

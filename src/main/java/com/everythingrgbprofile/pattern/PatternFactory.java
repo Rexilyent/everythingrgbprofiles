@@ -14,7 +14,9 @@ import com.everythingrgbprofile.pattern.patterns.IceFloePattern;
 import com.everythingrgbprofile.pattern.patterns.NetherFungusPattern;
 import com.everythingrgbprofile.pattern.patterns.NetherWastesPattern;
 import com.everythingrgbprofile.pattern.patterns.OpenSeaPattern;
+import com.everythingrgbprofile.pattern.patterns.PrideFlagPattern;
 import com.everythingrgbprofile.pattern.patterns.PulsePattern;
+import com.everythingrgbprofile.pattern.patterns.RainbowWavePattern;
 import com.everythingrgbprofile.pattern.patterns.SavannaPattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerPattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerTwinklePattern;
@@ -163,12 +165,36 @@ public final class PatternFactory {
             case "savanna" -> preset != null && preset.equalsIgnoreCase("savanna-plateau")
                     ? SavannaPattern.savannaPlateau()
                     : SavannaPattern.savanna();
-						// An acid pool bubbling under a spiked ceiling. Shared with the
+            // An acid pool bubbling under a spiked ceiling. Shared with the
             // title-screen theme, since Minecraft 26.2's own panorama is a
             // sulfur cave — which is why it takes a preset despite there being
             // one biome: the menu wants the same scene at a slower pace.
             case "sulfur-cave" -> sulfurPreset(preset);
-            default -> new ShimmerPattern(); // animated fallback, never solid — see class doc
+            default -> {
+                Pattern hidden = hiddenPattern(patternName);
+                yield hidden != null ? hidden : new ShimmerPattern(); // animated fallback, never solid — see class doc
+            }
+        };
+    }
+
+    /**
+     * The hidden ones. No default profile names these and no config comment
+     * mentions them, so the only way to see one is for somebody to go and type
+     * it in on purpose: as a biome's {@code pattern}, or as
+     * {@code menuTheme.style}, which is why it's split out where
+     * EffectRegistry can reach it too.
+     *
+     * <p>Returns null for anything that isn't one, so callers can fall through
+     * to whatever they'd have done otherwise.
+     */
+    public static Pattern hiddenPattern(String name) {
+        if (name == null) return null;
+        return switch (name.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "rainbow-wave" -> new RainbowWavePattern();
+            case "trans-flag" -> PrideFlagPattern.trans();
+            case "lesbian-flag" -> PrideFlagPattern.lesbian();
+            case "bi-flag" -> PrideFlagPattern.bi();
+            default -> null;
         };
     }
 

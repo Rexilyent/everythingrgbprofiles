@@ -1,6 +1,7 @@
 package com.everythingrgbprofile.sdk;
 
 import com.everythingrgbprofile.RGBProfileMod;
+import com.everythingrgbprofile.debug.Redaction;
 
 import java.net.ConnectException;
 import java.net.NoRouteToHostException;
@@ -50,6 +51,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * connecting and again at the moment it drops, and this class is where the log
  * summary, the {@code /rgbprofiles} command and the report file all go to read
  * them.
+ *
+ * <p>Everything a backend hands over gets run through {@link Redaction} on
+ * the way in, before it's stored or logged. Backends quote paths and
+ * addresses back constantly (a DLL under the user's folder, the OpenRGB box
+ * they knocked on), and scrubbing at the door means no reader of this class
+ * has to remember to do it. They'd forget. We'd forget.
  *
  * <h2>Threading</h2>
  * Written from the SDK worker thread, read from the game thread. Diagnoses are
@@ -210,8 +217,8 @@ public final class BackendHealth {
      * backend failure — no backend was asked — so it is kept apart from them.
      */
     public static void gateClosed(String summary, String fix) {
-        gateSummary = summary;
-        gateFix = fix;
+        gateSummary = Redaction.scrub(summary);
+        gateFix = Redaction.scrub(fix);
         CHANGES.incrementAndGet();
     }
 
@@ -240,6 +247,9 @@ public final class BackendHealth {
 
     public static void record(String backendId, String displayName, State state, String summary,
                               String fix, String detail) {
+        summary = Redaction.scrub(summary);
+        fix = Redaction.scrub(fix);
+        detail = Redaction.scrub(detail);
         Diagnosis d = new Diagnosis(backendId, displayName, state, summary, fix, detail, System.currentTimeMillis());
         synchronized (DIAGNOSES) {
             DIAGNOSES.put(backendId, d);
@@ -325,7 +335,8 @@ public final class BackendHealth {
 
     private static void addProblem(String source, String message, Throwable t, boolean modFault) {
         long now = System.currentTimeMillis();
-        String detail = t == null ? null : describe(t);
+        message = Redaction.scrub(message);
+        String detail = t == null ? null : Redaction.scrub(describe(t));
         synchronized (PROBLEMS) {
             for (Problem p : PROBLEMS) {
                 if (p.source.equals(source) && p.message.equals(message) && Objects.equals(p.detail, detail)) {
@@ -341,8 +352,10 @@ public final class BackendHealth {
         if (t == null) {
             RGBProfileMod.LOGGER.warn("RGB Profile: {} — {}", source, message);
         } else {
+            // The trace goes in as scrubbed text, not as t. Hand log4j the
+            // throwable and it prints the raw message, username and all.
             RGBProfileMod.LOGGER.warn("RGB Profile: {} — {} (repeats are counted in /rgbprofiles report "
-                    + "rather than logged again)", source, message, t);
+                    + "rather than logged again)\n{}", source, message, Redaction.stackTrace(t));
         }
     }
 

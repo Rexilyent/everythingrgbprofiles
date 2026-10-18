@@ -61,7 +61,9 @@ public enum Feature {
     RAIN_THUNDERSTORM(Stage.RELEASED, () -> RGBProfileConfig.RAIN_THUNDERSTORM_ENABLED.get()),
     MENU_THEME(Stage.RELEASED, () -> RGBProfileConfig.MENU_THEME_ENABLED.get()),
     HEALTH_FLASH(Stage.RELEASED, () -> RGBProfileConfig.HEALTH_FLASH_ENABLED.get()),
+    HEARTBEAT(Stage.IN_DEVELOPMENT, () -> RGBProfileConfig.HEARTBEAT_ENABLED.get()),
     HUNGER_WARNING(Stage.RELEASED, () -> RGBProfileConfig.HUNGER_WARNING_ENABLED.get()),
+    HUNGER_GROWL(Stage.IN_DEVELOPMENT, () -> RGBProfileConfig.HUNGER_GROWL_ENABLED.get()),
     DROWNING(Stage.RELEASED, () -> RGBProfileConfig.DROWNING_ENABLED.get()),
     BURNING(Stage.RELEASED, () -> RGBProfileConfig.BURNING_ENABLED.get()),
     DEATH_FLASH(Stage.RELEASED, () -> RGBProfileConfig.DEATH_FLASH_ENABLED.get()),
@@ -113,12 +115,19 @@ public enum Feature {
     // pulse, so nothing goes dark: it just loses its dedicated room. Each one
     // is also under its mod's path switch above, so turning the Aether off
     // takes all three of its rooms with it without three separate edits.
+
+		// --- Twilight Forest --------------------------------------------------
     NAGA(Stage.IN_DEVELOPMENT, () -> TWILIGHT_FOREST.isOn() && RGBProfileConfig.NAGA_ENABLED.get()),
+
+		// --- Aether -----------------------------------------------------------
     SLIDER(Stage.IN_DEVELOPMENT, () -> AETHER.isOn() && RGBProfileConfig.SLIDER_ENABLED.get()),
     SUN_SPIRIT(Stage.IN_DEVELOPMENT, () -> AETHER.isOn() && RGBProfileConfig.SUN_SPIRIT_ENABLED.get()),
     VALKYRIE_QUEEN(Stage.IN_DEVELOPMENT, () -> AETHER.isOn() && RGBProfileConfig.VALKYRIE_QUEEN_ENABLED.get()),
-    /** Its reading of thirst and temperature is still a placeholder; see {@code ToughAsNailsCompat}. */
+		// --- Tough As Nails --------------------------------------------------
+    /** Reads TAN 10.1's real API now, but hasn't been played through in a pack yet. */
     TOUGH_AS_NAILS(Stage.IN_DEVELOPMENT, () -> RGBProfileConfig.TOUGH_AS_NAILS_ENABLED.get()),
+    TEMPERATURE_EDGES(Stage.IN_DEVELOPMENT, () -> TOUGH_AS_NAILS.isOn() && RGBProfileConfig.TEMPERATURE_EDGES_ENABLED.get()),
+    THIRST_DROPS(Stage.IN_DEVELOPMENT, () -> TOUGH_AS_NAILS.isOn() && RGBProfileConfig.THIRST_DROPS_ENABLED.get());
 
     // --- Upcoming vanilla content -----------------------------------------
     /**
