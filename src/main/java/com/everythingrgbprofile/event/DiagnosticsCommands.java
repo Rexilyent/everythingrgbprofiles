@@ -8,6 +8,7 @@ import com.everythingrgbprofile.debug.DiagnosticReport;
 import com.everythingrgbprofile.debug.EffectTimeline;
 import com.everythingrgbprofile.debug.HardwareTest;
 import com.everythingrgbprofile.sdk.BackendHealth;
+import com.everythingrgbprofile.sdk.MysticLightBackend;
 import com.everythingrgbprofile.sdk.NativeCrashGuard;
 import com.everythingrgbprofile.sdk.SdkWorkerThread;
 import net.minecraft.ChatFormatting;
@@ -68,6 +69,7 @@ public final class DiagnosticsCommands {
     private static final Map<String, BackendHealth.State> seenStates = new HashMap<>();
     private static int seenProblems;
     private static boolean bugNoticeDone;
+    private static boolean msiPromptDone;
 
     /** When the test this client started began, or {@link Long#MIN_VALUE} for none. */
     private static long testStartMillis = Long.MIN_VALUE;
@@ -84,7 +86,9 @@ public final class DiagnosticsCommands {
                 .then(Commands.literal("test").executes(ctx -> test()))
                 .then(Commands.literal("effects").executes(ctx -> effects()))
                 .then(Commands.literal("report").executes(ctx -> report()))
-                .then(Commands.literal("retry").executes(ctx -> retry())));
+                .then(Commands.literal("retry").executes(ctx -> retry()))
+                .then(Commands.literal("msi").executes(ctx -> msi())
+                        .then(Commands.literal("dismiss").executes(ctx -> msiDismiss()))));
     }
 
     // ---------------------------------------------------------------
@@ -98,6 +102,7 @@ public final class DiagnosticsCommands {
         say(Component.literal(" ").append(command("effects")).append(gray(" — which lighting effects are running, and what just changed")));
         say(Component.literal(" ").append(command("report")).append(gray(" — write a file to send with a bug report")));
         say(Component.literal(" ").append(command("retry")).append(gray(" — try lighting software again that was skipped after a crash")));
+        say(Component.literal(" ").append(command("msi")).append(gray(" — how to set up MSI Mystic Light")));
         return 1;
     }
 
@@ -177,6 +182,11 @@ public final class DiagnosticsCommands {
             say(line);
         }
 
+        if (worker != null && worker.idle()) {
+            // Not an error, so not red. Just the one thing worth knowing: the
+            // mod won't go looking again by itself.
+            say(gray(" The mod is idle for this session. Start your lighting software, then restart Minecraft."));
+        }
         if (worker != null && worker.stoppedBecause() != null && !worker.stoppedBecause().contains("shutting down")) {
             say(Component.literal(" " + worker.stoppedBecause()).withStyle(ChatFormatting.RED));
         }
@@ -291,6 +301,49 @@ public final class DiagnosticsCommands {
         return 1;
     }
 
+    /**
+     * How to get MSI's SDK, since we're not allowed to hand it over ourselves.
+     * Link to MSI's own zip, a button for the folder it goes in, and the
+     * one-sentence version of which file to take out of the zip.
+     */
+    private static int msi() {
+        Path folder = RGBProfileFiles.dllExtractDirectory();
+        try {
+            // [Open folder] on a folder that doesn't exist yet opens nothing,
+            // which is a great way to make someone think the button is broken.
+            java.nio.file.Files.createDirectories(folder);
+        } catch (IOException e) {
+            RGBProfileMod.LOGGER.warn("RGB Profile: could not create {}", folder, e);
+        }
+        String because = MysticLightBackend.sdkWanted();
+        say(title("MSI Mystic Light"));
+        say(gray((because == null ? "" : "Found: " + because + ". ")
+                + "MSI lighting needs MSI's Mystic Light SDK, which MSI doesn't let us include with the mod. "
+                + "It's a free 1 MB download from MSI. No RGB on your MSI stuff (plenty of monitors have none)? "
+                + "Then you can skip this."));
+        say(Component.literal(" 1. ").withStyle(ChatFormatting.WHITE)
+                .append(link("[Download from MSI]", ClickEvent.Action.OPEN_URL, MysticLightBackend.SDK_DOWNLOAD_URL,
+                        MysticLightBackend.SDK_DOWNLOAD_URL)));
+        say(Component.literal(" 2. ").withStyle(ChatFormatting.WHITE)
+                .append(gray("Open the zip and copy " + MysticLightBackend.DLL_NAME + " (inside Mystic_light_SDK_1.0.0.08) into "))
+                .append(link("[this folder]", ClickEvent.Action.OPEN_FILE, folder.toString(), folder.toString())));
+        say(Component.literal(" 3. ").withStyle(ChatFormatting.WHITE)
+                .append(gray("Open MSI Center and click into Mystic Light, then restart Minecraft.")));
+        say(gray("Only MSI's own file is loaded; anything else with that name is refused. ")
+                .append(link("[Don't ask again]", ClickEvent.Action.RUN_COMMAND, "/" + ROOT + " msi dismiss",
+                        "Stop mentioning this at startup")));
+        return 1;
+    }
+
+    private static int msiDismiss() {
+        RGBProfileConfig.MYSTIC_LIGHT_SDK_PROMPT.set(false);
+        RGBProfileConfig.MYSTIC_LIGHT_SDK_PROMPT.save();
+        msiPromptDone = true;
+        say(prefix().append(gray("Got it, no more MSI reminders. ")).append(command("msi"))
+                .append(gray(" still has the instructions if you change your mind.")));
+        return 1;
+    }
+
     private static String ago(long millis) {
         long seconds = millis / 1000;
         return seconds < 60 ? seconds + "s ago" : (seconds / 60) + "m ago";
@@ -340,6 +393,7 @@ public final class DiagnosticsCommands {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         showTestStep(mc);
+        msiPrompt();
         if (!RGBProfileConfig.DEBUG_CHAT_NOTICES.get()) return;
         int changes = BackendHealth.changes();
         if (changes == seenChanges && startupNoticeDone) return;
@@ -370,6 +424,29 @@ public final class DiagnosticsCommands {
         }
         mc.gui.setOverlayMessage(Component.literal("Keyboard test " + (step.ordinal() + 1) + "/"
                 + HardwareTest.Step.values().length + ": " + step.expectation()).withStyle(ChatFormatting.AQUA), false);
+    }
+
+    /**
+     * The "you have MSI stuff, want the SDK?" nudge. Once per session, first
+     * world joined, only for players {@link MysticLightBackend#sdkWanted} picked
+     * out, and never again after [Don't ask again].
+     *
+     * <p>Has its own switch rather than riding on chatNotices. Somebody who
+     * turned the error chatter off may still want to hear that their MSI
+     * board could be lighting up, and vice versa.
+     */
+    private static void msiPrompt() {
+        if (msiPromptDone) return;
+        if (!BackendHealth.workerStarted() || !BackendHealth.connectFinished()) return;
+        msiPromptDone = true;
+        if (!RGBProfileConfig.MYSTIC_LIGHT_SDK_PROMPT.get()) return;
+        String because = MysticLightBackend.sdkWanted();
+        if (because == null) return;
+        say(prefix().append(yellow("Found MSI hardware. If it has RGB lighting, it needs a free download from MSI "
+                        + "first. "))
+                .append(command("msi")).append(gray(" shows how (takes a minute). "))
+                .append(link("[Don't ask again]", ClickEvent.Action.RUN_COMMAND, "/" + ROOT + " msi dismiss",
+                        "Stop mentioning this at startup")));
     }
 
     /** Said once, at the first world joined after the lighting settles. */
@@ -433,7 +510,15 @@ public final class DiagnosticsCommands {
      *
      * <p>"Not running" is ambiguous for Razer and OpenRGB, which are network
      * servers and genuinely cannot distinguish "not running" from "not
-     * installed", so only the other three backends are allowed to count it.
+     * installed", so only the other backends are allowed to count it.
+     *
+     * <p>"No devices" from Aura does not count either. Armoury Crate is what
+     * ASUS boards install for drivers and updates, RGB or not, and it brings
+     * the Aura SDK along "every time". Every time meaning you had to physically
+		 * select a device during install, otherwise be greeted with the failure to
+		 * install and a redirect to the uninstall tool, ask us how we know...
+		 * Aura answering with nothing attached is an ASUS PC without lighting,
+		 * which is, again, just a PC.
      */
     private static boolean rgbSoftwareFound(List<BackendHealth.Diagnosis> all) {
         for (BackendHealth.Diagnosis d : all) {
@@ -442,6 +527,9 @@ public final class DiagnosticsCommands {
                 }
                 case NOT_RUNNING -> {
                     if (!d.backendId().equals("razer") && !d.backendId().equals("openrgb")) return true;
+                }
+                case NO_DEVICES -> {
+                    if (!d.backendId().equals("aura")) return true;
                 }
                 default -> {
                     return true;
