@@ -1,7 +1,3 @@
-/**
- * In before lobsterjohn tries to remove these claiming, they need to "protect the children" - blantant transphobia is blatant.
- * If this game is meant for children LobsterJonn, then why the fuck are you actively playing it??
- */
 package com.everythingrgbprofile.pattern.patterns;
 
 import java.util.ArrayList;
