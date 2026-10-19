@@ -60,12 +60,14 @@ public final class RGBProfileMod {
         // state on the client turned out to do the entire job by itself (see
         // SculkBlockWatcher), so nothing reads this config server-side now.
         //
-        // It stays COMMON regardless. The only thing switching to CLIENT would
-        // achieve is a dedicated server no longer bothering to load a file it
-        // was already ignoring, and then the filename would be lying about
-        // itself. It lands in config/ under a name that says what it is,
-        // because nobody enjoys archaeology.
-        modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, RGBProfileConfig.SPEC, "everythingrgbprofiles-common.toml");
+        // It stays LOCAL (what NeoForge 26.3 renamed COMMON to) regardless. The
+        // only thing switching to CLIENT would achieve is a dedicated server no
+        // longer bothering to load a file it was already ignoring, and then the
+        // filename would be lying about itself. The filename keeps "common" so
+        // configs from earlier versions carry straight over. It lands in
+        // config/ under a name that says what it is, because nobody enjoys
+        // archaeology.
+        modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.LOCAL, RGBProfileConfig.SPEC, "everythingrgbprofiles-common.toml");
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);

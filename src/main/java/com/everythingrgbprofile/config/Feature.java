@@ -127,7 +127,7 @@ public enum Feature {
     /** Reads TAN 10.1's real API now, but hasn't been played through in a pack yet. */
     TOUGH_AS_NAILS(Stage.IN_DEVELOPMENT, () -> RGBProfileConfig.TOUGH_AS_NAILS_ENABLED.get()),
     TEMPERATURE_EDGES(Stage.IN_DEVELOPMENT, () -> TOUGH_AS_NAILS.isOn() && RGBProfileConfig.TEMPERATURE_EDGES_ENABLED.get()),
-    THIRST_DROPS(Stage.IN_DEVELOPMENT, () -> TOUGH_AS_NAILS.isOn() && RGBProfileConfig.THIRST_DROPS_ENABLED.get());
+    THIRST_DROPS(Stage.IN_DEVELOPMENT, () -> TOUGH_AS_NAILS.isOn() && RGBProfileConfig.THIRST_DROPS_ENABLED.get()),
 
     // --- Upcoming vanilla content -----------------------------------------
     /**

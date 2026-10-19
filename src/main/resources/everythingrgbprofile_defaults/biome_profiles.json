@@ -9,6 +9,7 @@
   "minecraft:birch_forest": { "color": "#6FA82A", "accentColor": "#C8FF3C", "pattern": "canopy-dapple", "preset": "birch-forest" },
   "minecraft:old_growth_birch_forest": { "color": "#5E9424", "accentColor": "#B4F032", "pattern": "canopy-dapple", "preset": "old-growth-birch-forest" },
   "minecraft:dark_forest": { "color": "#35850D", "accentColor": "#7BFF24", "pattern": "canopy-dapple", "preset": "dark-forest" },
+  "minecraft:dappled_forest": { "color": "#E8281A", "accentColor": "#FFB414", "pattern": "canopy-dapple", "preset": "dappled-forest" },
 
   "minecraft:taiga": { "color": "#1F6B34", "accentColor": "#8FE05A", "pattern": "snow-forest", "preset": "taiga" },
   "minecraft:snowy_taiga": { "color": "#1E6B3A", "accentColor": "#BFE2FF", "pattern": "snow-forest", "preset": "snowy-taiga" },

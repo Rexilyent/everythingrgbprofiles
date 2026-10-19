@@ -48,9 +48,10 @@ repositories {
 
 base {
     // The loader and Minecraft version go in the file name, so a player can
-  	// tell which jar is which at a glance. Kept out of `version`, which is
-    // also what the in-game mod list shows.
-    archivesName = "${mod_id}-neoforge-${minecraft_version}-${mod_version}"
+    // tell which jar is which at a glance. Kept out of `version`, which is
+    // also what the in-game mod list shows. No mod version here: Gradle
+    // appends `version` to this itself, experimental stamp and all.
+    archivesName = "${mod_id}-neoforge-${minecraft_version}"
 }
 
 // Mojang ships Java 25 to end users in 26.1 — its version manifest asks for

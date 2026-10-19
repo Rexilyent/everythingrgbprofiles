@@ -549,6 +549,21 @@ public final class ColorPalette {
     /** The little blue cube creatures. Screenshot: a pale sky blue, pushed so it separates from the teal. */
     public static final RGBColor SIFT_CRITTER = RGBColor.fromHex("#5CC4FF");
 
+    // ---- Dappled forest, 26.3 ----------------------------------------------
+    // Minecraft 26.3's autumn biome, and the autumn menu theme built from it.
+    // Its trees are poplars in three colours, and unlike oak leaves their
+    // textures carry the colour themselves instead of being tinted by the
+    // biome, so these come straight off the leaf textures. Brightest pixel
+    // beside each, then pushed toward saturation like the sulfur palette.
+
+    /** Orange poplar, the commonest tree in the biome. {@code orange_poplar_leaves.png} tops out at #ED7D1A. */
+    public static final RGBColor AUTUMN_ORANGE_LEAF = RGBColor.fromHex("#FF7410");
+    /**
+     * Red poplar, the second commonest. {@code red_poplar_leaves.png} tops out
+     * at #D43C2F; pushed to a cleaner red for the same reason as the cinnabar.
+     */
+    public static final RGBColor AUTUMN_RED_LEAF = RGBColor.fromHex("#E8281A");
+
 		// ---- Default menu theme: sky over grass ---------------------------
     /** Daytime sky, for the default title-screen theme. */
     public static final RGBColor MENU_VANILLA_SKY = RGBColor.fromHex("#5B93E8");

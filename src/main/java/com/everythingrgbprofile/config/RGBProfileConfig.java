@@ -275,6 +275,8 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.IntValue MENU_VANILLA_CLOUD_COUNT;
     public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_ROCK_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_POOL_COLOR;
+    public static final ModConfigSpec.ConfigValue<String> MENU_AUTUMN_LEAF_COLOR;
+    public static final ModConfigSpec.ConfigValue<String> MENU_AUTUMN_ACCENT_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_SIFT_MESA_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_SIFT_SKY_COLOR;
     public static final ModConfigSpec.ConfigValue<String> MENU_BASE_COLOR;
@@ -1252,21 +1254,22 @@ public final class RGBProfileConfig {
                 .define("enabled", true);
         MENU_STYLE = b.comment(
                         "Which title-screen theme to use.",
+                        "  autumn    - red and orange poplar leaves drifting down the board. The",
+                        "              default, because Minecraft 26.3's own title panorama IS the",
+                        "              dappled forest, so this is the theme that matches the screen",
+                        "              it is sitting behind rather than somebody's taste.",
                         "  sulfur    - a sulfur cave: an acid pool bubbling and venting below a",
-                        "              spiked ceiling. The default, because from Minecraft 26.2 the",
-                        "              game's own title panorama IS a sulfur cave, so this is the",
-                        "              theme that matches the screen it is sitting behind rather",
-                        "              than somebody's taste.",
+                        "              spiked ceiling. What the panorama was in 26.2.",
                         "  vanilla   - sky over grass with drifting clouds. What the panorama was",
                         "              through 1.21.x, and what this mod shipped with. Still the",
                         "              right answer with a resource pack that restores the old art.",
                         "  mineshaft - the dark cave face with torches, a drill and ore glints. Built",
                         "              for the Forge Everything pack's title screen specifically.",
                         "  auto      - mineshaft if this looks like one of menuPackNames below,",
-                        "              sulfur otherwise.",
+                        "              autumn otherwise.",
                         "Pack maintainers: set this outright in defaultconfigs/ rather than relying on",
                         "auto. Detection is a convenience and cannot see inside every launcher.")
-                .define("style", "sulfur");
+                .define("style", "autumn");
         MENU_PACK_PATTERNS = b.comment(
                         "Comma-separated. Under 'auto', the mineshaft theme is used when the detected "
                                 + "pack name contains any of these. Matched as a case-insensitive "
@@ -1281,6 +1284,14 @@ public final class RGBProfileConfig {
                                 + "derived from this, so recolouring the pool moves its whole depth "
                                 + "gradient with it.")
                 .define("sulfurPoolColor", "#19D98C");
+        MENU_AUTUMN_LEAF_COLOR = b.comment(
+                        "Autumn theme (style = \"autumn\"): half the falling leaves. Orange poplar, "
+                                + "the commonest tree in the dappled forest.")
+                .define("autumnLeafColor", "#FF7410");
+        MENU_AUTUMN_ACCENT_COLOR = b.comment(
+                        "Autumn theme: the other half of the leaves. Red poplar. Set it the same as "
+                                + "autumnLeafColor for one colour of leaf.")
+                .define("autumnAccentColor", "#E8281A");
         MENU_SIFT_MESA_COLOR = b.comment(Feature.SIFT.configComment(
                         "Sift theme (style = \"sift\"): the coral mesas. The lit tops of their caps "
                                 + "are derived from this."))

@@ -14,11 +14,12 @@ import java.util.Random;
 
 /**
  * The generic {@code drift-particle} engine: little things moving across your
- * keyboard. One class, eight presets, zero subclasses.
+ * keyboard. One class, nine presets, zero subclasses.
  *
- * <p>Petal-drift, snow-drift, sand-drift, bubble-rise, ember-rise,
- * spore-drift, drip-fall, and the Rain Cascade overlay's rain-drift are every
- * one of them <b>this class with different numbers in it</b>.
+ * <p>Petal-drift, leaf-drift, snow-drift, sand-drift, bubble-rise,
+ * ember-rise, spore-drift, drip-fall, and the Rain Cascade overlay's
+ * rain-drift are every one of them <b>this class with different numbers in
+ * it</b>.
  *
  * <p>Falling cherry petals and rising Nether embers differ by a direction
  * angle and a lifespan. That is the entire difference. Every preset works
@@ -293,6 +294,9 @@ public final class DriftParticlePattern implements Pattern {
     //
     //   90      = straight down (drips, rain — gravity, no messing about)
     //   100     = snow, near-vertical with a slight lean
+    //   120     = autumn leaves: the petal idea, but a leaf is heavier than a
+    //             petal, so it comes down steeper, and there are more of them
+    //             because the autumn menu theme has nothing else on the board
     //   140     = down and to the left at a good diagonal (petals — carried
     //             sideways by wind while they fall, which is the whole
     //             character of cherry blossom. Was 160, which the aspect
@@ -303,6 +307,7 @@ public final class DriftParticlePattern implements Pattern {
     //   270/280 = UP (bubbles, embers — buoyant, the sign flip that turns
     //             falling into rising)
     public static DriftParticlePattern petalDrift() { return new DriftParticlePattern(140, 6, 3, 3500); }
+    public static DriftParticlePattern leafDrift() { return new DriftParticlePattern(120, 9, 3, 4200); }
     public static DriftParticlePattern snowDrift() { return new DriftParticlePattern(100, 8, 3, 4000); }
     public static DriftParticlePattern sandDrift() { return new DriftParticlePattern(0, 6, 4, 3000); }
     public static DriftParticlePattern bubbleRise() { return new DriftParticlePattern(270, 6, 3, 2800); }

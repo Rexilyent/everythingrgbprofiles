@@ -295,12 +295,13 @@ public final class PatternFactory {
             case "old-growth-birch-forest" -> CanopyDapplePattern.oldGrowthBirchForest();
             case "spruce-forest" -> CanopyDapplePattern.spruceForest();
             case "old-growth-pine-taiga" -> CanopyDapplePattern.oldGrowthPineTaiga();
+            case "dappled-forest" -> CanopyDapplePattern.dappledForest();
             default -> CanopyDapplePattern.jungle();
         };
     }
 
     /**
-     * The drift presets: same particle engine, eight different sets of
+     * The drift presets: same particle engine, nine different sets of
      * physics. This is that "parameterised engine, not per-entry subclasses"
      * idea actually paying rent — falling petals and rising embers are the
      * same code with the gravity sign flipped.
@@ -309,6 +310,7 @@ public final class PatternFactory {
         if (preset == null) return DriftParticlePattern.petalDrift();
         return switch (preset.toLowerCase()) {
             case "petal-drift" -> DriftParticlePattern.petalDrift();
+            case "leaf-drift" -> DriftParticlePattern.leafDrift();
             case "snow-drift" -> DriftParticlePattern.snowDrift();
             case "sand-drift" -> DriftParticlePattern.sandDrift();
             case "bubble-rise" -> DriftParticlePattern.bubbleRise();
