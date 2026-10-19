@@ -72,10 +72,12 @@ public final class RGBProfileMod {
 
         // Nothing gets registered on the game bus here, and no network payload
         // gets registered anywhere at all. An earlier version did both, for
-        // the sculk relay. With that deleted this mod has no server-side
-        // behaviour and no network surface whatsoever, which is precisely why
-        // a client carrying it can walk onto any server, vanilla or NeoForge,
-        // with nothing to negotiate and nothing to argue about.
+        // the sculk relay. Commits 0807383 and 4695679 deleted it (the
+        // receipts are in SculkBlockWatcher's class doc), and with it gone
+        // this mod has no server-side behaviour and no network surface
+        // whatsoever, which is precisely why a client carrying it can walk
+        // onto any server, vanilla or NeoForge, with nothing to negotiate and
+        // nothing to argue about.
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
