@@ -3,6 +3,10 @@ package com.everythingrgbprofile.sdk;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -111,7 +115,24 @@ public final class SteelSeriesBackend extends GridBackend {
                     "Start SteelSeries GG, which rewrites that file, then restart Minecraft.",
                     props + ": " + BackendHealth.clip(root.toString()));
         }
-        base = "http://" + root.get("address").getAsString();
+        // GG writes "127.0.0.1:<port>" here and has never been seen writing
+        // anything else. But it's a plain file in ProgramData, and whatever
+        // it says is where every frame and heartbeat gets POSTed for the rest
+        // of the session, so it has to name this computer or it gets ignored.
+        // Frames are only colours, nothing secret, but a lighting mod sending
+        // HTTP to some host it read out of a file is still a bad look.
+        String address = root.get("address").getAsString().trim();
+        if (!isLoopbackAddress(address)) {
+            // The address itself stays out of the detail. GG never writes a
+            // non-loopback one, so anything that shows up here came from
+            // somewhere else, and nobody pasting a report should be handing
+            // it out.
+            throw new BackendHealth.Unavailable(BackendHealth.State.REFUSED,
+                    "SteelSeries GG's address file points somewhere other than this computer, so it was ignored.",
+                    "Restart SteelSeries GG, which rewrites that file. If this keeps coming back, something other than GG is editing it.",
+                    "Looked in: " + props);
+        }
+        base = "http://" + address;
 
         try {
             http.send("POST", base + "/game_metadata",
@@ -127,6 +148,52 @@ public final class SteelSeriesBackend extends GridBackend {
                     "SteelSeries GG is running but rejected this mod's registration (HTTP " + e.status + ").",
                     BackendHealth.SEND_REPORT, e.getMessage());
         }
+    }
+
+    /**
+     * Whether coreProps' address is a host and a port on this computer, and
+     * nothing else. No scheme, no path, no userinfo, no port-less "just trust
+     * me". GG always names its port, so a missing one is wrong too.
+     *
+     * <p>Literals only, plus {@code localhost}. A hostname would mean a DNS
+     * lookup to find out where it goes, and asking the network whether a
+     * name is local is precisely the thing this check exists to avoid.
+     */
+    static boolean isLoopbackAddress(String address) {
+        URI uri;
+        try {
+            uri = new URI("http://" + address);
+        } catch (URISyntaxException e) {
+            return false;
+        }
+        if (uri.getRawUserInfo() != null || uri.getRawQuery() != null || uri.getRawFragment() != null) return false;
+        String path = uri.getRawPath();
+        if (path != null && !path.isEmpty()) return false;
+        int port = uri.getPort();
+        if (port < 1 || port > 65535) return false;
+
+        String host = uri.getHost();
+        if (host == null) return false;
+        if (host.equalsIgnoreCase("localhost")) return true;
+        // IPv6 comes back still wearing its brackets.
+        if (host.startsWith("[") && host.endsWith("]")) {
+            String v6 = host.substring(1, host.length() - 1);
+            try {
+                // Has a colon, so this parses a literal and never does a lookup.
+                return InetAddress.getByName(v6).isLoopbackAddress();
+            } catch (UnknownHostException e) {
+                return false;
+            }
+        }
+        // IPv4 by hand, all four parts, so nothing gets a chance to read
+        // "127.1" or "0x7f.0.0.1" generously.
+        String[] parts = host.split("\\.", -1);
+        if (parts.length != 4) return false;
+        for (String part : parts) {
+            if (part.isEmpty() || part.length() > 3 || !part.chars().allMatch(Character::isDigit)) return false;
+            if (Integer.parseInt(part) > 255) return false;
+        }
+        return parts[0].equals("127");
     }
 
     @Override
