@@ -48,6 +48,13 @@ import java.util.function.Predicate;
  * argument, because a relay cannot do that by definition. The relay and its
  * payload were deleted and this mod now has no network surface at all.
  *
+ * <p>Receipts, for anyone who'd rather not take a comment's word for it:
+ * commit {@code 0807383} deleted {@code server/SculkServerRelay}, and
+ * {@code 4695679} showed up right after to sweep up the two files the first
+ * one forgot about, {@code network/NetworkHandler} and
+ * {@code network/SculkPingPayload}. Both from 2026-10-04. Run {@code git show}
+ * on either one and you get every deleted line.
+ *
  * <h2>Why scanning tens of thousands of blocks is fine, actually</h2>
  * The obvious objection to a block scan is the cost. A radius of 16 is just
  * under 36,000 positions, and walking that several times a second to drive a
