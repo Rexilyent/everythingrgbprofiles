@@ -165,9 +165,15 @@ public final class DimensionProfile {
     public com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Settings toSettings() {
         var s = new com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Settings();
         if (emissionMode != null) {
+            // Locale.ROOT on both of these uppercases, and it's load-bearing.
+            // In a Turkish locale "ring".toUpperCase() is "RİNG", with a
+            // dotted capital İ, which valueOf has never heard of. The catch
+            // below swallows that like any other typo, so the bundled
+            // profile's "ring" turned into the default SPIRAL for every
+            // Turkish player and nobody got so much as a log line about it.
             try {
                 s.emission = com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Emission
-                        .valueOf(emissionMode.trim().toUpperCase());
+                        .valueOf(emissionMode.trim().toUpperCase(java.util.Locale.ROOT));
             } catch (IllegalArgumentException ignored) {
                 // A typo'd mode name falls back to the default (SPIRAL)
                 // instead of throwing during profile load and taking the
@@ -182,7 +188,7 @@ public final class DimensionProfile {
         if (spiralCurve != null) {
             try {
                 s.curve = com.everythingrgbprofile.pattern.patterns.CoreEmitterPattern.Curve
-                        .valueOf(spiralCurve.trim().toUpperCase());
+                        .valueOf(spiralCurve.trim().toUpperCase(java.util.Locale.ROOT));
             } catch (IllegalArgumentException ignored) {
                 // Same deal as above: keep the default, don't take startup out
                 // over a typo.

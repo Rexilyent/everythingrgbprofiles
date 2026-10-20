@@ -57,7 +57,11 @@ public final class PatternFactory {
         if (patternName == null) return new ShimmerPattern();
         // Lowercased so "Shimmer", "SHIMMER" and "shimmer" all work. Nobody
         // should lose twenty minutes to a capital letter in a JSON file.
-        return switch (patternName.toLowerCase()) {
+        // Locale.ROOT on every one of these, because in a Turkish locale
+        // "SHIMMER" lowercases to "shımmer" with a dotless ı, matches nothing,
+        // and lands on the typo fallback (a shimmer, by sheer luck). See
+        // StartupGate for the full Turkish-I story.
+        return switch (patternName.toLowerCase(java.util.Locale.ROOT)) {
             case "shimmer" -> new ShimmerPattern();
             // Pulse speeds are separate names rather than a speed parameter
             // because that's how the profile JSON spells them, and changing
@@ -201,7 +205,7 @@ public final class PatternFactory {
     /** Shore presets. Anything unrecognised gets the sandy beach. */
     private static Pattern shorePreset(String preset) {
         if (preset == null) return ShoreBreakPattern.beach();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "snowy-beach" -> ShoreBreakPattern.snowyBeach();
             case "stony-shore" -> ShoreBreakPattern.stonyShore();
             default -> ShoreBreakPattern.beach();
@@ -211,7 +215,7 @@ public final class PatternFactory {
     /** Ice presets. Anything unrecognised gets the frozen ocean. */
     private static Pattern iceFloePreset(String preset) {
         if (preset == null) return IceFloePattern.frozenOcean();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "deep-frozen-ocean" -> IceFloePattern.deepFrozenOcean();
             case "frozen-river" -> IceFloePattern.frozenRiver();
             default -> IceFloePattern.frozenOcean();
@@ -221,7 +225,7 @@ public final class PatternFactory {
     /** Open-sea presets. Anything unrecognised gets the plain ocean. */
     private static Pattern openSeaPreset(String preset) {
         if (preset == null) return OpenSeaPattern.ocean();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "deep-ocean" -> OpenSeaPattern.deepOcean();
             case "cold-ocean" -> OpenSeaPattern.coldOcean();
             case "warm-ocean" -> OpenSeaPattern.warmOcean();
@@ -233,7 +237,7 @@ public final class PatternFactory {
     /** Alpine presets. Anything unrecognised gets the jagged peaks. */
     private static Pattern alpinePreset(String preset) {
         if (preset == null) return AlpinePattern.jaggedPeaks();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "frozen-peaks" -> AlpinePattern.frozenPeaks();
             case "stony-peaks" -> AlpinePattern.stonyPeaks();
             case "snowy-slopes" -> AlpinePattern.snowySlopes();
@@ -250,7 +254,7 @@ public final class PatternFactory {
      */
     private static Pattern snowForestPreset(String preset) {
         if (preset == null) return SnowForestPattern.grove();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "snowy-taiga" -> SnowForestPattern.snowyTaiga();
             case "taiga" -> SnowForestPattern.taiga();
             default -> SnowForestPattern.grove();
@@ -269,7 +273,7 @@ public final class PatternFactory {
      */
     private static Pattern glowMotePreset(String preset) {
         if (preset == null) return GlowMotePattern.enchantedTangle();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "lush-caves" -> GlowMotePattern.lushCaves();
             case "enchanted-tangle" -> GlowMotePattern.enchantedTangle();
             default -> GlowMotePattern.enchantedTangle();
@@ -284,7 +288,7 @@ public final class PatternFactory {
      */
     private static Pattern canopyPreset(String preset) {
         if (preset == null) return CanopyDapplePattern.jungle();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "jungle" -> CanopyDapplePattern.jungle();
             case "sparse-jungle" -> CanopyDapplePattern.sparseJungle();
             case "bamboo-jungle" -> CanopyDapplePattern.bambooJungle();
@@ -308,7 +312,7 @@ public final class PatternFactory {
      */
     private static Pattern driftPreset(String preset) {
         if (preset == null) return DriftParticlePattern.petalDrift();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "petal-drift" -> DriftParticlePattern.petalDrift();
             case "leaf-drift" -> DriftParticlePattern.leafDrift();
             case "snow-drift" -> DriftParticlePattern.snowDrift();
@@ -330,7 +334,7 @@ public final class PatternFactory {
      */
     private static Pattern windsweptPreset(String preset) {
         if (preset == null) return WindsweptRidgePattern.windsweptHills();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "windswept-hills" -> WindsweptRidgePattern.windsweptHills();
             case "windswept-gravelly-hills" -> WindsweptRidgePattern.windsweptGravellyHills();
             case "windswept-forest" -> WindsweptRidgePattern.windsweptForest();
@@ -345,7 +349,7 @@ public final class PatternFactory {
      */
     private static Pattern strataPreset(String preset) {
         if (preset == null) return StrataPattern.badlands();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "badlands" -> StrataPattern.badlands();
             case "eroded-badlands" -> StrataPattern.erodedBadlands();
             case "wooded-badlands" -> StrataPattern.woodedBadlands();
@@ -360,7 +364,7 @@ public final class PatternFactory {
      */
     private static Pattern sulfurPreset(String preset) {
         if (preset == null) return SulfurCavePattern.sulfurCaves();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "sulfur-caves" -> SulfurCavePattern.sulfurCaves();
             case "menu" -> SulfurCavePattern.menu();
             default -> SulfurCavePattern.sulfurCaves();
@@ -369,7 +373,7 @@ public final class PatternFactory {
 
     private static Pattern shimmerTwinklePreset(String preset) {
         if (preset == null) return ShimmerTwinklePattern.gentle();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "sculk", "sculk-veins" -> ShimmerTwinklePattern.sculkVeins();
             default -> ShimmerTwinklePattern.gentle();
         };
@@ -377,7 +381,7 @@ public final class PatternFactory {
 
     private static Pattern twinklePreset(String preset) {
         if (preset == null) return TwinkleParticlePattern.fireflyGlow();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "firefly-glow" -> TwinkleParticlePattern.fireflyGlow();
             case "sculk-shimmer" -> TwinkleParticlePattern.sculkShimmer();
             case "starfield-twinkle" -> TwinkleParticlePattern.starfieldTwinkle();
