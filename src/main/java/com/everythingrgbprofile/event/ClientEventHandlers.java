@@ -233,6 +233,8 @@ public final class ClientEventHandlers {
      * happens the moment the beam releases or the target is lost.
      */
     private static boolean elderGuardianBeamFired = false;
+    /** "Haven't looked yet", which is not the same thing as "not cursed". */
+    private static final int CURSE_TICKS_UNKNOWN = -1;
     /**
      * Mining Fatigue's remaining duration as of the last poll, in ticks.
      *
@@ -243,8 +245,17 @@ public final class ClientEventHandlers {
      * within 50 blocks whose current one has under 1200 ticks left, so a
      * duration that has gone <i>up</i> since the last look is a curse that has
      * just landed. Ticking down is just time passing.
+     *
+     * <p>{@link #CURSE_TICKS_UNKNOWN} until the first look after a Guardian
+     * shows up, and that first look only writes the number down. Starting
+     * from 0 instead meant swimming out of range, waiting out the grace
+     * period and swimming back in with 4000 ticks of the OLD curse still on
+     * you read as 0 going up to 4000. Flash, "you've been cursed", except you
+     * hadn't. The Guardian doesn't re-curse anyone with more than 1200 ticks
+     * left, so nothing landed. Same story meeting one with fatigue you
+     * brought from somewhere else.
      */
-    private static int elderGuardianCurseTicks = 0;
+    private static int elderGuardianCurseTicks = CURSE_TICKS_UNKNOWN;
 
     /** Entity id of the boss currently owning the board, or null. */
     private static String currentBossId = null;
@@ -556,7 +567,7 @@ public final class ClientEventHandlers {
         elderGuardianPresent = false;
         elderGuardianLastSeenMillis = 0;
         elderGuardianBeamFired = false;
-        elderGuardianCurseTicks = 0;
+        elderGuardianCurseTicks = CURSE_TICKS_UNKNOWN;
         witherPresent = false;
         witherLastSeenMillis = 0;
         witherLastSkulls = 0;
@@ -1017,7 +1028,7 @@ public final class ClientEventHandlers {
                     < RGBProfileConfig.ELDER_GUARDIAN_GRACE_MILLIS.get()) return;
             elderGuardianPresent = false;
             elderGuardianBeamFired = false;
-            elderGuardianCurseTicks = 0;
+            elderGuardianCurseTicks = CURSE_TICKS_UNKNOWN;
             SdkWorkerThread.enqueue(() -> effects.elderGuardian.setGone(now));
             return;
         }
@@ -1052,8 +1063,9 @@ public final class ClientEventHandlers {
         int curseTicks = cursed ? fatigue.getDuration() : 0;
         // Gone UP rather than down means a fresh curse rather than the old one
         // ticking away. See the field's note for why this is read off the
-        // debuff itself instead of the packet that announces it.
-        if (curseTicks > elderGuardianCurseTicks) {
+        // debuff itself instead of the packet that announces it. Nothing to
+        // compare against on the first look, so that one just records.
+        if (elderGuardianCurseTicks != CURSE_TICKS_UNKNOWN && curseTicks > elderGuardianCurseTicks) {
             SdkWorkerThread.enqueue(() -> effects.elderGuardian.curseLanded(now));
         }
         elderGuardianCurseTicks = curseTicks;
