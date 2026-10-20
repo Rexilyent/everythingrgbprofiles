@@ -72,7 +72,7 @@ public final class PulsePattern implements Pattern {
 
     /** Unrecognised names get MEDIUM rather than an exception. Config files lie. */
     public static PulsePattern fromConfigName(String name) {
-        return switch (name.toLowerCase()) {
+        return switch (name.toLowerCase(java.util.Locale.ROOT)) {
             case "pulse-slow" -> new PulsePattern(Speed.SLOW);
             case "pulse-fast" -> new PulsePattern(Speed.FAST);
             default -> new PulsePattern(Speed.MEDIUM);
