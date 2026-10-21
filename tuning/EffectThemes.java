@@ -13,6 +13,7 @@ import com.everythingrgbprofile.effects.support.ThirstDropsEffect;
 import com.everythingrgbprofile.pattern.patterns.BloodDripPattern;
 import com.everythingrgbprofile.pattern.patterns.DriftParticlePattern;
 import com.everythingrgbprofile.pattern.patterns.LevelUpPattern;
+import com.everythingrgbprofile.pattern.patterns.RainStreakPattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerTwinklePattern;
 import com.everythingrgbprofile.pattern.patterns.VanillaMenuPattern;
 import com.everythingrgbprofile.priority.EffectTier;
@@ -88,7 +89,7 @@ final class EffectThemes {
     private static final double TEMPERATURE_DANGER_AT = 0.1;
     private static final double BURNING_PANIC_THRESHOLD = 0.9;
     private static final int RAIN_PARTICLES = 12;
-    private static final int RAIN_LIFESPAN_MILLIS = 2800;
+    private static final int RAIN_FALL_MILLIS = 550;
     private static final double RAIN_OPACITY = 0.78;
     private static final int BLOOD_DRIPS = 7;
     private static final double BLOOD_DRIP_INTERVAL_MILLIS = 900;
@@ -263,7 +264,7 @@ final class EffectThemes {
         out.add(overlay(new BossThemes.Theme("rain", "rainThunderstorm",
                 List.of(new BossThemes.Slot("rain", "rainColor", ColorPalette.RAIN_BLUE_GRAY)),
                 colors -> new SustainedOverlayEffect("rain_cascade", EffectTier.TIER2_OVERLAY, 0, null,
-                        DriftParticlePattern.rainDrift(RAIN_PARTICLES, RAIN_LIFESPAN_MILLIS),
+                        new RainStreakPattern(RAIN_PARTICLES, RAIN_FALL_MILLIS),
                         ColorPalette.RAIN_BLUE_GRAY)
                         .withLayerOpacity(RAIN_OPACITY),
                 (controller, memo, progress, elapsed) -> {
