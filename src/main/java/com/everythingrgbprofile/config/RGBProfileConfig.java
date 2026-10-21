@@ -229,7 +229,7 @@ public final class RGBProfileConfig {
     public static final ModConfigSpec.ConfigValue<String> RAIN_COLOR;
     public static final ModConfigSpec.ConfigValue<String> SNOW_COLOR;
     public static final ModConfigSpec.IntValue RAIN_PARTICLE_COUNT;
-    public static final ModConfigSpec.IntValue RAIN_PARTICLE_LIFESPAN_MILLIS;
+    public static final ModConfigSpec.IntValue RAIN_FALL_MILLIS;
     public static final ModConfigSpec.DoubleValue RAIN_LAYER_OPACITY;
     public static final ModConfigSpec.IntValue RAIN_SHELTER_GRACE_MILLIS;
     public static final ModConfigSpec.BooleanValue RAIN_REQUIRE_SKY_EXPOSURE;
@@ -553,13 +553,15 @@ public final class RGBProfileConfig {
                         "purpose: pure white on an LED reads as a stuck key rather than as snow. Shares",
                         "rainOpacity, requireSkyExposure and shelterGraceMillis with the rain.")
                 .define("snowColor", "#CFE9FF");
-        RAIN_PARTICLE_COUNT = b.comment("Drops in flight. Some are off-board at any moment, so on-board density is lower than this.")
+        RAIN_PARTICLE_COUNT = b.comment(
+                        "How many raindrops can be falling at once. Each one rests for a moment after it lands,",
+                        "so fewer than this are on the board at any one time.")
                 .defineInRange("rainParticleCount", 12, 1, 64);
-        RAIN_PARTICLE_LIFESPAN_MILLIS = b.comment(
-                        "Wants to be close to the ~2900ms the slowest drop needs to cross the whole board. "
-                                + "Much shorter and drops die partway down and the bottom rows stay dry; the "
-                                + "default of 2800 gets even the slowest drops down to the bottom row.")
-                .defineInRange("rainParticleLifespanMillis", 2800, 100, 10000);
+        RAIN_FALL_MILLIS = b.comment(
+                        "How long a raindrop takes to fall from the top row to the bottom one, in milliseconds.",
+                        "Each drop is a bright key with a short tail behind it. Lower is a harder downpour; much",
+                        "above 1000 and the streaks crawl, which starts to look like snow again.")
+                .defineInRange("rainFallMillis", 550, 150, 5000);
         RAIN_LAYER_OPACITY = b.comment(
                         "How much of the biome underneath survives a drop. 1.0 replaces the key "
                                 + "outright, which on a dark biome reads as the biome having vanished. "
