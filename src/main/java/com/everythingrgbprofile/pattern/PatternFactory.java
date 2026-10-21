@@ -4,6 +4,7 @@ import com.everythingrgbprofile.pattern.patterns.AlpinePattern;
 import com.everythingrgbprofile.pattern.patterns.BasaltDeltasPattern;
 import com.everythingrgbprofile.pattern.patterns.BloodBatsPattern;
 import com.everythingrgbprofile.pattern.patterns.CanopyDapplePattern;
+import com.everythingrgbprofile.pattern.patterns.CreakingPattern;
 import com.everythingrgbprofile.pattern.patterns.DesertDunesPattern;
 import com.everythingrgbprofile.pattern.patterns.DriftParticlePattern;
 import com.everythingrgbprofile.pattern.patterns.DripstonePattern;
@@ -14,6 +15,8 @@ import com.everythingrgbprofile.pattern.patterns.IceFloePattern;
 import com.everythingrgbprofile.pattern.patterns.NetherFungusPattern;
 import com.everythingrgbprofile.pattern.patterns.NetherWastesPattern;
 import com.everythingrgbprofile.pattern.patterns.OpenSeaPattern;
+import com.everythingrgbprofile.pattern.patterns.PaleGardenPattern;
+import com.everythingrgbprofile.pattern.patterns.RainStreakPattern;
 import com.everythingrgbprofile.pattern.patterns.PrideFlagPattern;
 import com.everythingrgbprofile.pattern.patterns.PulsePattern;
 import com.everythingrgbprofile.pattern.patterns.RainbowWavePattern;
@@ -132,6 +135,14 @@ public final class PatternFactory {
             // family of two: the mangrove swamp is the same bog with roots
             // standing in it and less room for everything else.
             case "swamp-bog" -> swampPreset(preset);
+            // The Pale Garden, twice. Two separate scenes rather than presets
+            // of one, because they aren't the same engine with different
+            // numbers: one is flowers and moss, the other is a thing in the
+            // fog. The biome ships with the garden; swap the name for
+            // "creaking" to get the other one. The garden opens up at night;
+            // the creaking one doesn't own a clock and is creepy around the clock.
+            case "pale-garden" -> PaleGardenPattern.paleGarden();
+            case "creaking" -> CreakingPattern.paleGarden();
             // Ice drifting on dark water. A family of three: the deep ocean is
             // fewer, bigger slabs, and the river pins shelf ice to both banks
             // and runs the chunks down a channel between them.
@@ -321,7 +332,7 @@ public final class PatternFactory {
             case "ember-rise" -> DriftParticlePattern.emberRise();
             case "spore-drift" -> DriftParticlePattern.sporeDrift();
             case "drip-fall" -> DriftParticlePattern.dripFall();
-            case "rain-drift" -> DriftParticlePattern.rainDrift();
+            case "rain-drift" -> RainStreakPattern.withDefaults();
             default -> DriftParticlePattern.petalDrift();
         };
     }

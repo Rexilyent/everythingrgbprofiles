@@ -296,9 +296,9 @@ public final class EffectRegistry {
         // Whole board (null targets) — rain falls on everything. This is the
         // effect that was erasing the biome layer before LayerPixel existed.
         rainCascade = new SustainedOverlayEffect("rain_cascade", EffectTier.TIER2_OVERLAY, 0, null,
-                DriftParticlePattern.rainDrift(
+                new RainStreakPattern(
                         RGBProfileConfig.RAIN_PARTICLE_COUNT.get(),
-                        RGBProfileConfig.RAIN_PARTICLE_LIFESPAN_MILLIS.get()),
+                        RGBProfileConfig.RAIN_FALL_MILLIS.get()),
                 RGBColor.fromHexOrDefault(RGBProfileConfig.RAIN_COLOR.get(), ColorPalette.RAIN_BLUE_GRAY))
                 .withLayerOpacity(RGBProfileConfig.RAIN_LAYER_OPACITY.get());
         manager.register(rainCascade);

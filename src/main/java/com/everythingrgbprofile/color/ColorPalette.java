@@ -416,6 +416,39 @@ public final class ColorPalette {
     /** Slush floating in the shallows. */
     public static final RGBColor SLUSH = RGBColor.fromHex("#A6DCFF");
 
+    // ---- Pale Garden: the pale-garden and creaking scenes ----------------
+    // A biome whose entire personality is "the colour got drained out", on a
+    // device that can't do grey without looking broken. Every one of these is
+    // the real texture nudged toward sage or mauve just far enough to survive
+    // an LED. The leaves and the orange come from the profile. NOT checked on
+    // real hardware yet.
+    /** The air between the trunks. Silver with a little sage in it, because plain grey haze on an LED just reads as "off". */
+    public static final RGBColor PALE_HAZE = RGBColor.fromHex("#9CC2B4");
+    /**
+     * Pale oak bark. Texture's #574D4B, warmed up and then warmed up again,
+     * because next to the haze anything gentler went the colour of wet
+     * cardboard. Kept on the red side of brown so a trunk never gets mistaken
+     * for the orange of an eye.
+     */
+    public static final RGBColor PALE_OAK_LOG = RGBColor.fromHex("#B04A2C");
+    /**
+     * The creaking scene's fog, which is the whole scene. Actually grey this
+     * time, a hair to the cool side so it doesn't go nicotine-yellow on a
+     * warm-white LED. Grey on its own reads as "off"; this one gets away with
+     * it by never once holding still.
+     */
+    public static final RGBColor CREAKING_FOG = RGBColor.fromHex("#B0B4B8");
+    /** Pale hanging moss. Deeper than the leaves it hangs off, or every strand vanishes into the canopy. */
+    public static final RGBColor PALE_HANGING_MOSS = RGBColor.fromHex("#7FA890");
+    /** Moss carpet on the floor. Darker again, so the blossoms sitting on it have a floor to sit on. */
+    public static final RGBColor PALE_MOSS = RGBColor.fromHex("#6E9A7E");
+    /** A shut eyeblossom. The texture's grey-pink #6C6265, with the pink turned up until it reads as a flower. */
+    public static final RGBColor EYEBLOSSOM_CLOSED = RGBColor.fromHex("#7A4E66");
+    /** The hottest pixel of an open one. Texture #EFA337, pushed. The main orange is the profile accent. */
+    public static final RGBColor EYEBLOSSOM_HOT = RGBColor.fromHex("#FFB040");
+    /** The mote a closing eyeblossom throws off. Vanilla's is #5F5F5F, which on a key is nothing at all. */
+    public static final RGBColor EYEBLOSSOM_CLOSE_MOTE = RGBColor.fromHex("#B8C8D0");
+
     // ---- Savanna --------------------------------------------------------
     // The grass and the light on it come from the profile. The sky and the
     // acacias are fixed, because a profile carries two colours and an acacia
