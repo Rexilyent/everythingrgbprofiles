@@ -40,6 +40,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.ParticleTypes;
@@ -1883,23 +1884,27 @@ public final class ClientEventHandlers {
      *
      * <p>Not the moon's 13000-23000 window from {@link #pollTimeOfDay}, and
      * not gated on the night indicator either: switching the moon off has no
-     * business also keeping a garden's flowers shut. This is a word-for-word
-     * copy of the test vanilla's own eyeblossoms use,
-     * {@code CreakingHeartBlock.isNaturalNight}, which is a natural dimension
-     * whose {@code isDarkOutside()} is true. And that is really "is the
-     * sky dark enough", off {@code skyDarken}, which a thunderstorm pushes past
-     * the line in broad daylight. So the flowers open in a storm at noon,
-     * because in vanilla they do too. Rain on its own doesn't get there.
+     * business also keeping a garden's flowers shut.
      *
-     * <p>The level's own method on purpose rather than redoing its maths here,
-     * so whatever Mojang does to the sky later, this agrees with the flowers.
-     * It was {@code isNight()} up to 1.21.4 and got renamed in 1.21.5, so
-     * this is the line that differs between branches.
+     * <p>From 1.21.11 vanilla stopped hardcoding this. Eyeblossoms read the
+     * {@code gameplay/eyeblossom_open} environment attribute, which the
+     * {@code day} timeline switches on from tick 12600 to 23401. That one
+     * isn't syncable though, so the client is sent nothing and always gets
+     * {@code DEFAULT} back. {@code CREAKING_ACTIVE} is keyed to the exact same
+     * ticks and does get synced, so that's what this reads. Only dimensions
+     * running the {@code day} timeline set it, which covers what the old
+     * {@code natural()} check did. Thunderstorms no longer count either: the
+     * old test went off {@code skyDarken} and a storm could open the flowers
+     * at noon, but the timeline only knows the clock.
+     *
+     * <p>Up to 1.21.10 this was {@code natural() && isDarkOutside()}
+     * ({@code isNight()} before 1.21.5), so this is the line that differs
+     * between branches.
      */
     private static void pollBiomeNight(Player player, EffectRegistry effects) {
         if (!Feature.BIOME_COLORS.isOn()) return;
-        var level = player.level();
-        boolean night = level.dimensionType().natural() && level.isDarkOutside();
+        boolean night = player.level().environmentAttributes()
+                .getValue(EnvironmentAttributes.CREAKING_ACTIVE, player.position());
         SdkWorkerThread.enqueue(() -> effects.biomeColor.setNight(night));
     }
 
