@@ -5,6 +5,7 @@ import com.everythingrgbprofile.config.RGBProfileConfig;
 import com.everythingrgbprofile.debug.Diagnostics;
 import com.everythingrgbprofile.keymap.KeyGrid;
 import com.everythingrgbprofile.pattern.LayerPixel;
+import com.everythingrgbprofile.pattern.NightAware;
 import com.everythingrgbprofile.pattern.Pattern;
 import com.everythingrgbprofile.pattern.PatternContext;
 import com.everythingrgbprofile.pattern.PatternFactory;
@@ -115,6 +116,9 @@ public final class BiomeColorEffect implements EffectController {
 
     private volatile long transitionStartMillis = Long.MIN_VALUE;
 
+    /** Last word from {@link #setNight}. Kept so a freshly built pattern can be told straight away. */
+    private volatile boolean night;
+
     public BiomeColorEffect(Map<String, BiomeProfile> profiles) {
         this.profiles = profiles;
     }
@@ -175,9 +179,14 @@ public final class BiomeColorEffect implements EffectController {
             this.previousPattern = this.currentPattern;
             this.previousPatternStartMillis = this.patternStartMillis;
             this.previousAccentColor = this.currentAccentColor;
-            this.currentPattern = profile != null
+            Pattern incoming = profile != null
                     ? PatternFactory.fromNameAndPreset(profile.pattern, profile.preset)
                     : new ShimmerPattern();
+            // Told the time before its first frame, so a garden walked into
+            // at midnight opens with its eyeblossoms already open instead of
+            // putting on a sunrise-in-reverse for your benefit.
+            if (incoming instanceof NightAware aware) aware.setNight(night);
+            this.currentPattern = incoming;
             this.patternStartMillis = nowMillis;
             this.currentPatternKey = patternKey;
         }
@@ -186,6 +195,21 @@ public final class BiomeColorEffect implements EffectController {
         this.currentBiomeId = biomeId;
         this.currentColor = resolvedColor;
         this.currentAccentColor = resolvedAccent;
+    }
+
+    /**
+     * Night or not, for the few patterns that care. Everything else ignores
+     * this completely, which is nearly every biome.
+     *
+     * <p>Forwarded to the outgoing pattern as well as the incoming one. A
+     * crossfade is a couple of seconds, and the old garden closing its
+     * eyeblossoms in sync with the new one is better than it freezing
+     * mid-bloom on its way out.
+     */
+    public void setNight(boolean night) {
+        this.night = night;
+        if (currentPattern instanceof NightAware aware) aware.setNight(night);
+        if (previousPattern instanceof NightAware aware) aware.setNight(night);
     }
 
     /**

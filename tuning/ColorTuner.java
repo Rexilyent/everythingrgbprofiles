@@ -2,6 +2,7 @@ import com.everythingrgbprofile.color.ColorPalette;
 import com.everythingrgbprofile.color.RGBColor;
 import com.everythingrgbprofile.keymap.KeyGrid;
 import com.everythingrgbprofile.pattern.LayerPixel;
+import com.everythingrgbprofile.pattern.NightAware;
 import com.everythingrgbprofile.pattern.Pattern;
 import com.everythingrgbprofile.pattern.PatternContext;
 import com.everythingrgbprofile.pattern.PatternFactory;
@@ -296,6 +297,14 @@ public class ColorTuner {
      */
     static volatile boolean overlaysOverBlack =
             "black".equalsIgnoreCase(System.getProperty("tuner.effect.backdrop", ""));
+
+    /**
+     * Night, for the patterns that care (the Pale Garden's two). In game this
+     * comes off the sky; here it's a checkbox, because waiting ten minutes for
+     * dusk to check one colour is not tuning, it's a lifestyle.
+     * {@code -Dtuner.night=true} starts with it on, for a GIF of the night.
+     */
+    static volatile boolean previewNight = Boolean.getBoolean("tuner.night");
 
     private static String startingBackdrop() {
         String chosen = System.getProperty("tuner.effect.backdrop", BACKDROP_BIOME).trim();
@@ -933,6 +942,45 @@ public class ColorTuner {
     }
 
     /**
+     * Patterns that are interchangeable scenes for the same biome, so the
+     * tuner can flip between them without anyone hand-editing a JSON file and
+     * hitting reload like it's 2009. Every name in a group maps to the whole
+     * group, which means it works whichever one the profile happens to ship with.
+     */
+    static final Map<String, List<String>> SCENES = scenes(
+            List.of("pale-garden", "creaking"));
+
+    @SafeVarargs
+    private static Map<String, List<String>> scenes(List<String>... groups) {
+        Map<String, List<String>> m = new HashMap<>();
+        for (List<String> g : groups) for (String name : g) m.put(name, g);
+        return m;
+    }
+
+    /** The scenes the selected biome can swap between, or an empty list if it can't. */
+    static List<String> scenesFor(Prof p) {
+        if (p == null || p.isPortal() || p.isBoss() || p.isHidden() || p.pattern() == null) return List.of();
+        return SCENES.getOrDefault(p.pattern().trim().toLowerCase(java.util.Locale.ROOT), List.of());
+    }
+
+    /**
+     * Swaps the selected biome onto another scene and leaves the sliders
+     * alone, so colours you're halfway through tuning survive the swap.
+     * Written back into {@link #PROFILES} as well, so the choice sticks when
+     * you wander off to an effect and come back, and the overlays get drawn
+     * over the scene you actually picked. Reload from disk undoes it.
+     */
+    static void switchScene(String scene) {
+        if (current == null || scene == null || scene.equals(current.pattern())) return;
+        current = new Prof(current.id(), current.color(), current.accent(), scene, current.preset());
+        PROFILES.put(current.id(), current);
+        // Fresh clock for the same reason selectProfile does it: the new
+        // scene should start from its first frame, not mid-creak.
+        clockStart = System.currentTimeMillis();
+        pattern = PatternFactory.fromNameAndPreset(current.pattern(), current.preset());
+    }
+
+    /**
      * A theme as a pattern, with the slider colours, and drawn over
      * {@link #backdropBiome} when it is one of the overlay effects — unless
      * {@link #overlaysOverBlack} is on.
@@ -1110,6 +1158,7 @@ public class ColorTuner {
     static Map<KeyGrid.LedRef, RGBColor> frameAt(Pattern p, RGBColor base, RGBColor accent,
                                                  long elapsedMillis) {
         PatternContext ctx = new PatternContext(GRID, null, base, accent, 0, PatternParams.EMPTY);
+        if (p instanceof NightAware aware) aware.setNight(previewNight);
         Map<KeyGrid.LedRef, LayerPixel> px = p.render(ctx, elapsedMillis);
         Map<KeyGrid.LedRef, RGBColor> f = new HashMap<>();
         for (KeyGrid.LedPosition pos : GRID.allKeys()) {
@@ -2609,6 +2658,23 @@ public class ColorTuner {
                 hsvSlider("val", extraHsv, 2, 1, extraRead));
         JPanel extraCard = colourCard(extraLabel, extraHsv, extraRead, extraRows);
         put(colours, extraCard);
+
+        // Which scene the biome draws, for the biomes that have more than one.
+        // Hidden for everything else, which is nearly everything.
+        JLabel sceneLabel = cardTitle("scene");
+        put(colours, sceneLabel);
+        JComboBox<String> scenePick = new JComboBox<>();
+        scenePick.setToolTipText("swap this biome onto its other scene; copy JSON picks up the choice");
+        scenePick.setMaximumSize(new Dimension(ROW_WIDTH, 28));
+        put(colours, scenePick);
+
+        // Only does anything to a pattern that listens for it, which today is
+        // the Pale Garden's flower scene. Everything else carries on regardless.
+        JCheckBox nightOn = smallCheck("night");
+        nightOn.setSelected(previewNight);
+        nightOn.setToolTipText("tell night-aware patterns it's dark (the Pale Garden's eyeblossoms)");
+        nightOn.addActionListener(e -> previewNight = nightOn.isSelected());
+        put(colours, nightOn);
         put(content, colours);
 
         // Encounter: where a boss or effect layer is in its script, and the
@@ -3012,6 +3078,18 @@ public class ColorTuner {
             painter.setVisible(paintMode);
             notes.setVisible(tuning);
 
+            // Refilled with its own listener muted, or setting the model fires
+            // a "selection changed" that switches the scene to... the scene.
+            List<String> scenes = stillImage() ? List.of() : scenesFor(current);
+            java.awt.event.ActionListener[] sceneMuted = scenePick.getActionListeners();
+            for (java.awt.event.ActionListener l : sceneMuted) scenePick.removeActionListener(l);
+            scenePick.setModel(new DefaultComboBoxModel<>(scenes.stream()
+                    .filter(GameVersion::hasPattern).toArray(String[]::new)));
+            if (!scenes.isEmpty()) scenePick.setSelectedItem(current.pattern());
+            for (java.awt.event.ActionListener l : sceneMuted) scenePick.addActionListener(l);
+            sceneLabel.setVisible(scenePick.getItemCount() > 1);
+            scenePick.setVisible(scenePick.getItemCount() > 1);
+
             for (JPanel row : accentRows) setRowEnabled(row, tuning && hasAccent);
             for (JPanel row : extraRows) setRowEnabled(row, tuning && hasExtra);
             refreshStage.run();
@@ -3063,6 +3141,10 @@ public class ColorTuner {
         category.addActionListener(e -> {
             refill.accept((String) picker.getSelectedItem());
             choose.run();
+        });
+        scenePick.addActionListener(e -> {
+            switchScene((String) scenePick.getSelectedItem());
+            status.setText(describe(current));
         });
         reloadBtn.addActionListener(e -> {
             loadProfiles();
