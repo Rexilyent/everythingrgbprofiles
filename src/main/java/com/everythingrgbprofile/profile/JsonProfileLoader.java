@@ -220,8 +220,10 @@ public final class JsonProfileLoader {
                 }
             }
             return result;
-        } catch (IOException e) {
+        } catch (IOException | JsonSyntaxException e) {
             RGBProfileMod.LOGGER.warn("RGB Profile: error reading bundled resource {}.", resourcePath, e);
+            BackendHealth.bug("Profiles", "The bundled defaults " + resourcePath + " could not be parsed: "
+                    + e.getMessage(), null);
             return Map.of();
         }
     }

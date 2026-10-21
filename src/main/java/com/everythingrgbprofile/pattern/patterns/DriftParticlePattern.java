@@ -14,11 +14,17 @@ import java.util.Random;
 
 /**
  * The generic {@code drift-particle} engine: little things moving across your
- * keyboard. One class, eight presets, zero subclasses.
+ * keyboard. One class, seven presets, zero subclasses.
  *
  * <p>Petal-drift, snow-drift, sand-drift, bubble-rise, ember-rise,
- * spore-drift, drip-fall, and the Rain Cascade overlay's rain-drift are every
- * one of them <b>this class with different numbers in it</b>.
+ * spore-drift and drip-fall are every one of them <b>this class with
+ * different numbers in it</b>.
+ *
+ * <p>Rain used to be the eighth, and it looked like snow, because in this
+ * engine a falling dot is a falling dot. It moved out to
+ * {@link RainStreakPattern}, and took its one special case with it: a
+ * "stay bright for most of the fall, fade at the end" option nothing else
+ * ever used.
  *
  * <p>Falling cherry petals and rising Nether embers differ by a direction
  * angle and a lifespan. That is the entire difference. Every preset works
@@ -52,8 +58,6 @@ public final class DriftParticlePattern implements Pattern {
     private final int particleCount;
     private final int trailLength;
     private final double lifespanMillis;
-    /** Fraction of a particle's life spent at full brightness before the age-fade begins. */
-    private final double fadeStartFraction;
     private final Random random = new Random();
     private List<Particle> particles;
     private boolean initialized = false;
@@ -66,34 +70,11 @@ public final class DriftParticlePattern implements Pattern {
     private double dirX = 1, dirY = 0;
     private boolean directionResolved = false;
 
-    /** Fades across the whole life, which is what every drift preset but rain wants. */
     public DriftParticlePattern(double directionDegrees, int particleCount, int trailLength, double lifespanMillis) {
-        this(directionDegrees, particleCount, trailLength, lifespanMillis, 0.0);
-    }
-
-    /**
-     * @param fadeStartFraction how far into its life a particle stays at full
-     *                          brightness before it starts fading. 0 means
-     *                          "fade from the moment it spawns", which is the
-     *                          right shape for something dissipating as it
-     *                          travels — a petal, a spore, a bubble.
-     *                          <p>It is the wrong shape for rain. A raindrop
-     *                          does not get fainter on the way down, and with
-     *                          the fade spread across the whole journey the
-     *                          only brightly-lit drops are the ones that have
-     *                          just spawned — which is to say, the ones still
-     *                          off the top edge of the board. What reaches the
-     *                          middle rows is always dim, and what reaches the
-     *                          bottom rows is nothing at all.
-     */
-    public DriftParticlePattern(double directionDegrees, int particleCount, int trailLength,
-                                double lifespanMillis, double fadeStartFraction) {
         this.directionDegrees = directionDegrees;
         this.particleCount = Math.max(1, particleCount);
         this.trailLength = Math.max(1, trailLength);
         this.lifespanMillis = Math.max(50, lifespanMillis);
-        // Capped below 1.0 so the divisor in render() can never be zero.
-        this.fadeStartFraction = Math.max(0.0, Math.min(0.95, fadeStartFraction));
     }
 
     /**
@@ -113,8 +94,8 @@ public final class DriftParticlePattern implements Pattern {
      * Dividing the y term by the aspect makes the angle right but the vector
      * long — a straight-down direction would come out 3.4x its old magnitude,
      * and since particle speed is expressed in these units, every vertical
-     * preset would suddenly move 3.4x faster and rain's carefully-fitted
-     * lifespan would stop reaching the bottom of the board. Scaling back to
+     * preset would suddenly move 3.4x faster and every lifespan tuned to get
+     * a particle across the board would stop getting it there. Scaling back to
      * unit length keeps speed in the units every preset was tuned in.
      *
      * <p>Consequence worth knowing: the pure-axis presets (0, 90, 270) are
@@ -238,15 +219,7 @@ public final class DriftParticlePattern implements Pattern {
                 // whole life, AND each trail segment is dimmer than the one
                 // ahead. So a particle fades out as a unit while always
                 // reading head-bright-to-tail-dim.
-                // Full brightness up to fadeStartFraction, then a linear ramp
-                // to nothing across whatever life is left. At the default
-                // fadeStartFraction of 0 this collapses to the plain
-                // 1 - age/lifespan it has always been, so every preset except
-                // rain renders byte-identically to before.
-                double lifeFraction = age / lifespanMillis;
-                double fadeByAge = lifeFraction <= fadeStartFraction
-                        ? 1.0
-                        : 1.0 - (lifeFraction - fadeStartFraction) / (1.0 - fadeStartFraction);
+                double fadeByAge = 1.0 - age / lifespanMillis;
                 double fadeByTrail = 1.0 - trail / (double) trailLength;
                 double brightness = Math.max(0, fadeByAge) * fadeByTrail;
                 // merge with ADDITIVE alpha (clamped), unlike the spiral's
@@ -291,7 +264,7 @@ public final class DriftParticlePattern implements Pattern {
     // These are VISUAL angles now — what you see on the board, not what the
     // raw vector says. See resolveDirection.
     //
-    //   90      = straight down (drips, rain — gravity, no messing about)
+    //   90      = straight down (drips — gravity, no messing about)
     //   100     = snow, near-vertical with a slight lean
     //   140     = down and to the left at a good diagonal (petals — carried
     //             sideways by wind while they fall, which is the whole
@@ -309,47 +282,4 @@ public final class DriftParticlePattern implements Pattern {
     public static DriftParticlePattern emberRise() { return new DriftParticlePattern(280, 7, 3, 2200); }
     public static DriftParticlePattern sporeDrift() { return new DriftParticlePattern(200, 5, 3, 4000); }
     public static DriftParticlePattern dripFall() { return new DriftParticlePattern(90, 4, 2, 1800); }
-
-    /** Rain at its built-in defaults. See {@link #rainDrift(int, int)}. */
-    public static DriftParticlePattern rainDrift() {
-        return rainDrift(DEFAULT_RAIN_COUNT, DEFAULT_RAIN_LIFESPAN_MILLIS);
-    }
-
-    /** Rain particle count and lifespan both come from config — see RGBProfileConfig. */
-    public static final int DEFAULT_RAIN_COUNT = 12;
-    public static final int DEFAULT_RAIN_LIFESPAN_MILLIS = 2800;
-
-    /**
-     * The Rain Cascade overlay.
-     *
-     * <h2>Direction: 90, not 180</h2>
-     * It was 180. Per the convention above that is dead horizontal, travelling
-     * LEFT — so drops entered at the right edge of the board and blew
-     * sideways across it, which is precisely what it looked like. The comment
-     * that used to sit here filed 180 alongside 90 as "straight down", and
-     * that mistaken grouping is the whole bug: 90 is down, 180 is left, and
-     * only dripFall was actually using the right one.
-     *
-     * <h2>Lifespan: long enough to actually arrive</h2>
-     * Particles spawn 0.6 units upstream of centre (y = -0.1, just off the top
-     * edge) and have to reach y > 1.05 to leave the far side — 1.15 units of
-     * travel, at the engine's 0.4-0.7 units/sec. The slowest drop therefore
-     * needs about 2.9 seconds to cross the board. At the old 1200ms lifespan
-     * it managed roughly 0.6 units before being recycled, so drops died around
-     * the middle of the keyboard and the bottom two rows never saw rain at
-     * all. 2800ms gets even a slow drop to the bottom edge.
-     *
-     * <p>A consequence worth knowing when tuning: fast drops now finish early
-     * and idle off-board until their lifespan expires, so a given count puts
-     * fewer drops on the board than it used to. The default count is up from 7
-     * to compensate.
-     *
-     * <h2>fadeStartFraction 0.8</h2>
-     * Rain holds full brightness for the first 80% of the fall and only fades
-     * over the last stretch, which reads as the drop landing. See the
-     * constructor for why the default fade-from-birth shape is wrong here.
-     */
-    public static DriftParticlePattern rainDrift(int particleCount, int lifespanMillis) {
-        return new DriftParticlePattern(90, particleCount, 2, lifespanMillis, 0.8);
-    }
 }

@@ -432,6 +432,7 @@ public final class ClientEventHandlers {
         pollHealth(player, effects, now);
         pollHunger(player, effects, now);
         pollTimeOfDay(player, effects);
+        pollBiomeNight(player, effects);
         pollWeather(player, effects, now);
         pollBossEncounter(player, effects, now);
         pollWarden(player, effects, now);
@@ -1874,6 +1875,32 @@ public final class ClientEventHandlers {
         boolean isNight = dayTime >= 13000 && dayTime < 23000;
         double progress = isNight ? (dayTime - 13000) / 10000.0 : 0;
         SdkWorkerThread.enqueue(() -> effects.nightIndicator.setNightProgress(isNight, progress));
+    }
+
+    /**
+     * Night, as far as the biome scenes are concerned. Right now that means
+     * the Pale Garden's eyeblossoms, which only open after dark.
+     *
+     * <p>Not the moon's 13000-23000 window from {@link #pollTimeOfDay}, and
+     * not gated on the night indicator either: switching the moon off has no
+     * business also keeping a garden's flowers shut. This is a word-for-word
+     * copy of the test vanilla's own eyeblossoms use,
+     * {@code CreakingHeartBlock.isNaturalNight}, which is a natural dimension
+     * whose {@code isNight()} is true. And {@code isNight()} is really "is the
+     * sky dark enough", off {@code skyDarken}, which a thunderstorm pushes past
+     * the line in broad daylight. So the flowers open in a storm at noon,
+     * because in vanilla they do too. Rain on its own doesn't get there.
+     *
+     * <p>The level's own method on purpose rather than redoing its maths here,
+     * so whatever Mojang does to the sky later, this agrees with the flowers.
+     * They did rename it after 1.21.4, so on a newer branch this is the line
+     * that needs touching.
+     */
+    private static void pollBiomeNight(Player player, EffectRegistry effects) {
+        if (!Feature.BIOME_COLORS.isOn()) return;
+        var level = player.level();
+        boolean night = level.dimensionType().natural() && level.isNight();
+        SdkWorkerThread.enqueue(() -> effects.biomeColor.setNight(night));
     }
 
     // ---------------------------------------------------------------
