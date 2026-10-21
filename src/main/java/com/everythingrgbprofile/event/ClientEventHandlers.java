@@ -1891,20 +1891,20 @@ public final class ClientEventHandlers {
      * business also keeping a garden's flowers shut. This is a word-for-word
      * copy of the test vanilla's own eyeblossoms use,
      * {@code CreakingHeartBlock.isNaturalNight}, which is a natural dimension
-     * whose {@code isNight()} is true. And {@code isNight()} is really "is the
+     * whose {@code isDarkOutside()} is true. And that is really "is the
      * sky dark enough", off {@code skyDarken}, which a thunderstorm pushes past
      * the line in broad daylight. So the flowers open in a storm at noon,
      * because in vanilla they do too. Rain on its own doesn't get there.
      *
      * <p>The level's own method on purpose rather than redoing its maths here,
      * so whatever Mojang does to the sky later, this agrees with the flowers.
-     * They did rename it after 1.21.4, so on a newer branch this is the line
-     * that needs touching.
+     * It was {@code isNight()} up to 1.21.4 and got renamed in 1.21.5, so
+     * this is the line that differs between branches.
      */
     private static void pollBiomeNight(Player player, EffectRegistry effects) {
         if (!Feature.BIOME_COLORS.isOn()) return;
         var level = player.level();
-        boolean night = level.dimensionType().natural() && level.isNight();
+        boolean night = level.dimensionType().natural() && level.isDarkOutside();
         SdkWorkerThread.enqueue(() -> effects.biomeColor.setNight(night));
     }
 
