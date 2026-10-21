@@ -4,6 +4,7 @@ import com.everythingrgbprofile.pattern.patterns.AlpinePattern;
 import com.everythingrgbprofile.pattern.patterns.BasaltDeltasPattern;
 import com.everythingrgbprofile.pattern.patterns.BloodBatsPattern;
 import com.everythingrgbprofile.pattern.patterns.CanopyDapplePattern;
+import com.everythingrgbprofile.pattern.patterns.CreakingPattern;
 import com.everythingrgbprofile.pattern.patterns.DesertDunesPattern;
 import com.everythingrgbprofile.pattern.patterns.DriftParticlePattern;
 import com.everythingrgbprofile.pattern.patterns.DripstonePattern;
@@ -14,7 +15,11 @@ import com.everythingrgbprofile.pattern.patterns.IceFloePattern;
 import com.everythingrgbprofile.pattern.patterns.NetherFungusPattern;
 import com.everythingrgbprofile.pattern.patterns.NetherWastesPattern;
 import com.everythingrgbprofile.pattern.patterns.OpenSeaPattern;
+import com.everythingrgbprofile.pattern.patterns.PaleGardenPattern;
+import com.everythingrgbprofile.pattern.patterns.RainStreakPattern;
+import com.everythingrgbprofile.pattern.patterns.PrideFlagPattern;
 import com.everythingrgbprofile.pattern.patterns.PulsePattern;
+import com.everythingrgbprofile.pattern.patterns.RainbowWavePattern;
 import com.everythingrgbprofile.pattern.patterns.SavannaPattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerPattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerTwinklePattern;
@@ -55,7 +60,11 @@ public final class PatternFactory {
         if (patternName == null) return new ShimmerPattern();
         // Lowercased so "Shimmer", "SHIMMER" and "shimmer" all work. Nobody
         // should lose twenty minutes to a capital letter in a JSON file.
-        return switch (patternName.toLowerCase()) {
+        // Locale.ROOT on every one of these, because in a Turkish locale
+        // "SHIMMER" lowercases to "shımmer" with a dotless ı, matches nothing,
+        // and lands on the typo fallback (a shimmer, by sheer luck). See
+        // StartupGate for the full Turkish-I story.
+        return switch (patternName.toLowerCase(java.util.Locale.ROOT)) {
             case "shimmer" -> new ShimmerPattern();
             // Pulse speeds are separate names rather than a speed parameter
             // because that's how the profile JSON spells them, and changing
@@ -126,6 +135,14 @@ public final class PatternFactory {
             // family of two: the mangrove swamp is the same bog with roots
             // standing in it and less room for everything else.
             case "swamp-bog" -> swampPreset(preset);
+            // The Pale Garden, twice. Two separate scenes rather than presets
+            // of one, because they aren't the same engine with different
+            // numbers: one is flowers and moss, the other is a thing in the
+            // fog. The biome ships with the garden; swap the name for
+            // "creaking" to get the other one. The garden opens up at night;
+            // the creaking one doesn't own a clock and is creepy around the clock.
+            case "pale-garden" -> PaleGardenPattern.paleGarden();
+            case "creaking" -> CreakingPattern.paleGarden();
             // Ice drifting on dark water. A family of three: the deep ocean is
             // fewer, bigger slabs, and the river pins shelf ice to both banks
             // and runs the chunks down a channel between them.
@@ -163,19 +180,43 @@ public final class PatternFactory {
             case "savanna" -> preset != null && preset.equalsIgnoreCase("savanna-plateau")
                     ? SavannaPattern.savannaPlateau()
                     : SavannaPattern.savanna();
-						// An acid pool bubbling under a spiked ceiling. Shared with the
+            // An acid pool bubbling under a spiked ceiling. Shared with the
             // title-screen theme, since Minecraft 26.2's own panorama is a
             // sulfur cave — which is why it takes a preset despite there being
             // one biome: the menu wants the same scene at a slower pace.
             case "sulfur-cave" -> sulfurPreset(preset);
-            default -> new ShimmerPattern(); // animated fallback, never solid — see class doc
+            default -> {
+                Pattern hidden = hiddenPattern(patternName);
+                yield hidden != null ? hidden : new ShimmerPattern(); // animated fallback, never solid — see class doc
+            }
+        };
+    }
+
+    /**
+     * The hidden ones. No default profile names these and no config comment
+     * mentions them, so the only way to see one is for somebody to go and type
+     * it in on purpose: as a biome's {@code pattern}, or as
+     * {@code menuTheme.style}, which is why it's split out where
+     * EffectRegistry can reach it too.
+     *
+     * <p>Returns null for anything that isn't one, so callers can fall through
+     * to whatever they'd have done otherwise.
+     */
+    public static Pattern hiddenPattern(String name) {
+        if (name == null) return null;
+        return switch (name.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "rainbow-wave" -> new RainbowWavePattern();
+            case "trans-flag" -> PrideFlagPattern.trans();
+            case "lesbian-flag" -> PrideFlagPattern.lesbian();
+            case "bi-flag" -> PrideFlagPattern.bi();
+            default -> null;
         };
     }
 
     /** Shore presets. Anything unrecognised gets the sandy beach. */
     private static Pattern shorePreset(String preset) {
         if (preset == null) return ShoreBreakPattern.beach();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "snowy-beach" -> ShoreBreakPattern.snowyBeach();
             case "stony-shore" -> ShoreBreakPattern.stonyShore();
             default -> ShoreBreakPattern.beach();
@@ -185,7 +226,7 @@ public final class PatternFactory {
     /** Ice presets. Anything unrecognised gets the frozen ocean. */
     private static Pattern iceFloePreset(String preset) {
         if (preset == null) return IceFloePattern.frozenOcean();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "deep-frozen-ocean" -> IceFloePattern.deepFrozenOcean();
             case "frozen-river" -> IceFloePattern.frozenRiver();
             default -> IceFloePattern.frozenOcean();
@@ -195,7 +236,7 @@ public final class PatternFactory {
     /** Open-sea presets. Anything unrecognised gets the plain ocean. */
     private static Pattern openSeaPreset(String preset) {
         if (preset == null) return OpenSeaPattern.ocean();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "deep-ocean" -> OpenSeaPattern.deepOcean();
             case "cold-ocean" -> OpenSeaPattern.coldOcean();
             case "warm-ocean" -> OpenSeaPattern.warmOcean();
@@ -207,7 +248,7 @@ public final class PatternFactory {
     /** Alpine presets. Anything unrecognised gets the jagged peaks. */
     private static Pattern alpinePreset(String preset) {
         if (preset == null) return AlpinePattern.jaggedPeaks();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "frozen-peaks" -> AlpinePattern.frozenPeaks();
             case "stony-peaks" -> AlpinePattern.stonyPeaks();
             case "snowy-slopes" -> AlpinePattern.snowySlopes();
@@ -224,7 +265,7 @@ public final class PatternFactory {
      */
     private static Pattern snowForestPreset(String preset) {
         if (preset == null) return SnowForestPattern.grove();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "snowy-taiga" -> SnowForestPattern.snowyTaiga();
             case "taiga" -> SnowForestPattern.taiga();
             default -> SnowForestPattern.grove();
@@ -243,7 +284,7 @@ public final class PatternFactory {
      */
     private static Pattern glowMotePreset(String preset) {
         if (preset == null) return GlowMotePattern.enchantedTangle();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "lush-caves" -> GlowMotePattern.lushCaves();
             case "enchanted-tangle" -> GlowMotePattern.enchantedTangle();
             default -> GlowMotePattern.enchantedTangle();
@@ -258,7 +299,7 @@ public final class PatternFactory {
      */
     private static Pattern canopyPreset(String preset) {
         if (preset == null) return CanopyDapplePattern.jungle();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "jungle" -> CanopyDapplePattern.jungle();
             case "sparse-jungle" -> CanopyDapplePattern.sparseJungle();
             case "bamboo-jungle" -> CanopyDapplePattern.bambooJungle();
@@ -269,27 +310,29 @@ public final class PatternFactory {
             case "old-growth-birch-forest" -> CanopyDapplePattern.oldGrowthBirchForest();
             case "spruce-forest" -> CanopyDapplePattern.spruceForest();
             case "old-growth-pine-taiga" -> CanopyDapplePattern.oldGrowthPineTaiga();
+            case "dappled-forest" -> CanopyDapplePattern.dappledForest();
             default -> CanopyDapplePattern.jungle();
         };
     }
 
     /**
-     * The drift presets: same particle engine, eight different sets of
+     * The drift presets: same particle engine, nine different sets of
      * physics. This is that "parameterised engine, not per-entry subclasses"
      * idea actually paying rent — falling petals and rising embers are the
      * same code with the gravity sign flipped.
      */
     private static Pattern driftPreset(String preset) {
         if (preset == null) return DriftParticlePattern.petalDrift();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "petal-drift" -> DriftParticlePattern.petalDrift();
+            case "leaf-drift" -> DriftParticlePattern.leafDrift();
             case "snow-drift" -> DriftParticlePattern.snowDrift();
             case "sand-drift" -> DriftParticlePattern.sandDrift();
             case "bubble-rise" -> DriftParticlePattern.bubbleRise();
             case "ember-rise" -> DriftParticlePattern.emberRise();
             case "spore-drift" -> DriftParticlePattern.sporeDrift();
             case "drip-fall" -> DriftParticlePattern.dripFall();
-            case "rain-drift" -> DriftParticlePattern.rainDrift();
+            case "rain-drift" -> RainStreakPattern.withDefaults();
             default -> DriftParticlePattern.petalDrift();
         };
     }
@@ -302,7 +345,7 @@ public final class PatternFactory {
      */
     private static Pattern windsweptPreset(String preset) {
         if (preset == null) return WindsweptRidgePattern.windsweptHills();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "windswept-hills" -> WindsweptRidgePattern.windsweptHills();
             case "windswept-gravelly-hills" -> WindsweptRidgePattern.windsweptGravellyHills();
             case "windswept-forest" -> WindsweptRidgePattern.windsweptForest();
@@ -317,7 +360,7 @@ public final class PatternFactory {
      */
     private static Pattern strataPreset(String preset) {
         if (preset == null) return StrataPattern.badlands();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "badlands" -> StrataPattern.badlands();
             case "eroded-badlands" -> StrataPattern.erodedBadlands();
             case "wooded-badlands" -> StrataPattern.woodedBadlands();
@@ -332,7 +375,7 @@ public final class PatternFactory {
      */
     private static Pattern sulfurPreset(String preset) {
         if (preset == null) return SulfurCavePattern.sulfurCaves();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "sulfur-caves" -> SulfurCavePattern.sulfurCaves();
             case "menu" -> SulfurCavePattern.menu();
             default -> SulfurCavePattern.sulfurCaves();
@@ -341,7 +384,7 @@ public final class PatternFactory {
 
     private static Pattern shimmerTwinklePreset(String preset) {
         if (preset == null) return ShimmerTwinklePattern.gentle();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "sculk", "sculk-veins" -> ShimmerTwinklePattern.sculkVeins();
             default -> ShimmerTwinklePattern.gentle();
         };
@@ -349,7 +392,7 @@ public final class PatternFactory {
 
     private static Pattern twinklePreset(String preset) {
         if (preset == null) return TwinkleParticlePattern.fireflyGlow();
-        return switch (preset.toLowerCase()) {
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
             case "firefly-glow" -> TwinkleParticlePattern.fireflyGlow();
             case "sculk-shimmer" -> TwinkleParticlePattern.sculkShimmer();
             case "starfield-twinkle" -> TwinkleParticlePattern.starfieldTwinkle();

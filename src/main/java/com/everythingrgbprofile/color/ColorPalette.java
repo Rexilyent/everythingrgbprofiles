@@ -61,8 +61,20 @@ public final class ColorPalette {
     // fast where the rest pulse slow, and freezing is far paler than thirst.
     // Move two of them onto the same key and the hues will not save you.
     public static final RGBColor HEALTH_RED = RGBColor.fromHex("#FF1E1E");
+    /** The low-health heartbeat, a touch deeper than HEALTH_RED so the beat has somewhere brighter to peak. */
+    public static final RGBColor HEARTBEAT_RED = RGBColor.fromHex("#D8102A");
+    /** The crest of each beat. */
+    public static final RGBColor HEARTBEAT_CREST = RGBColor.fromHex("#FF6A6A");
     public static final RGBColor HUNGER_AMBER = RGBColor.fromHex("#FFA500");
+    /**
+     * What the hunger growl carves the board down to. Black, which on an LED
+     * means off, which is the point: the pit is where the biome isn't.
+     * HUNGER_AMBER is the lip round the edge of it.
+     */
+    public static final RGBColor HUNGER_GROWL_HOLLOW = RGBColor.BLACK;
     public static final RGBColor THIRST_CYAN = RGBColor.fromHex("#3FBFD4");
+    /** The glint a thirst drop catches as it starts to dry up. Only ever on one key for a moment, so being near FREEZING_ICE costs nothing. */
+    public static final RGBColor THIRST_GLINT = RGBColor.fromHex("#C8F6FF");
     public static final RGBColor OVERHEATING_ORANGE = RGBColor.fromHex("#FF6B35");
     public static final RGBColor FREEZING_ICE = RGBColor.fromHex("#A8E0F0");
 
@@ -260,6 +272,10 @@ public final class ColorPalette {
     public static final RGBColor BURNING_CORE = RGBColor.fromHex("#FFB01F");
     /** The tips of the flames, where the fire cools to red. */
     public static final RGBColor BURNING_TIP = RGBColor.fromHex("#E8350C");
+    /** The frost at the board's edge when you are freezing: nearly white, against FREEZING_ICE at the front. */
+    public static final RGBColor FREEZING_RIM = RGBColor.fromHex("#EEF9FF");
+    /** The heat at the board's edge when you are overheating: deep red, against OVERHEATING_ORANGE at the front. */
+    public static final RGBColor OVERHEATING_RIM = RGBColor.fromHex("#B3200A");
 
     // Rain has to stay legible on top of whatever biome is underneath it, and
     // the biome it was losing to is a bright one. The earlier #7A9BB5 had a
@@ -400,6 +416,39 @@ public final class ColorPalette {
     /** Slush floating in the shallows. */
     public static final RGBColor SLUSH = RGBColor.fromHex("#A6DCFF");
 
+    // ---- Pale Garden: the pale-garden and creaking scenes ----------------
+    // A biome whose entire personality is "the colour got drained out", on a
+    // device that can't do grey without looking broken. Every one of these is
+    // the real texture nudged toward sage or mauve just far enough to survive
+    // an LED. The leaves and the orange come from the profile. NOT checked on
+    // real hardware yet.
+    /** The air between the trunks. Silver with a little sage in it, because plain grey haze on an LED just reads as "off". */
+    public static final RGBColor PALE_HAZE = RGBColor.fromHex("#9CC2B4");
+    /**
+     * Pale oak bark. Texture's #574D4B, warmed up and then warmed up again,
+     * because next to the haze anything gentler went the colour of wet
+     * cardboard. Kept on the red side of brown so a trunk never gets mistaken
+     * for the orange of an eye.
+     */
+    public static final RGBColor PALE_OAK_LOG = RGBColor.fromHex("#B04A2C");
+    /**
+     * The creaking scene's fog, which is the whole scene. Actually grey this
+     * time, a hair to the cool side so it doesn't go nicotine-yellow on a
+     * warm-white LED. Grey on its own reads as "off"; this one gets away with
+     * it by never once holding still.
+     */
+    public static final RGBColor CREAKING_FOG = RGBColor.fromHex("#B0B4B8");
+    /** Pale hanging moss. Deeper than the leaves it hangs off, or every strand vanishes into the canopy. */
+    public static final RGBColor PALE_HANGING_MOSS = RGBColor.fromHex("#7FA890");
+    /** Moss carpet on the floor. Darker again, so the blossoms sitting on it have a floor to sit on. */
+    public static final RGBColor PALE_MOSS = RGBColor.fromHex("#6E9A7E");
+    /** A shut eyeblossom. The texture's grey-pink #6C6265, with the pink turned up until it reads as a flower. */
+    public static final RGBColor EYEBLOSSOM_CLOSED = RGBColor.fromHex("#7A4E66");
+    /** The hottest pixel of an open one. Texture #EFA337, pushed. The main orange is the profile accent. */
+    public static final RGBColor EYEBLOSSOM_HOT = RGBColor.fromHex("#FFB040");
+    /** The mote a closing eyeblossom throws off. Vanilla's is #5F5F5F, which on a key is nothing at all. */
+    public static final RGBColor EYEBLOSSOM_CLOSE_MOTE = RGBColor.fromHex("#B8C8D0");
+
     // ---- Savanna --------------------------------------------------------
     // The grass and the light on it come from the profile. The sky and the
     // acacias are fixed, because a profile carries two colours and an acacia
@@ -533,6 +582,21 @@ public final class ColorPalette {
     /** The little blue cube creatures. Screenshot: a pale sky blue, pushed so it separates from the teal. */
     public static final RGBColor SIFT_CRITTER = RGBColor.fromHex("#5CC4FF");
 
+    // ---- Dappled forest, 26.3 ----------------------------------------------
+    // Minecraft 26.3's autumn biome, and the autumn menu theme built from it.
+    // Its trees are poplars in three colours, and unlike oak leaves their
+    // textures carry the colour themselves instead of being tinted by the
+    // biome, so these come straight off the leaf textures. Brightest pixel
+    // beside each, then pushed toward saturation like the sulfur palette.
+
+    /** Orange poplar, the commonest tree in the biome. {@code orange_poplar_leaves.png} tops out at #ED7D1A. */
+    public static final RGBColor AUTUMN_ORANGE_LEAF = RGBColor.fromHex("#FF7410");
+    /**
+     * Red poplar, the second commonest. {@code red_poplar_leaves.png} tops out
+     * at #D43C2F; pushed to a cleaner red for the same reason as the cinnabar.
+     */
+    public static final RGBColor AUTUMN_RED_LEAF = RGBColor.fromHex("#E8281A");
+
 		// ---- Default menu theme: sky over grass ---------------------------
     /** Daytime sky, for the default title-screen theme. */
     public static final RGBColor MENU_VANILLA_SKY = RGBColor.fromHex("#5B93E8");
@@ -560,6 +624,41 @@ public final class ColorPalette {
     public static final RGBColor MENU_STONE_BASE = RGBColor.fromHex("#241B16");
     public static final RGBColor MENU_EMBER = RGBColor.fromHex("#FF7A29");
     public static final RGBColor MENU_ARCANE = RGBColor.fromHex("#9B5FFF");
+
+    // ---- Pride flags (hidden patterns) -------------------------------
+    // For PrideFlagPattern, which nothing turns on unless somebody names it in
+    // a config. Top stripe first.
+    //
+    // The official hexes are pastels, and pastels are exactly what the class
+    // doc above warns about. The trans flag's pink is #F5A9B8, which is about
+    // two thirds white, so on a keycap the pink and white stripes would be the
+    // same stripe. So the pale ones here are pushed toward their dominant
+    // channel. White stays white, because white is the one colour an LED
+    // genuinely nails. These have NOT been checked on real hardware yet, so if
+    // a stripe looks off, this is the place to fix it.
+    /** Trans flag light blue. Official #5BCEFA, with the white wrung out of it. */
+    public static final RGBColor TRANS_BLUE = RGBColor.fromHex("#1EB4FF");
+    /** Trans flag pink. Official #F5A9B8, which on an LED is just white with a crush on pink. */
+    public static final RGBColor TRANS_PINK = RGBColor.fromHex("#FF4D8A");
+    public static final RGBColor FLAG_WHITE = RGBColor.WHITE;
+    /** Lesbian flag dark orange. Already saturated, kept as-is. */
+    public static final RGBColor LESBIAN_DARK_ORANGE = RGBColor.fromHex("#D52D00");
+    /** Lesbian flag orange. Official #FF9A56, pulled harder toward orange so it doesn't read as peach. */
+    public static final RGBColor LESBIAN_ORANGE = RGBColor.fromHex("#FF7A1E");
+    /** Lesbian flag pink. Official #D362A4. */
+    public static final RGBColor LESBIAN_PINK = RGBColor.fromHex("#E0369E");
+    /** Lesbian flag dark rose. Official #A30262, dark but well clear of the "looks off" floor. */
+    public static final RGBColor LESBIAN_DARK_ROSE = RGBColor.fromHex("#A30262");
+    /** Bi flag pink. Official #D60270, already about as saturated as a colour gets. */
+    public static final RGBColor BI_PINK = RGBColor.fromHex("#D60270");
+    /**
+     * Bi flag purple. Official #9B4F96, which is half white, so on a keycap it's
+     * a grey with purple aspirations. Wrung out to a proper violet, and nudged
+     * a little toward blue so it doesn't melt into the pink stripe above it.
+     */
+    public static final RGBColor BI_PURPLE = RGBColor.fromHex("#9A1FB0");
+    /** Bi flag blue. Official #0038A8, kept as-is. */
+    public static final RGBColor BI_BLUE = RGBColor.fromHex("#0038A8");
 
     /** Constants only. There is nothing here worth instantiating. */
     private ColorPalette() {

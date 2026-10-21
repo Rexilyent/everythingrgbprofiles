@@ -478,4 +478,24 @@ public final class CanopyDapplePattern implements Pattern {
     public static CanopyDapplePattern oldGrowthPineTaiga() {
         return new CanopyDapplePattern(4.6, 2.7, 0.44, 0.72, 2.4, 0.15);
     }
+
+    /**
+     * Dappled forest: 26.3's autumn biome, and the forest preset with two
+     * things changed, both because of the poplars it's made of.
+     *
+     * <p>Poplars are narrow columns, so light comes down between them a bit
+     * stretched, borrowing the old growth birch's mild stretch. And the biome
+     * places six trees a chunk where the forest places ten, so the threshold
+     * drops and more of the floor is lit.
+     *
+     * <p>The colours do the autumn part, from the profile: red poplar for the
+     * shade and yellow poplar for the pools. The ramp between them passes
+     * through orange, so the commonest tree in the biome turns up in the middle
+     * without needing a third colour slot. Red to yellow is about thirty-five
+     * degrees of hue, well inside the gap that made the old teal-to-lime ramp
+     * read as two things instead of one.
+     */
+    public static CanopyDapplePattern dappledForest() {
+        return new CanopyDapplePattern(3.6, 1.5, 0.37, 0.68, 1.8, 0.16);
+    }
 }

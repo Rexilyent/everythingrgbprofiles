@@ -11,6 +11,7 @@ import com.everythingrgbprofile.effects.support.*;
 import com.everythingrgbprofile.keymap.KeyGrid;
 import com.everythingrgbprofile.gating.PackDetection;
 import com.everythingrgbprofile.pattern.Pattern;
+import com.everythingrgbprofile.pattern.PatternFactory;
 import com.everythingrgbprofile.pattern.PatternParams;
 import com.everythingrgbprofile.pattern.patterns.*;
 import com.everythingrgbprofile.priority.EffectController;
@@ -77,8 +78,12 @@ public final class EffectRegistry {
     public PortalChargeEffect portalCharge;
     public SustainedOverlayEffect thirstWarning;
     public SustainedOverlayEffect temperatureWarning;
+    public HungerGrowlEffect hungerGrowl;
+    public ThirstDropsEffect thirstDrops;
     public DrowningEffect drowning;
     public BurningEffect burning;
+    public TemperatureEdgeEffect temperatureEdge;
+    public HeartbeatEffect heartbeat;
 
     // --- Tier 3: interrupts. Highest priority wins, subject to suppression.
     public MomentaryFlashEffect deathFlash;
@@ -291,9 +296,9 @@ public final class EffectRegistry {
         // Whole board (null targets) — rain falls on everything. This is the
         // effect that was erasing the biome layer before LayerPixel existed.
         rainCascade = new SustainedOverlayEffect("rain_cascade", EffectTier.TIER2_OVERLAY, 0, null,
-                DriftParticlePattern.rainDrift(
+                new RainStreakPattern(
                         RGBProfileConfig.RAIN_PARTICLE_COUNT.get(),
-                        RGBProfileConfig.RAIN_PARTICLE_LIFESPAN_MILLIS.get()),
+                        RGBProfileConfig.RAIN_FALL_MILLIS.get()),
                 RGBColor.fromHexOrDefault(RGBProfileConfig.RAIN_COLOR.get(), ColorPalette.RAIN_BLUE_GRAY))
                 .withLayerOpacity(RGBProfileConfig.RAIN_LAYER_OPACITY.get());
         manager.register(rainCascade);
@@ -346,6 +351,21 @@ public final class EffectRegistry {
                 new PulsePattern(PulsePattern.Speed.SLOW), ColorPalette.OVERHEATING_ORANGE);
         manager.register(temperatureWarning);
 
+        // The slow survival stats, as whole-board overlays. Registered ahead
+        // of the water, the fire, the temperature edge and the heartbeat, so
+        // every one of those lands on top: you can be peckish later, the lava
+        // is a now problem. Body colours come from the same keys as the
+        // warning keys above, so recolouring hunger recolours both.
+        hungerGrowl = new HungerGrowlEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HUNGER_COLOR.get(), ColorPalette.HUNGER_AMBER),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HUNGER_GROWL_HOLLOW_COLOR.get(), ColorPalette.HUNGER_GROWL_HOLLOW));
+        manager.register(hungerGrowl);
+
+        thirstDrops = new ThirstDropsEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.THIRST_COLOR.get(), ColorPalette.THIRST_CYAN),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.THIRST_GLINT_COLOR.get(), ColorPalette.THIRST_GLINT));
+        manager.register(thirstDrops);
+
         // Level-driven rather than on/off, so it gets its own small class
         // instead of a SustainedOverlayEffect. Priority is meaningless in
         // Tier 2; it draws alongside everything else, which is right — rain
@@ -364,6 +384,25 @@ public final class EffectRegistry {
                 RGBColor.fromHexOrDefault(RGBProfileConfig.BURNING_CORE_COLOR.get(), ColorPalette.BURNING_CORE),
                 RGBColor.fromHexOrDefault(RGBProfileConfig.BURNING_TIP_COLOR.get(), ColorPalette.BURNING_TIP));
         manager.register(burning);
+
+        // Frost or heat closing in from the edges, for Tough As Nails. After
+        // the fire on purpose: heatstroke while you're on fire is entirely
+        // plausible, and the ring round the outside should stay readable on
+        // top of flames rising up the middle, not get buried under them.
+        temperatureEdge = new TemperatureEdgeEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.FREEZING_COLOR.get(), ColorPalette.FREEZING_ICE),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.FREEZING_RIM_COLOR.get(), ColorPalette.FREEZING_RIM),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.OVERHEATING_COLOR.get(), ColorPalette.OVERHEATING_ORANGE),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.OVERHEATING_RIM_COLOR.get(), ColorPalette.OVERHEATING_RIM));
+        manager.register(temperatureEdge);
+
+        // Last of the level-driven overlays, so it lands on top of them. Of
+        // everything in this tier, "you are about to die" is the one that
+        // should never be the thing getting drawn over.
+        heartbeat = new HeartbeatEffect(
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HEARTBEAT_COLOR.get(), ColorPalette.HEARTBEAT_RED),
+                RGBColor.fromHexOrDefault(RGBProfileConfig.HEARTBEAT_CREST_COLOR.get(), ColorPalette.HEARTBEAT_CREST));
+        manager.register(heartbeat);
 
         // ============ Tier 3 ============
         // THE PRIORITY LADDER. This is the most consequential list of numbers
@@ -473,9 +512,14 @@ public final class EffectRegistry {
         }
     }
 
-    /** The three title-screen themes, so the pattern and its two colours cannot disagree. */
+    /** The title-screen themes, so the pattern and its two colours cannot disagree. */
     private enum MenuStyle {
-        /** A sulfur cave, matching Minecraft 26.2's own panorama. The default. */
+        /**
+         * Poplar leaves falling, matching Minecraft 26.3's own panorama of the
+         * dappled forest. The cherry grove's petals in autumn colours. The default.
+         */
+        AUTUMN,
+        /** A sulfur cave, matching Minecraft 26.2's panorama. */
         SULFUR,
         /** Sky over grass, matching the panorama the game had through 1.21.x. */
         VANILLA,
@@ -488,18 +532,23 @@ public final class EffectRegistry {
     /**
      * Picks the title-screen theme.
      *
-     * <p>Default is the sulfur cave, because that is what Minecraft 26.2 puts
-     * on the title screen: matching the panorama is not a decorating decision
-     * the way the mineshaft theme is, it is the board agreeing with the screen
-     * it sits under. The mineshaft theme is drawn for one pack's title art and
-     * looks like a mistake anywhere else, so it stays opt-in — either by naming
-     * it outright, or by {@code auto} recognising the pack.
+     * <p>Default is the autumn leaves, because Minecraft 26.3 puts the dappled
+     * forest on the title screen: matching the panorama is not a decorating
+     * decision the way the mineshaft theme is, it is the board agreeing with
+     * the screen it sits under. The mineshaft theme is drawn for one pack's
+     * title art and looks like a mistake anywhere else, so it stays opt-in —
+     * either by naming it outright, or by {@code auto} recognising the pack.
      *
-     * <p>The sky-over-grass theme is still here and still worth having. Anyone
-     * running a resource pack that restores the old panorama wants it, and it
-     * is the only theme that is about the overworld rather than about a cave.
+     * <p>The older panoramas' themes are still here and still worth having.
+     * Sulfur is what 26.2 showed, and sky-over-grass is what 1.21.x showed, so
+     * anyone running a resource pack that restores either one wants it.
      */
     private static Pattern menuPattern() {
+        // Unlisted styles: the hidden patterns (rainbow, flags) work here too.
+        // The style comment in the config doesn't mention them, deliberately;
+        // see PatternFactory.hiddenPattern.
+        Pattern hidden = PatternFactory.hiddenPattern(RGBProfileConfig.MENU_STYLE.get());
+        if (hidden != null) return hidden;
         return switch (menuStyle()) {
             case MINESHAFT -> new MenuAmbientPattern(
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_EMBER_COLOR.get(), ColorPalette.MENU_EMBER),
@@ -511,6 +560,7 @@ public final class EffectRegistry {
                     RGBProfileConfig.MENU_TORCH_COUNT.get());
             case VANILLA -> new VanillaMenuPattern(RGBProfileConfig.MENU_VANILLA_CLOUD_COUNT.get());
             case SULFUR -> SulfurCavePattern.menu();
+            case AUTUMN -> DriftParticlePattern.leafDrift();
             case SIFT -> SiftPattern.menu();
         };
     }
@@ -534,6 +584,8 @@ public final class EffectRegistry {
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_GRASS_COLOR.get(), ColorPalette.MENU_VANILLA_GRASS);
             case SULFUR ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_ROCK_COLOR.get(), ColorPalette.SULFUR_ROCK);
+            case AUTUMN ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_AUTUMN_LEAF_COLOR.get(), ColorPalette.AUTUMN_ORANGE_LEAF);
             case SIFT ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SIFT_MESA_COLOR.get(), ColorPalette.SIFT_MESA);
         };
@@ -541,9 +593,9 @@ public final class EffectRegistry {
 
     /**
      * The second colour, which each theme reads differently: the vanilla theme
-     * takes it as the sky, the sulfur theme as the acid pool, and the mineshaft
-     * theme ignores it entirely because it derives everything warm from its own
-     * ember colour instead.
+     * takes it as the sky, the sulfur theme as the acid pool, the autumn theme
+     * as every other falling leaf, and the mineshaft theme ignores it entirely
+     * because it derives everything warm from its own ember colour instead.
      *
      * <p>Set unconditionally rather than only for the themes that read it,
      * because an accent nobody reads costs nothing and a null one would have
@@ -554,6 +606,8 @@ public final class EffectRegistry {
         return switch (menuStyle()) {
             case SULFUR ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_POOL_COLOR.get(), ColorPalette.SULFUR_ACID_POOL);
+            case AUTUMN ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_AUTUMN_ACCENT_COLOR.get(), ColorPalette.AUTUMN_RED_LEAF);
             case SIFT ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SIFT_SKY_COLOR.get(), ColorPalette.SIFT_SKY);
             case VANILLA, MINESHAFT ->
@@ -564,22 +618,28 @@ public final class EffectRegistry {
     /** Resolved once at registration, because the theme does not change mid-session. */
     private static MenuStyle menuStyle() {
         String style = RGBProfileConfig.MENU_STYLE.get();
-        if (style == null) return MenuStyle.SULFUR;
+        if (style == null) return MenuStyle.AUTUMN;
+        // A hidden pattern ignores the theme colours anyway, so there's no
+        // reason to go poking at the disk for pack detection over one. Asked of
+        // PatternFactory rather than listed here, because a list here is a list
+        // somebody forgets to update when the next flag goes in.
+        if (PatternFactory.hiddenPattern(style) != null) return MenuStyle.AUTUMN;
         return switch (style.trim().toLowerCase(java.util.Locale.ROOT)) {
             case "mineshaft" -> MenuStyle.MINESHAFT;
             case "vanilla" -> MenuStyle.VANILLA;
             case "sulfur" -> MenuStyle.SULFUR;
-            // Only in a build that carries the Sift. In a release it falls
-            // through to the default below, the same as any unknown value.
-            case "sift" -> Feature.SIFT.isOn() ? MenuStyle.SIFT : MenuStyle.SULFUR;
+            case "autumn" -> MenuStyle.AUTUMN;
+            // Only in a build that carries the Sift. In a release it gets the
+            // default theme instead, the same as any unknown value.
+            case "sift" -> Feature.SIFT.isOn() ? MenuStyle.SIFT : MenuStyle.AUTUMN;
             // Anything unrecognised behaves as auto rather than throwing,
             // because a typo in a config file does not get to decide whether
             // the mod starts. Note this is the only path that reaches
-            // PackDetection at all: the default of "vanilla" returns above
+            // PackDetection at all: the default of "autumn" returns above
             // without ever touching the disk.
             default -> PackDetection.matches(RGBProfileConfig.MENU_PACK_PATTERNS.get())
                     ? MenuStyle.MINESHAFT
-                    : MenuStyle.SULFUR;
+                    : MenuStyle.AUTUMN;
         };
     }
 

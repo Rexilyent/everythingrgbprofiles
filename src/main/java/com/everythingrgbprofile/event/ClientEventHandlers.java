@@ -40,6 +40,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.ParticleTypes;
@@ -120,10 +121,10 @@ import java.util.Set;
  * commented-out sketch of exactly that sitting near the weather polls, along
  * with the reason it hasn't been switched on yet.
  *
- * <p><b>Dormant: Tough As Nails.</b> The thirst and temperature polls are all
- * here and all correct, and they never run, because
- * {@code ToughAsNailsCompat.read} is a placeholder that always returns null.
- * See that class for what finishing it involves.
+ * <p><b>Tough As Nails</b> rides the slow cadence like the other survival
+ * warnings, and is in-development only (see Feature). Its reading goes
+ * through ToughAsNailsCompat, which is the only place that knows TAN's API
+ * exists.
  *
  * <h2>A note on where these hooks are placed</h2>
  * Several detectors in here deliberately listen lower in the class hierarchy
@@ -142,10 +143,17 @@ public final class ClientEventHandlers {
 
     private static int tickCounter = 0;
     private static boolean lastHealthBelowThreshold = false;
+    /** Whether the heartbeat was last told anything other than zero, so it only gets told to stop once. */
+    private static boolean lastHeartbeatLive = false;
     private static boolean lastHungerBelowThreshold = false;
     private static boolean lastThirstBelowThreshold = false;
+    /** Same deal as lastHeartbeatLive, for the hunger growl and the thirst drops. */
+    private static boolean lastHungerGrowlLive = false;
+    private static boolean lastThirstDropsLive = false;
     private static boolean lastOverheating = false;
     private static boolean lastFreezing = false;
+    /** Whether the temperature edge was last told anything other than zero, so it only gets told to clear once. */
+    private static boolean lastTemperatureEdgeLive = false;
     private static String lastBiomeId = null;
     private static String pendingBiomeId = null;
     private static long pendingBiomeSinceMillis = 0;
@@ -226,6 +234,8 @@ public final class ClientEventHandlers {
      * happens the moment the beam releases or the target is lost.
      */
     private static boolean elderGuardianBeamFired = false;
+    /** "Haven't looked yet", which is not the same thing as "not cursed". */
+    private static final int CURSE_TICKS_UNKNOWN = -1;
     /**
      * Mining Fatigue's remaining duration as of the last poll, in ticks.
      *
@@ -236,8 +246,17 @@ public final class ClientEventHandlers {
      * within 50 blocks whose current one has under 1200 ticks left, so a
      * duration that has gone <i>up</i> since the last look is a curse that has
      * just landed. Ticking down is just time passing.
+     *
+     * <p>{@link #CURSE_TICKS_UNKNOWN} until the first look after a Guardian
+     * shows up, and that first look only writes the number down. Starting
+     * from 0 instead meant swimming out of range, waiting out the grace
+     * period and swimming back in with 4000 ticks of the OLD curse still on
+     * you read as 0 going up to 4000. Flash, "you've been cursed", except you
+     * hadn't. The Guardian doesn't re-curse anyone with more than 1200 ticks
+     * left, so nothing landed. Same story meeting one with fatigue you
+     * brought from somewhere else.
      */
-    private static int elderGuardianCurseTicks = 0;
+    private static int elderGuardianCurseTicks = CURSE_TICKS_UNKNOWN;
 
     /** Entity id of the boss currently owning the board, or null. */
     private static String currentBossId = null;
@@ -308,8 +327,9 @@ public final class ClientEventHandlers {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         EffectRegistry effects = SdkWorkerThread.effects();
-        // null means gating never started the worker at all: no hardware, mod
-        // disabled, wrong OS, dedicated server. Costs one null check per tick
+        // null means the worker isn't running: gating never started it (mod
+        // disabled, wrong OS, dedicated server), or it started, found no
+        // lighting software at all, and went idle. Costs one null check per tick
         // and buys complete silence on every machine this mod is irrelevant
         // to, which is most of them.
         if (effects == null) return;
@@ -413,6 +433,7 @@ public final class ClientEventHandlers {
         pollHealth(player, effects, now);
         pollHunger(player, effects, now);
         pollTimeOfDay(player, effects);
+        pollBiomeNight(player, effects);
         pollWeather(player, effects, now);
         pollBossEncounter(player, effects, now);
         pollWarden(player, effects, now);
@@ -520,6 +541,10 @@ public final class ClientEventHandlers {
         lastThirstBelowThreshold = false;
         lastOverheating = false;
         lastFreezing = false;
+        lastTemperatureEdgeLive = false;
+        lastHeartbeatLive = false;
+        lastHungerGrowlLive = false;
+        lastThirstDropsLive = false;
         lastRaining = false;
         rainShelteredSinceMillis = 0;
         lastSnowing = false;
@@ -544,7 +569,7 @@ public final class ClientEventHandlers {
         elderGuardianPresent = false;
         elderGuardianLastSeenMillis = 0;
         elderGuardianBeamFired = false;
-        elderGuardianCurseTicks = 0;
+        elderGuardianCurseTicks = CURSE_TICKS_UNKNOWN;
         witherPresent = false;
         witherLastSeenMillis = 0;
         witherLastSkulls = 0;
@@ -612,6 +637,10 @@ public final class ClientEventHandlers {
             effects.nightIndicator.setNightProgress(false, 0);
             effects.drowning.reset();
             effects.burning.reset();
+            effects.temperatureEdge.reset();
+            effects.heartbeat.reset();
+            effects.hungerGrowl.reset();
+            effects.thirstDrops.reset();
             effects.enderDragon.setIdle();
             // Snapped, not faded: the world is gone, so there is nothing left
             // for the snake to dissolve into.
@@ -1001,7 +1030,7 @@ public final class ClientEventHandlers {
                     < RGBProfileConfig.ELDER_GUARDIAN_GRACE_MILLIS.get()) return;
             elderGuardianPresent = false;
             elderGuardianBeamFired = false;
-            elderGuardianCurseTicks = 0;
+            elderGuardianCurseTicks = CURSE_TICKS_UNKNOWN;
             SdkWorkerThread.enqueue(() -> effects.elderGuardian.setGone(now));
             return;
         }
@@ -1036,8 +1065,9 @@ public final class ClientEventHandlers {
         int curseTicks = cursed ? fatigue.getDuration() : 0;
         // Gone UP rather than down means a fresh curse rather than the old one
         // ticking away. See the field's note for why this is read off the
-        // debuff itself instead of the packet that announces it.
-        if (curseTicks > elderGuardianCurseTicks) {
+        // debuff itself instead of the packet that announces it. Nothing to
+        // compare against on the first look, so that one just records.
+        if (elderGuardianCurseTicks != CURSE_TICKS_UNKNOWN && curseTicks > elderGuardianCurseTicks) {
             SdkWorkerThread.enqueue(() -> effects.elderGuardian.curseLanded(now));
         }
         elderGuardianCurseTicks = curseTicks;
@@ -1611,30 +1641,85 @@ public final class ClientEventHandlers {
     // ---------------------------------------------------------------
     // Health Flash
     // ---------------------------------------------------------------
+    /**
+     * How strong the heartbeat is the moment you drop under the threshold,
+     * before it starts climbing. Enough for a slow thump you can actually
+     * see; at zero the first beat would be invisible and the warning would
+     * effectively start somewhere below the threshold you set.
+     */
+    private static final double HEARTBEAT_FLOOR = 0.15;
+
     private static void pollHealth(Player player, EffectRegistry effects, long now) {
-        if (!Feature.HEALTH_FLASH.isOn()) return;
         double percent = 100.0 * player.getHealth() / Math.max(1, player.getMaxHealth());
+        double threshold = RGBProfileConfig.HEALTH_THRESHOLD_PERCENT.get();
         // The !dead check matters: zero health while dead does not mean "you
         // should probably heal", it means "you are dead", and those want very
         // different things on the keyboard. See pollDeath.
-        boolean below = !dead && percent < RGBProfileConfig.HEALTH_THRESHOLD_PERCENT.get();
-        if (below != lastHealthBelowThreshold) {
+        boolean below = !dead && percent < threshold;
+
+        if (Feature.HEALTH_FLASH.isOn() && below != lastHealthBelowThreshold) {
             lastHealthBelowThreshold = below;
             SdkWorkerThread.enqueue(() -> effects.healthFlash.setActive(below, now));
+        }
+
+        // Above the threshold this is a flat zero, which is the whole point:
+        // no heartbeat at full health, or at 90%, or anywhere you aren't
+        // actually in trouble. Below it, the floor plus however far under
+        // you are, so 1.0 is reserved for very nearly dead.
+        double heartbeat = 0;
+        if (Feature.HEARTBEAT.isOn() && below) {
+            double severity = 1 - percent / threshold;
+            heartbeat = HEARTBEAT_FLOOR + (1 - HEARTBEAT_FLOOR) * severity;
+        }
+        boolean live = heartbeat > 0;
+        if (live || lastHeartbeatLive) {
+            lastHeartbeatLive = live;
+            double level = heartbeat;
+            SdkWorkerThread.enqueue(() -> effects.heartbeat.setLevel(level));
         }
     }
 
     // ---------------------------------------------------------------
     // Hunger Warning
     // ---------------------------------------------------------------
+    /**
+     * How strong the growl is the moment you drop under the threshold. Same
+     * job as HEARTBEAT_FLOOR: without it, the first point under the line
+     * would get a growl too faint to see.
+     */
+    private static final double HUNGER_GROWL_FLOOR = 0.15;
+
     private static void pollHunger(Player player, EffectRegistry effects, long now) {
-        if (!Feature.HUNGER_WARNING.isOn()) return;
         double percent = 100.0 * player.getFoodData().getFoodLevel() / 20.0;
-        boolean below = !dead && percent < RGBProfileConfig.HUNGER_THRESHOLD_PERCENT.get();
-        if (below != lastHungerBelowThreshold) {
+        double threshold = RGBProfileConfig.HUNGER_THRESHOLD_PERCENT.get();
+        boolean below = !dead && percent < threshold;
+        if (Feature.HUNGER_WARNING.isOn() && below != lastHungerBelowThreshold) {
             lastHungerBelowThreshold = below;
             SdkWorkerThread.enqueue(() -> effects.hungerWarning.setActive(below, now));
         }
+
+        // Food only moves in whole points, so with the default threshold this
+        // only ever takes six values and jumps between them. The pattern
+        // eases, so the jumps come out as the growl getting worse instead of
+        // lurching.
+        double growl = Feature.HUNGER_GROWL.isOn() && below
+                ? survivalLevel(percent, threshold, HUNGER_GROWL_FLOOR)
+                : 0;
+        boolean live = growl > 0;
+        if (live || lastHungerGrowlLive) {
+            lastHungerGrowlLive = live;
+            SdkWorkerThread.enqueue(() -> effects.hungerGrowl.setLevel(growl));
+        }
+    }
+
+    /**
+     * The floor at the threshold, climbing to 1 at empty. Shared by the
+     * growl and the thirst drops, which want the exact same curve and would
+     * otherwise each carry a copy of it, free to drift apart.
+     */
+    private static double survivalLevel(double percent, double threshold, double floor) {
+        double severity = Math.max(0, Math.min(1, 1 - percent / threshold));
+        return floor + (1 - floor) * severity;
     }
 
     // ---------------------------------------------------------------
@@ -1796,6 +1881,36 @@ public final class ClientEventHandlers {
         boolean isNight = dayTime >= 13000 && dayTime < 23000;
         double progress = isNight ? (dayTime - 13000) / 10000.0 : 0;
         SdkWorkerThread.enqueue(() -> effects.nightIndicator.setNightProgress(isNight, progress));
+    }
+
+    /**
+     * Night, as far as the biome scenes are concerned. Right now that means
+     * the Pale Garden's eyeblossoms, which only open after dark.
+     *
+     * <p>Not the moon's 13000-23000 window from {@link #pollTimeOfDay}, and
+     * not gated on the night indicator either: switching the moon off has no
+     * business also keeping a garden's flowers shut.
+     *
+     * <p>From 1.21.11 vanilla stopped hardcoding this. Eyeblossoms read the
+     * {@code gameplay/eyeblossom_open} environment attribute, which the
+     * {@code day} timeline switches on from tick 12600 to 23401. That one
+     * isn't syncable though, so the client is sent nothing and always gets
+     * {@code DEFAULT} back. {@code CREAKING_ACTIVE} is keyed to the exact same
+     * ticks and does get synced, so that's what this reads. Only dimensions
+     * running the {@code day} timeline set it, which covers what the old
+     * {@code natural()} check did. Thunderstorms no longer count either: the
+     * old test went off {@code skyDarken} and a storm could open the flowers
+     * at noon, but the timeline only knows the clock.
+     *
+     * <p>Up to 1.21.10 this was {@code natural() && isDarkOutside()}
+     * ({@code isNight()} before 1.21.5), so this is the line that differs
+     * between branches.
+     */
+    private static void pollBiomeNight(Player player, EffectRegistry effects) {
+        if (!Feature.BIOME_COLORS.isOn()) return;
+        boolean night = player.level().environmentAttributes()
+                .getValue(EnvironmentAttributes.CREAKING_ACTIVE, player.position());
+        SdkWorkerThread.enqueue(() -> effects.biomeColor.setNight(night));
     }
 
     // ---------------------------------------------------------------
@@ -2314,27 +2429,50 @@ public final class ClientEventHandlers {
     }
 
     // ---------------------------------------------------------------
-    // Tough As Nails soft-compat, which is entirely dormant when TAN is not
-    // installed (see ModCompatRegistry) AND, right now, entirely dormant when
-    // it IS installed, because the integration is still a placeholder. See
-    // ToughAsNailsCompat for what finishing it involves.
+    // Tough As Nails soft-compat, entirely dormant when TAN is not installed
+    // (see ModCompatRegistry). Two things come out of it: the single-key
+    // thirst and temperature warnings, and the frost or heat creeping in from
+    // the edges of the board.
     // ---------------------------------------------------------------
+
+    /**
+     * How far in the edge sits the moment you go ICY or HOT, before any
+     * damage has started building. Enough for the outermost ring of keys, so
+     * "you are now in the danger zone" shows up straight away rather than
+     * waiting for the meter to move.
+     */
+    private static final double TEMPERATURE_EDGE_FLOOR = 0.12;
+
     private static void pollToughAsNails(Player player, EffectRegistry effects, long now) {
         if (!Feature.TOUGH_AS_NAILS.isOn() || !ModCompatRegistry.isToughAsNailsLoaded()) return;
 
         ToughAsNailsCompat.Reading reading = ToughAsNailsCompat.read(player);
-        // null means the API lookup failed even though the mod IS installed,
-        // which at the moment means always, because the Tough As Nails
-        // integration is a documented placeholder that has never returned a
-        // reading in its life. Stay silent, do not crash, do not spam the log.
-        // ToughAsNailsCompat's class doc explains exactly what is missing.
-        if (reading == null) return;
+        // null means TAN is installed but its API didn't answer the way 10.1
+        // does. ToughAsNailsCompat has already logged that once; all that's
+        // left here is to not leave a frozen edge stuck on the board.
+        if (reading == null) {
+            pushTemperatureEdge(effects, 0, 0);
+            pushThirstDrops(effects, 0);
+            return;
+        }
 
-        boolean thirstLow = !dead && reading.thirstPercent() < RGBProfileConfig.THIRST_THRESHOLD_PERCENT.get();
+        if (Feature.TEMPERATURE_EDGES.isOn() && !dead) {
+            pushTemperatureEdge(effects,
+                    edgeLevel(reading.freezing(), reading.coldProgress()),
+                    edgeLevel(reading.overheating(), reading.heatProgress()));
+        } else {
+            pushTemperatureEdge(effects, 0, 0);
+        }
+
+        double thirstThreshold = RGBProfileConfig.THIRST_THRESHOLD_PERCENT.get();
+        boolean thirstLow = !dead && reading.thirstPercent() < thirstThreshold;
         if (thirstLow != lastThirstBelowThreshold) {
             lastThirstBelowThreshold = thirstLow;
             SdkWorkerThread.enqueue(() -> effects.thirstWarning.setActive(thirstLow, now));
         }
+        pushThirstDrops(effects, Feature.THIRST_DROPS.isOn() && thirstLow
+                ? survivalLevel(reading.thirstPercent(), thirstThreshold, THIRST_DROPS_FLOOR)
+                : 0);
 
         boolean overheating = !dead && reading.overheating();
         boolean freezing = !dead && reading.freezing();
@@ -2345,9 +2483,9 @@ public final class ClientEventHandlers {
             // fallback. An earlier version used ColorPalette directly here,
             // which meant overheatingColor and freezingColor sat in the config
             // file doing absolutely nothing while thirstColor right above them
-            // worked fine. Nobody noticed because the Tough As Nails reading
-            // is still a placeholder that never returns anything, so this
-            // branch has never actually run.
+            // worked fine. Nobody noticed, because back then the Tough As Nails
+            // reading was a placeholder that never returned anything and this
+            // branch couldn't run.
             RGBColor color = overheating
                     ? RGBColor.fromHexOrDefault(RGBProfileConfig.OVERHEATING_COLOR.get(), ColorPalette.OVERHEATING_ORANGE)
                     : RGBColor.fromHexOrDefault(RGBProfileConfig.FREEZING_COLOR.get(), ColorPalette.FREEZING_ICE);
@@ -2362,6 +2500,42 @@ public final class ClientEventHandlers {
         // empty. It would be a post-processing step on BiomeColorEffect's
         // resolved colour, and that class needs to grow a tint hook before any
         // of it can be written.
+    }
+
+    /**
+     * In the danger zone, the edge starts at the floor and the damage meter
+     * fills the rest. Out of it, the meter alone, which is what lets the edge
+     * retreat as the meter drains instead of vanishing the moment you step
+     * back to merely COLD or WARM. It also means powder snow frosts the board
+     * on its own, since that drives the same frozen meter. Fair enough, it
+     * is freezing you.
+     */
+    private static double edgeLevel(boolean inDangerZone, double progress) {
+        double floor = inDangerZone ? TEMPERATURE_EDGE_FLOOR : 0;
+        return floor + (1 - floor) * progress;
+    }
+
+    /**
+     * Only enqueues while there's something to say. Once both are zero it
+     * says so exactly once and then goes quiet, instead of posting a job a
+     * second for the entire time you're comfortable, which is most of the game.
+     */
+    private static void pushTemperatureEdge(EffectRegistry effects, double cold, double hot) {
+        boolean live = cold > 0 || hot > 0;
+        if (!live && !lastTemperatureEdgeLive) return;
+        lastTemperatureEdgeLive = live;
+        SdkWorkerThread.enqueue(() -> effects.temperatureEdge.setLevels(cold, hot));
+    }
+
+    /** About a drop a second at the threshold. See HUNGER_GROWL_FLOOR for why it isn't zero. */
+    private static final double THIRST_DROPS_FLOOR = 0.15;
+
+    /** Same go-quiet-once-it's-zero rule as pushTemperatureEdge. */
+    private static void pushThirstDrops(EffectRegistry effects, double level) {
+        boolean live = level > 0;
+        if (!live && !lastThirstDropsLive) return;
+        lastThirstDropsLive = live;
+        SdkWorkerThread.enqueue(() -> effects.thirstDrops.setLevel(level));
     }
 
     // ---------------------------------------------------------------
@@ -2422,6 +2596,9 @@ public final class ClientEventHandlers {
         lastThirstBelowThreshold = false;
         lastOverheating = false;
         lastFreezing = false;
+        lastHeartbeatLive = false;
+        lastHungerGrowlLive = false;
+        lastThirstDropsLive = false;
 
         boolean flash = Feature.DEATH_FLASH.isOn();
         boolean blood = Feature.DEATH_BLOOD.isOn();
@@ -2429,8 +2606,14 @@ public final class ClientEventHandlers {
         long duration = RGBProfileConfig.DEATH_FLASH_DURATION_MILLIS.get();
         SdkWorkerThread.enqueue(() -> {
             effects.healthFlash.setActive(false, now);
+            // Stopped outright, rings in flight included. Letting the last
+            // beat finish its trip to the edge after you've died would be
+            // the one moment a heartbeat is definitely wrong.
+            effects.heartbeat.reset();
             effects.hungerWarning.setActive(false, now);
+            effects.hungerGrowl.reset();
             effects.thirstWarning.setActive(false, now);
+            effects.thirstDrops.reset();
             effects.temperatureWarning.setActive(false, now);
             // Raised in the SAME job as the flash, so the blood is already
             // sitting underneath by the time the flash dissolves off it.

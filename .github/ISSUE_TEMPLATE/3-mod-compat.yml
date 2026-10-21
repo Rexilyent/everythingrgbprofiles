@@ -1,0 +1,60 @@
+name: Mod compatibility
+description: Request lighting for another mod's biomes, dimensions or bosses, or report a problem with a mod that is already supported.
+title: "[Compat] "
+labels: ["mod compat", "status: needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Mods already supported: The Aether, Better End Island, Legendary Monsters, The Bumblezone, The Undergarden, Tough As Nails, Twilight Forest.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Request or problem?
+      options:
+        - Add support for a new mod
+        - Problem with a supported mod
+    validations:
+      required: true
+  - type: input
+    id: mod
+    attributes:
+      label: Mod
+      description: Name, and a link to its CurseForge or Modrinth page.
+    validations:
+      required: true
+  - type: input
+    id: other-mod-version
+    attributes:
+      label: That mod's version
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: |
+        For a new mod: which biomes, dimensions, bosses or effects should light up, and how you picture them.
+        For a problem: what the keyboard did, and what you expected. Attach `logs/everythingrgbprofiles-report.txt` from `/rgbprofiles report`.
+    validations:
+      required: true
+  - type: dropdown
+    id: mc-version
+    attributes:
+      label: Minecraft version
+      options:
+        - "26.3"
+        - "26.2"
+        - "26.1.2"
+        - "1.21.11"
+        - "1.21.10"
+        - "1.21.8"
+        - "1.21.5"
+        - "1.21.4"
+        - "1.21.3"
+        - "1.21.1"
+        - "Other"
+    validations:
+      required: true
+  - type: input
+    id: neoforge-version
+    attributes:
+      label: NeoForge version

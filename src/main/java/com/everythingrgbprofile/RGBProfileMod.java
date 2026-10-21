@@ -60,22 +60,26 @@ public final class RGBProfileMod {
         // state on the client turned out to do the entire job by itself (see
         // SculkBlockWatcher), so nothing reads this config server-side now.
         //
-        // It stays COMMON regardless. The only thing switching to CLIENT would
-        // achieve is a dedicated server no longer bothering to load a file it
-        // was already ignoring, and then the filename would be lying about
-        // itself. It lands in config/ under a name that says what it is,
-        // because nobody enjoys archaeology.
-        modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.COMMON, RGBProfileConfig.SPEC, "everythingrgbprofiles-common.toml");
+        // It stays LOCAL (what NeoForge 26.3 renamed COMMON to) regardless. The
+        // only thing switching to CLIENT would achieve is a dedicated server no
+        // longer bothering to load a file it was already ignoring, and then the
+        // filename would be lying about itself. The filename keeps "common" so
+        // configs from earlier versions carry straight over. It lands in
+        // config/ under a name that says what it is, because nobody enjoys
+        // archaeology.
+        modContainer.registerConfig(net.neoforged.fml.config.ModConfig.Type.LOCAL, RGBProfileConfig.SPEC, "everythingrgbprofiles-common.toml");
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
 
         // Nothing gets registered on the game bus here, and no network payload
         // gets registered anywhere at all. An earlier version did both, for
-        // the sculk relay. With that deleted this mod has no server-side
-        // behaviour and no network surface whatsoever, which is precisely why
-        // a client carrying it can walk onto any server, vanilla or NeoForge,
-        // with nothing to negotiate and nothing to argue about.
+        // the sculk relay. Commits 0807383 and 4695679 deleted it (the
+        // receipts are in SculkBlockWatcher's class doc), and with it gone
+        // this mod has no server-side behaviour and no network surface
+        // whatsoever, which is precisely why a client carrying it can walk
+        // onto any server, vanilla or NeoForge, with nothing to negotiate and
+        // nothing to argue about.
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

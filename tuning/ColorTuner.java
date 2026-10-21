@@ -1,10 +1,13 @@
+import com.everythingrgbprofile.color.ColorPalette;
 import com.everythingrgbprofile.color.RGBColor;
 import com.everythingrgbprofile.keymap.KeyGrid;
 import com.everythingrgbprofile.pattern.LayerPixel;
+import com.everythingrgbprofile.pattern.NightAware;
 import com.everythingrgbprofile.pattern.Pattern;
 import com.everythingrgbprofile.pattern.PatternContext;
 import com.everythingrgbprofile.pattern.PatternFactory;
 import com.everythingrgbprofile.pattern.PatternParams;
+import com.everythingrgbprofile.pattern.patterns.PrideFlagPattern;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -125,12 +128,13 @@ import java.util.TreeMap;
  *
  * <pre>
  *   gradlew compileJava
- *   javac -cp build\classes\java\main -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java
- *   java  -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner
+ *   javac --release 21 -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java
+ *   gradlew colorTuner                                                 every lighting backend
+ *   java  -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner   Corsair only
  * </pre>
  *
  * JNA is only needed to tick "drive real keyboard"; without it everything else
- * still runs.
+ * still runs. tuning/README.md has the full javac line.
  *
  * <h2>The RGB wordmark</h2>
  * The last entry in the profile list is not a biome. It lights the keys that
@@ -144,6 +148,8 @@ public class ColorTuner {
 
     /** Maintainer-only options, read from the gitignored local.properties. */
     static final boolean EXPORTS = localFlag("tuner_exports");
+    /** Lists the [hidden] patterns. Same file, same rules. */
+    static final boolean HIDDEN_PATTERNS = localFlag("tuner_hidden_patterns");
 
     /** A true/false key from local.properties in the working directory; false if the file or key is missing. */
     static boolean localFlag(String key) {
@@ -248,6 +254,19 @@ public class ColorTuner {
     static final String EFFECT_PREFIX = "[effect] ";
 
     /**
+     * Prefix marking one of the hidden patterns: the rainbow and the flags,
+     * which no profile ships with and which only run in game when somebody
+     * names one in a config. See {@code PatternFactory.hiddenPattern}.
+     *
+     * <p>Their colours don't live in any profile file. The rainbow has none,
+     * and the flags read theirs straight out of {@code ColorPalette}, so the
+     * sliders drive the two stripes per flag that were adjusted away from the
+     * official hexes, and copy hands back the {@code ColorPalette} lines
+     * instead of a JSON block. See {@link #hiddenPattern}.
+     */
+    static final String HIDDEN_PREFIX = "[hidden] ";
+
+    /**
      * The biome overlay effects are drawn over until another is chosen. See
      * {@link #themePattern}.
      */
@@ -278,6 +297,14 @@ public class ColorTuner {
      */
     static volatile boolean overlaysOverBlack =
             "black".equalsIgnoreCase(System.getProperty("tuner.effect.backdrop", ""));
+
+    /**
+     * Night, for the patterns that care (the Pale Garden's two). In game this
+     * comes off the sky; here it's a checkbox, because waiting ten minutes for
+     * dusk to check one colour is not tuning, it's a lifestyle.
+     * {@code -Dtuner.night=true} starts with it on, for a GIF of the night.
+     */
+    static volatile boolean previewNight = Boolean.getBoolean("tuner.night");
 
     private static String startingBackdrop() {
         String chosen = System.getProperty("tuner.effect.backdrop", BACKDROP_BIOME).trim();
@@ -340,6 +367,10 @@ public class ColorTuner {
 
         boolean isEffect() {
             return boss != null && id.startsWith(EFFECT_PREFIX);
+        }
+
+        boolean isHidden() {
+            return id.startsWith(HIDDEN_PREFIX);
         }
     }
 
@@ -511,6 +542,59 @@ public class ColorTuner {
         loadBossProfiles();
         loadDedicatedBosses();
         loadTomlThemes(EFFECT_PREFIX, EffectThemes.all());
+        if (HIDDEN_PATTERNS) loadHiddenPatterns();
+    }
+
+    /**
+     * The hidden patterns, one entry each. Hardcoded rather than read from
+     * anywhere, because there is nowhere to read them from: no profile file
+     * carries them, which is the entire point of them.
+     *
+     * <p>The flags start on their {@code ColorPalette} colours, since that's
+     * what the game draws. The rainbow gets none, and the status line says
+     * the sliders do nothing for it.
+     */
+    static void loadHiddenPatterns() {
+        PROFILES.put(HIDDEN_PREFIX + "rainbow-wave",
+                new Prof(HIDDEN_PREFIX + "rainbow-wave", null, null, "rainbow-wave", null));
+        PROFILES.put(HIDDEN_PREFIX + "trans-flag", new Prof(HIDDEN_PREFIX + "trans-flag",
+                ColorPalette.TRANS_BLUE.toHex(), ColorPalette.TRANS_PINK.toHex(), "trans-flag", null));
+        PROFILES.put(HIDDEN_PREFIX + "lesbian-flag", new Prof(HIDDEN_PREFIX + "lesbian-flag",
+                ColorPalette.LESBIAN_ORANGE.toHex(), ColorPalette.LESBIAN_PINK.toHex(), "lesbian-flag", null));
+        PROFILES.put(HIDDEN_PREFIX + "bi-flag", new Prof(HIDDEN_PREFIX + "bi-flag",
+                ColorPalette.BI_PINK.toHex(), ColorPalette.BI_PURPLE.toHex(), "bi-flag", null));
+    }
+
+    /**
+     * The selected hidden pattern at the slider colours. Rebuilt per frame like
+     * the portal field, and for the same reason: the colours change the moment
+     * a slider moves, and these patterns are pure functions of elapsed time
+     * with no state to lose.
+     *
+     * <p>An unticked accent means "whatever the game ships", so it falls back
+     * to the palette rather than inventing a lightened base the way a biome
+     * would. A flag's stripes aren't derived from each other.
+     */
+    static Pattern hiddenPattern(RGBColor base, RGBColor accent) {
+        return switch (current.pattern()) {
+            case "trans-flag" -> PrideFlagPattern.trans(base,
+                    accent != null ? accent : ColorPalette.TRANS_PINK);
+            case "lesbian-flag" -> PrideFlagPattern.lesbian(base,
+                    accent != null ? accent : ColorPalette.LESBIAN_PINK);
+            case "bi-flag" -> PrideFlagPattern.bi(base,
+                    accent != null ? accent : ColorPalette.BI_PURPLE);
+            default -> PatternFactory.hiddenPattern(current.pattern());
+        };
+    }
+
+    /** What each hidden pattern calls its two slider colours, and their ColorPalette constants. */
+    static String[] hiddenSlots(String pattern) {
+        return switch (pattern) {
+            case "trans-flag" -> new String[]{"blue", "pink", "TRANS_BLUE", "TRANS_PINK"};
+            case "lesbian-flag" -> new String[]{"orange", "pink", "LESBIAN_ORANGE", "LESBIAN_PINK"};
+            case "bi-flag" -> new String[]{"pink", "purple", "BI_PINK", "BI_PURPLE"};
+            default -> null;
+        };
     }
 
     /**
@@ -821,7 +905,9 @@ public class ColorTuner {
         if (current == null) return;
         // A plain biome becomes what overlay effects are drawn over. See
         // backdropBiome.
-        if (!current.isPortal() && !current.isBoss()) backdropBiome = id;
+        // Not a hidden pattern, though. Rain falling on a trans flag is a fun
+        // look, and also not a biome.
+        if (!current.isPortal() && !current.isBoss() && !current.isHidden()) backdropBiome = id;
         // Restart the clock, so a stateful pattern re-seeds the way it does
         // when an effect re-activates in game rather than resuming mid-flight.
         clockStart = System.currentTimeMillis();
@@ -850,8 +936,48 @@ public class ColorTuner {
             pattern = livePattern(current.boss());
             return;
         }
-        pattern = current.isPortal() ? null
+        // Portals and hidden patterns are rebuilt every frame instead, off the sliders.
+        pattern = current.isPortal() || current.isHidden() ? null
                 : PatternFactory.fromNameAndPreset(current.pattern(), current.preset());
+    }
+
+    /**
+     * Patterns that are interchangeable scenes for the same biome, so the
+     * tuner can flip between them without anyone hand-editing a JSON file and
+     * hitting reload like it's 2009. Every name in a group maps to the whole
+     * group, which means it works whichever one the profile happens to ship with.
+     */
+    static final Map<String, List<String>> SCENES = scenes(
+            List.of("pale-garden", "creaking"));
+
+    @SafeVarargs
+    private static Map<String, List<String>> scenes(List<String>... groups) {
+        Map<String, List<String>> m = new HashMap<>();
+        for (List<String> g : groups) for (String name : g) m.put(name, g);
+        return m;
+    }
+
+    /** The scenes the selected biome can swap between, or an empty list if it can't. */
+    static List<String> scenesFor(Prof p) {
+        if (p == null || p.isPortal() || p.isBoss() || p.isHidden() || p.pattern() == null) return List.of();
+        return SCENES.getOrDefault(p.pattern().trim().toLowerCase(java.util.Locale.ROOT), List.of());
+    }
+
+    /**
+     * Swaps the selected biome onto another scene and leaves the sliders
+     * alone, so colours you're halfway through tuning survive the swap.
+     * Written back into {@link #PROFILES} as well, so the choice sticks when
+     * you wander off to an effect and come back, and the overlays get drawn
+     * over the scene you actually picked. Reload from disk undoes it.
+     */
+    static void switchScene(String scene) {
+        if (current == null || scene == null || scene.equals(current.pattern())) return;
+        current = new Prof(current.id(), current.color(), current.accent(), scene, current.preset());
+        PROFILES.put(current.id(), current);
+        // Fresh clock for the same reason selectProfile does it: the new
+        // scene should start from its first frame, not mid-creak.
+        clockStart = System.currentTimeMillis();
+        pattern = PatternFactory.fromNameAndPreset(current.pattern(), current.preset());
     }
 
     /**
@@ -961,6 +1087,13 @@ public class ColorTuner {
             }
             return staged(p.boss()).describer().describe(bossProgress) + "  -  " + where;
         }
+        if (p.isHidden()) {
+            String[] slots = hiddenSlots(p.pattern());
+            return p.pattern() + (slots == null
+                    ? " - ignores colour entirely, sliders do not apply"
+                    : " - sliders are the " + slots[0] + " and " + slots[1]
+                    + " stripes, colours from ColorPalette");
+        }
         if (!p.isPortal()) {
             return p.pattern() + (p.preset() != null ? " / " + p.preset() : "");
         }
@@ -996,8 +1129,10 @@ public class ColorTuner {
         // would make accent-less profiles behave differently here than in game.
         RGBColor accent = hasAccent ? fromHsv(accentHsv) : null;
 
-        Pattern active = current != null && current.isPortal()
-                ? portalPattern(base, accent) : pattern;
+        Pattern active = current == null ? pattern
+                : current.isPortal() ? portalPattern(base, accent)
+                : current.isHidden() ? hiddenPattern(base, accent)
+                : pattern;
         if (active == null) return;
 
         Map<KeyGrid.LedRef, RGBColor> f = frameAt(active, base, accent,
@@ -1023,6 +1158,7 @@ public class ColorTuner {
     static Map<KeyGrid.LedRef, RGBColor> frameAt(Pattern p, RGBColor base, RGBColor accent,
                                                  long elapsedMillis) {
         PatternContext ctx = new PatternContext(GRID, null, base, accent, 0, PatternParams.EMPTY);
+        if (p instanceof NightAware aware) aware.setNight(previewNight);
         Map<KeyGrid.LedRef, LayerPixel> px = p.render(ctx, elapsedMillis);
         Map<KeyGrid.LedRef, RGBColor> f = new HashMap<>();
         for (KeyGrid.LedPosition pos : GRID.allKeys()) {
@@ -1065,7 +1201,8 @@ public class ColorTuner {
         }
         String note = noteField.getText().trim();
         if (!note.isEmpty()) b.append("\n> ").append(note).append("\n");
-        b.append("\n```").append(current.isBoss() && current.boss().section() != null ? "toml" : "json")
+        b.append("\n```").append(current.isHidden() ? "java"
+                        : current.isBoss() && current.boss().section() != null ? "toml" : "json")
                 .append("\n").append(jsonLine()).append("\n```\n");
 
         try {
@@ -1093,6 +1230,10 @@ public class ColorTuner {
         if (current != null && current.isBoss() && index < current.boss().slots().size()) {
             return current.boss().slots().get(index).label();
         }
+        if (current != null && current.isHidden() && index < 2) {
+            String[] slots = hiddenSlots(current.pattern());
+            if (slots != null) return slots[index];
+        }
         return switch (index) {
             case 0 -> "base";
             case 1 -> "accent";
@@ -1107,6 +1248,7 @@ public class ColorTuner {
                     : (current.isEffect() ? "effect layer / " : "boss layer / ") + current.boss().id();
         }
         if (current.isPortal()) return "portal field";
+        if (current.isHidden()) return "hidden pattern / " + current.pattern();
         return current.pattern();
     }
 
@@ -1125,6 +1267,7 @@ public class ColorTuner {
      */
     static String jsonLine() {
         if (current.isPortal()) return profileBlock(PORTAL_PREFIX, "accentColor");
+        if (current.isHidden()) return paletteLines();
         if (current.isBoss()) {
             return current.boss().section() == null
                     ? profileBlock(BOSS_PREFIX, "enrageColor")
@@ -1195,6 +1338,24 @@ public class ColorTuner {
         for (int i = 0; i < theme.slots().size(); i++) {
             b.append("    ").append(theme.slots().get(i).configKey())
                     .append(" = \"").append(fromHsv(slots[i]).toHex()).append("\"\n");
+        }
+        return b.toString();
+    }
+
+    /**
+     * A hidden flag's tuned stripes as the {@code ColorPalette} lines they
+     * replace, since that is the only place those colours live. The rainbow
+     * has no colours, so it gets a comment saying so instead of an empty paste.
+     */
+    static String paletteLines() {
+        String[] slots = hiddenSlots(current.pattern());
+        if (slots == null) return "// " + current.pattern() + " has no colours to copy";
+        StringBuilder b = new StringBuilder("// replace these in ColorPalette\n");
+        b.append("public static final RGBColor ").append(slots[2])
+                .append(" = RGBColor.fromHex(\"").append(fromHsv(baseHsv).toHex()).append("\");\n");
+        if (hasAccent) {
+            b.append("public static final RGBColor ").append(slots[3])
+                    .append(" = RGBColor.fromHex(\"").append(fromHsv(accentHsv).toHex()).append("\");\n");
         }
         return b.toString();
     }
@@ -1990,6 +2151,7 @@ public class ColorTuner {
             return themePattern(theme, elapsed -> loopProgress(shape, range, elapsed, cycleMillis));
         }
         return current.isPortal() ? portalPattern(base, accent)
+                : current.isHidden() ? hiddenPattern(base, accent)
                 : PatternFactory.fromNameAndPreset(current.pattern(), current.preset());
     }
 
@@ -2261,7 +2423,9 @@ public class ColorTuner {
     }
 
     /** What the category picker above the profile list offers. */
-    static final String[] CATEGORIES = {"all", "biomes", "portals", "bosses", "effects", "tools"};
+    static final String[] CATEGORIES = HIDDEN_PATTERNS
+            ? new String[]{"all", "biomes", "portals", "bosses", "effects", "hidden", "tools"}
+            : new String[]{"all", "biomes", "portals", "bosses", "effects", "tools"};
 
     /**
      * The profiles in one category, then the painter (and, with exports on,
@@ -2274,6 +2438,7 @@ public class ColorTuner {
             String kind = id.startsWith(PORTAL_PREFIX) ? "portals"
                     : id.startsWith(BOSS_PREFIX) ? "bosses"
                     : id.startsWith(EFFECT_PREFIX) ? "effects"
+                    : id.startsWith(HIDDEN_PREFIX) ? "hidden"
                     : "biomes";
             if (cat.equals("all") || cat.equals(kind)) items.add(id);
         }
@@ -2493,6 +2658,23 @@ public class ColorTuner {
                 hsvSlider("val", extraHsv, 2, 1, extraRead));
         JPanel extraCard = colourCard(extraLabel, extraHsv, extraRead, extraRows);
         put(colours, extraCard);
+
+        // Which scene the biome draws, for the biomes that have more than one.
+        // Hidden for everything else, which is nearly everything.
+        JLabel sceneLabel = cardTitle("scene");
+        put(colours, sceneLabel);
+        JComboBox<String> scenePick = new JComboBox<>();
+        scenePick.setToolTipText("swap this biome onto its other scene; copy JSON picks up the choice");
+        scenePick.setMaximumSize(new Dimension(ROW_WIDTH, 28));
+        put(colours, scenePick);
+
+        // Only does anything to a pattern that listens for it, which today is
+        // the Pale Garden's flower scene. Everything else carries on regardless.
+        JCheckBox nightOn = smallCheck("night");
+        nightOn.setSelected(previewNight);
+        nightOn.setToolTipText("tell night-aware patterns it's dark (the Pale Garden's eyeblossoms)");
+        nightOn.addActionListener(e -> previewNight = nightOn.isSelected());
+        put(colours, nightOn);
         put(content, colours);
 
         // Encounter: where a boss or effect layer is in its script, and the
@@ -2896,6 +3078,18 @@ public class ColorTuner {
             painter.setVisible(paintMode);
             notes.setVisible(tuning);
 
+            // Refilled with its own listener muted, or setting the model fires
+            // a "selection changed" that switches the scene to... the scene.
+            List<String> scenes = stillImage() ? List.of() : scenesFor(current);
+            java.awt.event.ActionListener[] sceneMuted = scenePick.getActionListeners();
+            for (java.awt.event.ActionListener l : sceneMuted) scenePick.removeActionListener(l);
+            scenePick.setModel(new DefaultComboBoxModel<>(scenes.stream()
+                    .filter(GameVersion::hasPattern).toArray(String[]::new)));
+            if (!scenes.isEmpty()) scenePick.setSelectedItem(current.pattern());
+            for (java.awt.event.ActionListener l : sceneMuted) scenePick.addActionListener(l);
+            sceneLabel.setVisible(scenePick.getItemCount() > 1);
+            scenePick.setVisible(scenePick.getItemCount() > 1);
+
             for (JPanel row : accentRows) setRowEnabled(row, tuning && hasAccent);
             for (JPanel row : extraRows) setRowEnabled(row, tuning && hasExtra);
             refreshStage.run();
@@ -2947,6 +3141,10 @@ public class ColorTuner {
         category.addActionListener(e -> {
             refill.accept((String) picker.getSelectedItem());
             choose.run();
+        });
+        scenePick.addActionListener(e -> {
+            switchScene((String) scenePick.getSelectedItem());
+            status.setText(describe(current));
         });
         reloadBtn.addActionListener(e -> {
             loadProfiles();
@@ -3070,15 +3268,17 @@ public class ColorTuner {
                 ? "  [ok - " + readToml(CONFIG_TOML).size() + " tables]"
                 : "  [MISSING - shipped boss colours]"));
 
-        int portals = 0, bosses = 0, effects = 0;
+        int portals = 0, bosses = 0, effects = 0, hidden = 0;
         for (Prof p : PROFILES.values()) {
             if (p.isPortal()) portals++;
             else if (p.isEffect()) effects++;
             else if (p.isBoss()) bosses++;
+            else if (p.isHidden()) hidden++;
         }
         System.out.println("profiles : " + PROFILES.size()
-                + " (" + (PROFILES.size() - portals - bosses - effects) + " biome, "
-                + portals + " portal, " + bosses + " boss, " + effects + " effect)");
+                + " (" + (PROFILES.size() - portals - bosses - effects - hidden) + " biome, "
+                + portals + " portal, " + bosses + " boss, " + effects + " effect"
+                + (HIDDEN_PATTERNS ? ", " + hidden + " hidden" : "") + ")");
         if (PROFILES.isEmpty()) return;
 
         // A field name the profile class does not answer to parses fine, loads
