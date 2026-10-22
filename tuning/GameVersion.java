@@ -26,7 +26,7 @@ import java.util.Properties;
  * The version comes from {@code gradle.properties}, the same file the build
  * reads, so the answer is always "the branch you're on" and never "whatever
  * got compiled last". If those two disagree (a 26.2 branch whose
- * {@code build/classes} is still left over from 1.21.1) the entry stays out
+ * {@code common/build/classes} is still left over from 1.21.1) the entry stays out
  * and {@link #problems} says why, rather than the sulfur theme quietly not
  * being there and you wondering whether you imagined it.
  *
@@ -133,7 +133,7 @@ final class GameVersion {
         } catch (ClassNotFoundException | LinkageError e) {
             PROBLEMS.add(feature + ": this branch is Minecraft " + CURRENT + ", but "
                     + className.substring(className.lastIndexOf('.') + 1)
-                    + " isn't in build/classes. Stale build from another branch? Run gradlew compileJava.");
+                    + " isn't in common/build/classes. Stale build from another branch? Run gradlew compileJava.");
             return null;
         }
     }

@@ -3,8 +3,10 @@ loaderVersion = "${loader_version_range}"
 license = "${mod_license}"
 issueTrackerURL = "https://github.com/Rexilyent/everythingrgbprofiles/issues"
 
-[[accessTransformers]]
-file="META-INF/accesstransformer.cfg"
+# The one mixin common carries: a read-only accessor for the boss bars, which
+# used to be an access transformer. See BossHealthOverlayAccessor.
+[[mixins]]
+config = "everythingrgbprofiles.mixins.json"
 
 [[mods]]
 modId = "${mod_id}"

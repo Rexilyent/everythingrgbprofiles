@@ -1,0 +1,61 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+ext.loaderName = 'neoforge'
+apply from: rootProject.file('gradle/loader.gradle')
+
+neoForge {
+    version = neo_version
+
+    runs {
+        configureEach {
+            // Recommended logging data for a userdev environment
+            // The markers can be added/remove as needed separated by commas.
+            // "SCAN": For mods scan.
+            // "REGISTRIES": For firing of registry events.
+            // "REGISTRYDUMP": For getting the contents of all registries.
+            systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+            // Recommended logging level for the console
+            // You can set various levels here.
+            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            logLevel = org.slf4j.event.Level.DEBUG
+
+            gameDirectory = rootProject.file("run/neoforge/${name}")
+        }
+        client {
+            client()
+        }
+        // Kept so "does it load on a dedicated server without touching any
+        // hardware" stays one click away. The gametest and data runs the
+        // template came with are gone: this mod has no gametests and
+        // generates no data.
+        server {
+            server()
+            programArgument '--nogui'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+
+// No JNA dependency here, on purpose. The hardware backends need JNA, and
+// Minecraft already ships it as one of its own libraries, so it arrives with
+// the game for compiling and running alike, and is present in every player's
+// game.
+//
+// An earlier version bundled its own copy with jarJar, on the belief that
+// JNA would otherwise be missing in a real modpack. It was not: the mod
+// drove iCUE from a pack whose mods folder held no JNA and whose mod jar
+// contained none. The bundle only put a second copy of a library the game
+// already loads into the -all jar.
+//
+// Declaring nothing, rather than compileOnly, is what makes a port safe.
+// If a future Minecraft stops shipping JNA, the backends stop compiling,
+// instead of the mod building cleanly and then lacking JNA in game. Bundle
+// it again only then. The same goes for the Fabric jar.

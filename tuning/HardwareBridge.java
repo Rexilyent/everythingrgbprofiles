@@ -597,7 +597,7 @@ public final class HardwareBridge {
         private static String findDll() {
             for (String p : new String[]{
                     "iCUESDK.x64_2019.dll",
-                    "src/main/resources/everythingrgbprofiles/native/iCUESDK.x64_2019.dll",
+                    "common/src/main/resources/everythingrgbprofiles/native/iCUESDK.x64_2019.dll",
                     "build/resources/main/everythingrgbprofiles/native/iCUESDK.x64_2019.dll",
                     "C:\\Program Files\\Corsair\\CORSAIR iCUE5 Software\\iCUESDK.x64_2019.dll",
                     "C:\\Program Files\\Corsair\\CORSAIR iCUE4 Software\\iCUESDK.x64_2019.dll"}) {
