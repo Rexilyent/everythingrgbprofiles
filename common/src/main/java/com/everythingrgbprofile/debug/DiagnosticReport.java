@@ -1,17 +1,15 @@
 package com.everythingrgbprofile.debug;
 
-import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.everythingrgbprofile.RGBProfileMod;
 import com.everythingrgbprofile.color.RGBColor;
 import com.everythingrgbprofile.compat.ModCompatRegistry;
+import com.everythingrgbprofile.config.ConfigSpec;
 import com.everythingrgbprofile.config.Feature;
 import com.everythingrgbprofile.config.RGBProfileConfig;
 import com.everythingrgbprofile.keymap.KeyGrid;
+import com.everythingrgbprofile.platform.Platform;
 import com.everythingrgbprofile.sdk.BackendHealth;
 import com.everythingrgbprofile.sdk.SdkWorkerThread;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -82,7 +80,7 @@ public final class DiagnosticReport {
 
     /** Where the report is written: next to latest.log, which is usually asked for alongside it. */
     public static Path path() {
-        return FMLPaths.GAMEDIR.get().resolve("logs").resolve(RGBProfileMod.MODID + "-report.txt");
+        return Platform.get().gameDir().resolve("logs").resolve(RGBProfileMod.MODID + "-report.txt");
     }
 
     public static Path write(String report) throws IOException {
@@ -106,7 +104,7 @@ public final class DiagnosticReport {
         section(out, "Versions");
         line(out, "Everything RGB Profiles " + modVersion(RGBProfileMod.MODID)
                 + (Feature.experimentalBuild() ? " (EXPERIMENTAL build)" : " (release build)"));
-        line(out, "Minecraft " + modVersion("minecraft") + ", NeoForge " + modVersion("neoforge"));
+        line(out, "Minecraft " + modVersion("minecraft") + ", " + safe(() -> Platform.get().loaderDescription()));
         line(out, "Java " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + "), "
                 + System.getProperty("sun.arch.data.model", "?") + "-bit");
         line(out, "OS " + System.getProperty("os.name") + " " + System.getProperty("os.version")
@@ -172,7 +170,7 @@ public final class DiagnosticReport {
             String version = modVersion(mod.getKey());
             line(out, mod.getValue() + ": " + ("unknown".equals(version) ? "not installed" : "installed, " + version));
         }
-        line(out, "Mods loaded in total: " + safe(() -> ModList.get().size()));
+        line(out, "Mods loaded in total: " + safe(() -> Platform.get().modCount()));
 
         section(out, "Startup");
         if (BackendHealth.gateSummary() != null) {
@@ -371,21 +369,15 @@ public final class DiagnosticReport {
     private static ConfigAudit auditConfig() {
         ConfigAudit audit = new ConfigAudit();
         try {
-            walk(RGBProfileConfig.SPEC.getValues(), audit);
+            walk(RGBProfileConfig.SPEC, audit);
         } catch (RuntimeException e) {
             audit.error = e.toString();
         }
         return audit;
     }
 
-    private static void walk(UnmodifiableConfig config, ConfigAudit audit) {
-        for (UnmodifiableConfig.Entry entry : config.entrySet()) {
-            Object value = entry.getRawValue();
-            if (value instanceof UnmodifiableConfig section) {
-                walk(section, audit);
-                continue;
-            }
-            if (!(value instanceof ModConfigSpec.ConfigValue<?> setting)) continue;
+    private static void walk(ConfigSpec spec, ConfigAudit audit) {
+        for (ConfigSpec.ConfigValue<?> setting : spec.values()) {
             Object now = setting.get();
             Object initial = setting.getDefault();
             if (Objects.equals(now, initial)) continue;
@@ -448,8 +440,7 @@ public final class DiagnosticReport {
 
     private static String modVersion(String modId) {
         try {
-            return ModList.get().getModContainerById(modId)
-                    .map(c -> c.getModInfo().getVersion().toString()).orElse("unknown");
+            return Platform.get().modVersion(modId).orElse("unknown");
         } catch (RuntimeException e) {
             return "unknown";
         }

@@ -19,7 +19,7 @@ first, and again after every branch switch:
 Then compile the tools. One line covers the colour tuner and everything it
 leans on:
 
-    javac --release 21 -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java tuning\GifWriter.java tuning\BossThemes.java tuning\EffectThemes.java tuning\GameVersion.java
+    javac --release 21 -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java tuning\GifWriter.java tuning\BossThemes.java tuning\EffectThemes.java tuning\GameVersion.java
 
 `--release 21` matters as soon as you launch through Gradle (below). Gradle
 runs the mod's Java 21, and a class compiled by a newer `javac` won't load
@@ -37,7 +37,7 @@ keyboard checkbox just tells you what's missing.
 ## ColorTuner: colour on the real board
 
     gradlew colorTuner
-    java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner
+    java -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner
 
 Same tool both ways. The Gradle task runs it on the mod's full runtime
 classpath, which is what lets **drive my real keyboard** use every lighting
@@ -57,7 +57,7 @@ Trust the hardware and the numbers, not the pixels.
 
 ### Headless modes
 
-    java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner --check
+    java -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner --check
     gradlew colorTuner -PtunerArgs=--probe
 
 **`--check`** is the thing to run first when the list looks wrong, because a
@@ -93,7 +93,7 @@ including anything in your config that has drifted from the defaults.
 
 | What | Shipped default | Live copy |
 | --- | --- | --- |
-| Biomes | `src/main/resources/everythingrgbprofile_defaults/biome_profiles.json` | `<config>/everythingrgbprofiles/biome_profiles.json` |
+| Biomes | `common/src/main/resources/everythingrgbprofile_defaults/biome_profiles.json` | `<config>/everythingrgbprofiles/biome_profiles.json` |
 | Portals | `.../dimension_profiles.json` | same folder |
 | Boss-bar bosses | `.../boss_profiles.json` | same folder |
 | Boss and effect colours | `ColorPalette` constants | `<config>/everythingrgbprofiles-common.toml` |
@@ -431,7 +431,7 @@ anything newer out of the list:
 Those classes are looked up by name rather than imported, so the tuner still
 compiles on older branches. It's gated twice: the version decides whether an
 entry should exist, and the class lookup decides whether it can. If they
-disagree, say a 26.2 branch whose `build/classes` is left over from 1.21.x,
+disagree, say a 26.2 branch whose `common/build/classes` is left over from 1.21.x,
 the entry stays out and the tuner prints a warning telling you to run
 `gradlew compileJava`. `--check` opens with the version it found and anything
 it hid. `-Dtuner.mcVersion=26.2` overrides the file.
@@ -502,7 +502,7 @@ All passed as `-D<name>=<value>` before the class name.
 ## PatternStudio: pattern shape
 
     gradlew patternStudio
-    java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" PatternStudio
+    java -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" PatternStudio
 
 ColorTuner tunes colour. PatternStudio tunes *shape*: an animated keyboard at
 30 Hz with the parameters of the portal's `CoreEmitterPattern` on sliders
@@ -537,7 +537,7 @@ software alone allows and no further.
 The two Gradle tasks run against the mod's real runtime classpath plus
 `tuning/`, so compile the probes first:
 
-    javac --release 21 -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\VendorProbe.java tuning\OpenRgbProbe.java tuning\MirrorCheck.java
+    javac --release 21 -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\VendorProbe.java tuning\OpenRgbProbe.java tuning\MirrorCheck.java
 
 Then:
 
@@ -545,7 +545,7 @@ Then:
     gradlew vendorProbe -PprobeArgs=--send        ...and push three seconds of alternating frames
     gradlew openRgbProbe                          OpenRGB: read every controller, write nothing
     gradlew openRgbProbe -PorgbArgs="<host> <port>"   a server other than 127.0.0.1:6742
-    java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" MirrorCheck
+    java -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" MirrorCheck
 
 `vendorProbe` also proves the path most people take. Auto mode tries every
 backend at startup, so a vendor that isn't installed has to fail fast and
