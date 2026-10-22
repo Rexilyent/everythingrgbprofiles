@@ -13,17 +13,13 @@ import com.everythingrgbprofile.sdk.NativeCrashGuard;
 import com.everythingrgbprofile.sdk.SdkWorkerThread;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.commands.Commands;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 import java.io.IOException;
 import java.net.URI;
@@ -59,8 +55,12 @@ import java.util.Map;
  * said exactly once — on the first world joined, and when a connection drops
  * or the mod runs into an error — and all of them can be switched off with
  * {@code [debug] chatNotices} by anyone who finds them irritating.
+ *
+ * <p>The loaders do the wiring: each one hands {@link #register} its client
+ * command dispatcher and calls {@link #onClientTick} every client tick. The
+ * commands never look at who ran them, so the tree doesn't care which
+ * loader's command source type it's built for.
  */
-@EventBusSubscriber(modid = RGBProfileMod.MODID, value = Dist.CLIENT)
 public final class DiagnosticsCommands {
 
     private static final String ROOT = "rgbprofiles";
@@ -79,17 +79,16 @@ public final class DiagnosticsCommands {
     private DiagnosticsCommands() {
     }
 
-    @SubscribeEvent
-    public static void onRegisterCommands(RegisterClientCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal(ROOT)
+    public static <S> void register(CommandDispatcher<S> dispatcher) {
+        dispatcher.register(LiteralArgumentBuilder.<S>literal(ROOT)
                 .executes(ctx -> help())
-                .then(Commands.literal("status").executes(ctx -> status()))
-                .then(Commands.literal("test").executes(ctx -> test()))
-                .then(Commands.literal("effects").executes(ctx -> effects()))
-                .then(Commands.literal("report").executes(ctx -> report()))
-                .then(Commands.literal("retry").executes(ctx -> retry()))
-                .then(Commands.literal("msi").executes(ctx -> msi())
-                        .then(Commands.literal("dismiss").executes(ctx -> msiDismiss()))));
+                .then(LiteralArgumentBuilder.<S>literal("status").executes(ctx -> status()))
+                .then(LiteralArgumentBuilder.<S>literal("test").executes(ctx -> test()))
+                .then(LiteralArgumentBuilder.<S>literal("effects").executes(ctx -> effects()))
+                .then(LiteralArgumentBuilder.<S>literal("report").executes(ctx -> report()))
+                .then(LiteralArgumentBuilder.<S>literal("retry").executes(ctx -> retry()))
+                .then(LiteralArgumentBuilder.<S>literal("msi").executes(ctx -> msi())
+                        .then(LiteralArgumentBuilder.<S>literal("dismiss").executes(ctx -> msiDismiss()))));
     }
 
     // ---------------------------------------------------------------
@@ -390,8 +389,7 @@ public final class DiagnosticsCommands {
     // Notices and the test's step captions
     // ---------------------------------------------------------------
 
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         showTestStep(mc);

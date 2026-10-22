@@ -110,12 +110,14 @@ public final class KeyLayout {
      * Where to look for layouts.
      *
      * <p>The {@code Throwable} catch is not paranoia. {@code RGBProfileFiles}
-     * resolves through NeoForge's {@code FMLPaths}, so touching it outside a
-     * running game throws {@link NoClassDefFoundError} — an Error, which sails
-     * straight through any {@code catch (Exception)} between here and the
-     * render loop. Letting a config-path helper be able to kill lighting
-     * entirely is not a trade worth making, and the fallback also means the
-     * tuning harnesses can exercise layouts at all.
+     * asks the loader where the config folder is, and outside a running game
+     * there is no loader to ask, so it throws. {@code Platform} makes that a
+     * plain exception these days, but this used to resolve through NeoForge's
+     * {@code FMLPaths}, which threw {@link NoClassDefFoundError} instead — an
+     * Error, which sails straight through any {@code catch (Exception)}
+     * between here and the render loop. Letting a config-path helper be able
+     * to kill lighting entirely is not a trade worth making, and the fallback
+     * also means the tuning harnesses can exercise layouts at all.
      */
     private static Path layoutsDirectory() {
         if (directoryOverride != null) return directoryOverride;

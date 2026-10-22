@@ -10,7 +10,7 @@ import java.nio.file.Path;
  * DLL and prints what it found and how it got diagnosed.
  *
  * <pre>
- *   javac --release 21 -cp "build/classes/java/main;JNA;JNA_PLATFORM" -d tuning tuning/MysticLightProbe.java
+ *   javac --release 21 -cp "common/build/classes/java/main;JNA;JNA_PLATFORM" -d tuning tuning/MysticLightProbe.java
  *   ./gradlew mysticLightProbe -PmlArgs="path/to/MysticLight_SDK_x64.dll"
  * </pre>
  *

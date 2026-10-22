@@ -1,12 +1,12 @@
 package com.everythingrgbprofile;
 
-import net.neoforged.fml.loading.FMLPaths;
+import com.everythingrgbprofile.platform.Platform;
 
 import java.nio.file.Path;
 
 /**
  * Every path this mod touches, in one place, because the alternative is
- * {@code FMLPaths.CONFIGDIR.get().resolve(...)} copy-pasted into six classes
+ * {@code Platform.get().configDir().resolve(...)} copy-pasted into six classes
  * which then quietly start disagreeing about where the JSON lives.
  *
  * <p>Not a hypothetical failure mode. THE failure mode. The profile loader
@@ -19,7 +19,7 @@ public final class RGBProfileFiles {
 
     /** {@code config/everythingrgbprofiles/}, where all of our stuff lives. */
     public static Path configDirectory() {
-        return FMLPaths.CONFIGDIR.get().resolve(RGBProfileMod.MODID);
+        return Platform.get().configDir().resolve(RGBProfileMod.MODID);
     }
 
     /**
