@@ -32,8 +32,8 @@ import java.util.*;
  * NeoForge, and exists to be modified in place and re-run.
  *
  * <pre>
- *   javac -cp build/classes/java/main -d tuning tuning/SpiralWavePreview.java
- *   java  -cp "build/classes/java/main;tuning" SpiralWavePreview
+ *   javac -cp common/build/classes/java/main -d tuning tuning/SpiralWavePreview.java
+ *   java  -cp "common/build/classes/java/main;tuning" SpiralWavePreview
  * </pre>
  */
 public class SpiralWavePreview {

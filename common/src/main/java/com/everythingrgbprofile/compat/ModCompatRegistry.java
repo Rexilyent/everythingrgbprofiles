@@ -1,14 +1,14 @@
 package com.everythingrgbprofile.compat;
 
 import com.everythingrgbprofile.RGBProfileMod;
-import net.neoforged.fml.ModList;
+import com.everythingrgbprofile.platform.Platform;
 
 /**
  * "Is that mod installed?" Asked once, at startup, cached forever.
  *
  * <p>Cheap enough to run before SDK gating has resolved anything, and safe on
- * both sides, because it is a {@code ModList} lookup against a list that has
- * already been built and it touches zero JNA or SDK classes.
+ * both sides, because it is a mod-list lookup against a list the loader has
+ * already built, and it touches zero JNA or SDK classes.
  *
  * <h2>The rule this class exists to enforce</h2>
  * <b>Nothing in this mod ever imports another mod's classes.</b> Not once, not
@@ -36,11 +36,11 @@ public final class ModCompatRegistry {
     private static volatile boolean aetherLoaded = false;
 
     public static void detectAll() {
-        toughAsNailsLoaded = ModList.get().isLoaded("toughasnails");
-        legendaryMonstersLoaded = ModList.get().isLoaded("legendary_monsters");
-        betterEndIslandLoaded = ModList.get().isLoaded("betterendisland");
-        twilightForestLoaded = ModList.get().isLoaded("twilightforest");
-        aetherLoaded = ModList.get().isLoaded("aether");
+        toughAsNailsLoaded = Platform.get().isModLoaded("toughasnails");
+        legendaryMonstersLoaded = Platform.get().isModLoaded("legendary_monsters");
+        betterEndIslandLoaded = Platform.get().isModLoaded("betterendisland");
+        twilightForestLoaded = Platform.get().isModLoaded("twilightforest");
+        aetherLoaded = Platform.get().isModLoaded("aether");
 
         // INFO on purpose. When somebody reports "the thirst lighting doesn't
         // work", this one line answers the first question anybody would ask,

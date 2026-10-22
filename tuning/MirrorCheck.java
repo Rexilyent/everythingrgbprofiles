@@ -21,7 +21,7 @@ import java.util.TreeMap;
  * diagonal.
  *
  * <pre>
- *   java -cp "build/classes/java/main;tuning;jna-5.14.0.jar" MirrorCheck
+ *   java -cp "common/build/classes/java/main;tuning;jna-5.14.0.jar" MirrorCheck
  * </pre>
  */
 public class MirrorCheck {
