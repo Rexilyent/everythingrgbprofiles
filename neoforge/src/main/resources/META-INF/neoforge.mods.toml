@@ -3,15 +3,19 @@ loaderVersion = "${loader_version_range}"
 license = "${mod_license}"
 issueTrackerURL = "https://github.com/Rexilyent/everythingrgbprofiles/issues"
 
-[[accessTransformers]]
-file="META-INF/accesstransformer.cfg"
+# The one mixin common carries: a read-only accessor for the boss bars, which
+# used to be an access transformer. See BossHealthOverlayAccessor.
+[[mixins]]
+config = "everythingrgbprofiles.mixins.json"
 
 [[mods]]
 modId = "${mod_id}"
 version = "${mod_version}"
 displayName = "${mod_name}"
 authors = "${mod_authors}"
-logoFile = "rgb_logo.png"
+# iconFile, not bannerFile: NeoForge 26.3 deprecated logoFile and split it in
+# two, a wide banner and a square icon. The logo is 500x500, so it's the icon.
+iconFile = "rgb_logo.png"
 description = '''${mod_description}
 
 Every biome gets its own animated scene. Bosses like the Wither and the Ender Dragon are drawn right on the keys, and things like low health, drowning, burning, lightning and raids light up as they happen.

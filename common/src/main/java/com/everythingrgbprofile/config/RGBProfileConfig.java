@@ -1,7 +1,5 @@
 package com.everythingrgbprofile.config;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
-
 /**
  * Every knob, in one long static initialiser. This is what generates
  * {@code everythingrgbprofiles-common.toml}, section by section.
@@ -20,7 +18,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  *
  * <h2>Reading this file</h2>
  * Field declarations at the top, all the actual definitions in one static
- * block below. That's the shape {@code ModConfigSpec} imposes — the builder's
+ * block below. That's the shape {@code ConfigSpec} imposes — the builder's
  * {@code push}/{@code pop} calls are what create the TOML section headers, so
  * the definitions must run in document order and every {@code push} needs its
  * matching {@code pop} or the sections nest in ways nobody intended.
@@ -35,272 +33,273 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * not for the person who already knows the answer.
  *
  * <p>Every numeric setting uses {@code defineInRange}, so an out-of-range
- * value is clamped and reported by NeoForge rather than silently producing
- * something absurd.
+ * value is clamped and reported rather than silently producing something
+ * absurd. NeoForge does the clamping on NeoForge and the Fabric side does it
+ * on Fabric; see {@link ConfigSpec} for how one set of definitions feeds both.
  */
 public final class RGBProfileConfig {
 
 
     // --- Device classes -----------------------------------------------------
-    public static final ModConfigSpec.BooleanValue DEVICE_KEYBOARD_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEVICE_MOUSE_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEVICE_MOUSEMAT_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEVICE_HEADSET_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEVICE_MEMORY_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEVICE_COOLING_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEVICE_MOTHERBOARD_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEVICE_OTHER_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_KEYBOARD_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_MOUSE_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_MOUSEMAT_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_HEADSET_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_MEMORY_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_COOLING_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_MOTHERBOARD_ENABLED;
+    public static final ConfigSpec.BooleanValue DEVICE_OTHER_ENABLED;
 
-    public static final ModConfigSpec.BooleanValue PORTAL_CHARGE_UP_ENABLED;
-    public static final ModConfigSpec.IntValue PORTAL_CHARGE_RAMP_MILLIS;
-    public static final ModConfigSpec.IntValue PORTAL_SUPPRESSION_FLOOR;
-    public static final ModConfigSpec.DoubleValue PORTAL_CHARGE_INTENSITY_FLOOR;
-    public static final ModConfigSpec.BooleanValue PORTAL_DEBUG_LOGGING;
-    public static final ModConfigSpec.BooleanValue DEBUG_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEBUG_LOG_TRANSITIONS;
-    public static final ModConfigSpec.IntValue DEBUG_HEALTH_INTERVAL_SECONDS;
-    public static final ModConfigSpec.BooleanValue DEBUG_CHAT_NOTICES;
+    public static final ConfigSpec.BooleanValue PORTAL_CHARGE_UP_ENABLED;
+    public static final ConfigSpec.IntValue PORTAL_CHARGE_RAMP_MILLIS;
+    public static final ConfigSpec.IntValue PORTAL_SUPPRESSION_FLOOR;
+    public static final ConfigSpec.DoubleValue PORTAL_CHARGE_INTENSITY_FLOOR;
+    public static final ConfigSpec.BooleanValue PORTAL_DEBUG_LOGGING;
+    public static final ConfigSpec.BooleanValue DEBUG_ENABLED;
+    public static final ConfigSpec.BooleanValue DEBUG_LOG_TRANSITIONS;
+    public static final ConfigSpec.IntValue DEBUG_HEALTH_INTERVAL_SECONDS;
+    public static final ConfigSpec.BooleanValue DEBUG_CHAT_NOTICES;
 
-    public static final ModConfigSpec SPEC;
+    public static final ConfigSpec SPEC;
 
     // [general]
-    public static final ModConfigSpec.BooleanValue GENERAL_ENABLED;
+    public static final ConfigSpec.BooleanValue GENERAL_ENABLED;
 
     // [features]
-    public static final ModConfigSpec.BooleanValue HEALTH_FLASH_ENABLED;
-    public static final ModConfigSpec.BooleanValue NIGHT_INDICATOR_ENABLED;
-    public static final ModConfigSpec.BooleanValue BIOME_COLORS_ENABLED;
-    public static final ModConfigSpec.BooleanValue BOSS_EVENTS_ENABLED;
-    public static final ModConfigSpec.BooleanValue HUNGER_WARNING_ENABLED;
-    public static final ModConfigSpec.BooleanValue HUNGER_GROWL_ENABLED;
-    public static final ModConfigSpec.BooleanValue DEATH_FLASH_ENABLED;
-    public static final ModConfigSpec.BooleanValue PROGRESSION_EFFECTS_ENABLED;
-    public static final ModConfigSpec.BooleanValue RAIN_THUNDERSTORM_ENABLED;
-    public static final ModConfigSpec.BooleanValue TOUGH_AS_NAILS_ENABLED;
-    public static final ModConfigSpec.BooleanValue AETHER_ENABLED;
-    public static final ModConfigSpec.BooleanValue TWILIGHT_FOREST_ENABLED;
-    public static final ModConfigSpec.BooleanValue BUMBLEZONE_ENABLED;
-    public static final ModConfigSpec.BooleanValue UNDERGARDEN_ENABLED;
-    public static final ModConfigSpec.BooleanValue PORTAL_TRANSITION_ENABLED;
-    public static final ModConfigSpec.BooleanValue RAID_WARNING_ENABLED;
-    public static final ModConfigSpec.BooleanValue SCULK_ALERT_ENABLED;
-    public static final ModConfigSpec.BooleanValue SLEEP_WAKE_ENABLED;
-    public static final ModConfigSpec.BooleanValue WARDEN_ENCOUNTER_ENABLED;
+    public static final ConfigSpec.BooleanValue HEALTH_FLASH_ENABLED;
+    public static final ConfigSpec.BooleanValue NIGHT_INDICATOR_ENABLED;
+    public static final ConfigSpec.BooleanValue BIOME_COLORS_ENABLED;
+    public static final ConfigSpec.BooleanValue BOSS_EVENTS_ENABLED;
+    public static final ConfigSpec.BooleanValue HUNGER_WARNING_ENABLED;
+    public static final ConfigSpec.BooleanValue HUNGER_GROWL_ENABLED;
+    public static final ConfigSpec.BooleanValue DEATH_FLASH_ENABLED;
+    public static final ConfigSpec.BooleanValue PROGRESSION_EFFECTS_ENABLED;
+    public static final ConfigSpec.BooleanValue RAIN_THUNDERSTORM_ENABLED;
+    public static final ConfigSpec.BooleanValue TOUGH_AS_NAILS_ENABLED;
+    public static final ConfigSpec.BooleanValue AETHER_ENABLED;
+    public static final ConfigSpec.BooleanValue TWILIGHT_FOREST_ENABLED;
+    public static final ConfigSpec.BooleanValue BUMBLEZONE_ENABLED;
+    public static final ConfigSpec.BooleanValue UNDERGARDEN_ENABLED;
+    public static final ConfigSpec.BooleanValue PORTAL_TRANSITION_ENABLED;
+    public static final ConfigSpec.BooleanValue RAID_WARNING_ENABLED;
+    public static final ConfigSpec.BooleanValue SCULK_ALERT_ENABLED;
+    public static final ConfigSpec.BooleanValue SLEEP_WAKE_ENABLED;
+    public static final ConfigSpec.BooleanValue WARDEN_ENCOUNTER_ENABLED;
 
     // [healthFlash]
-    public static final ModConfigSpec.IntValue HEALTH_THRESHOLD_PERCENT;
-    public static final ModConfigSpec.ConfigValue<String> HEALTH_FLASH_KEY;
-    public static final ModConfigSpec.BooleanValue HEARTBEAT_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> HEARTBEAT_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> HEARTBEAT_CREST_COLOR;
+    public static final ConfigSpec.IntValue HEALTH_THRESHOLD_PERCENT;
+    public static final ConfigSpec.ConfigValue<String> HEALTH_FLASH_KEY;
+    public static final ConfigSpec.BooleanValue HEARTBEAT_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> HEARTBEAT_COLOR;
+    public static final ConfigSpec.ConfigValue<String> HEARTBEAT_CREST_COLOR;
 
     // [hungerWarning]
-    public static final ModConfigSpec.IntValue HUNGER_THRESHOLD_PERCENT;
-    public static final ModConfigSpec.ConfigValue<String> HUNGER_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> HUNGER_FLASH_KEY;
-    public static final ModConfigSpec.ConfigValue<String> HUNGER_GROWL_HOLLOW_COLOR;
+    public static final ConfigSpec.IntValue HUNGER_THRESHOLD_PERCENT;
+    public static final ConfigSpec.ConfigValue<String> HUNGER_COLOR;
+    public static final ConfigSpec.ConfigValue<String> HUNGER_FLASH_KEY;
+    public static final ConfigSpec.ConfigValue<String> HUNGER_GROWL_HOLLOW_COLOR;
 
     // [deathFlash]
-    public static final ModConfigSpec.IntValue DEATH_FLASH_DURATION_MILLIS;
-    public static final ModConfigSpec.ConfigValue<String> DEATH_FLASH_COLOR;
-    public static final ModConfigSpec.BooleanValue DEATH_BLOOD_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> DEATH_BLOOD_SOAK_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> DEATH_BLOOD_COLOR;
-    public static final ModConfigSpec.IntValue DEATH_BLOOD_DRIP_COUNT;
-    public static final ModConfigSpec.IntValue DEATH_BLOOD_DRIP_INTERVAL_MILLIS;
+    public static final ConfigSpec.IntValue DEATH_FLASH_DURATION_MILLIS;
+    public static final ConfigSpec.ConfigValue<String> DEATH_FLASH_COLOR;
+    public static final ConfigSpec.BooleanValue DEATH_BLOOD_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> DEATH_BLOOD_SOAK_COLOR;
+    public static final ConfigSpec.ConfigValue<String> DEATH_BLOOD_COLOR;
+    public static final ConfigSpec.IntValue DEATH_BLOOD_DRIP_COUNT;
+    public static final ConfigSpec.IntValue DEATH_BLOOD_DRIP_INTERVAL_MILLIS;
 
     // [hardware], the boss rooms, [enderDragon], [drowning], [burning] and
     // [nightIndicator], lumped together up here. The file itself orders them
     // differently; the static block below is what decides that.
-    public static final ModConfigSpec.ConfigValue<String> LIGHTING_BACKEND;
-    public static final ModConfigSpec.ConfigValue<String> OPENRGB_HOST;
-    public static final ModConfigSpec.IntValue OPENRGB_PORT;
-    public static final ModConfigSpec.ConfigValue<String> MYSTIC_LIGHT_SDK_PATH;
-    public static final ModConfigSpec.BooleanValue MYSTIC_LIGHT_SDK_PROMPT;
-    public static final ModConfigSpec.BooleanValue WITHER_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> WITHER_BONE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> WITHER_EYE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> WITHER_POWERED_COLOR;
-    public static final ModConfigSpec.IntValue WITHER_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue WITHER_GRACE_MILLIS;
-    public static final ModConfigSpec.BooleanValue NAGA_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> NAGA_SCALE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> NAGA_HIGHLIGHT_COLOR;
-    public static final ModConfigSpec.IntValue NAGA_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue NAGA_GRACE_MILLIS;
-    public static final ModConfigSpec.IntValue NAGA_FADE_MILLIS;
-    public static final ModConfigSpec.BooleanValue SLIDER_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> SLIDER_STONE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> SLIDER_RUNE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> SLIDER_CRITICAL_COLOR;
-    public static final ModConfigSpec.IntValue SLIDER_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue SLIDER_GRACE_MILLIS;
-    public static final ModConfigSpec.IntValue SLIDER_FADE_MILLIS;
-    public static final ModConfigSpec.BooleanValue SUN_SPIRIT_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> SUN_SPIRIT_SUN_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> SUN_SPIRIT_FLAME_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> SUN_SPIRIT_ICE_COLOR;
-    public static final ModConfigSpec.IntValue SUN_SPIRIT_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue SUN_SPIRIT_GRACE_MILLIS;
-    public static final ModConfigSpec.IntValue SUN_SPIRIT_FADE_MILLIS;
-    public static final ModConfigSpec.BooleanValue VALKYRIE_QUEEN_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> VALKYRIE_QUEEN_SILVER_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> VALKYRIE_QUEEN_GOLD_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> VALKYRIE_QUEEN_LIGHTNING_COLOR;
-    public static final ModConfigSpec.IntValue VALKYRIE_QUEEN_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue VALKYRIE_QUEEN_GRACE_MILLIS;
-    public static final ModConfigSpec.IntValue VALKYRIE_QUEEN_FADE_MILLIS;
-    public static final ModConfigSpec.BooleanValue ELDER_GUARDIAN_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> ELDER_GUARDIAN_WATER_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> ELDER_GUARDIAN_EYE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> ELDER_GUARDIAN_BEAM_COLOR;
-    public static final ModConfigSpec.IntValue ELDER_GUARDIAN_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue ELDER_GUARDIAN_GRACE_MILLIS;
-    public static final ModConfigSpec.IntValue ELDER_GUARDIAN_FADE_MILLIS;
-    public static final ModConfigSpec.BooleanValue END_DRAGON_ENABLED;
-    public static final ModConfigSpec.BooleanValue END_RITUAL_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> END_VOID_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> END_ACCENT_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> END_BREATH_FIRE_COLOR;
-    public static final ModConfigSpec.BooleanValue END_TRACE_RITUAL;
-    public static final ModConfigSpec.BooleanValue DROWNING_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> DROWNING_DEEP_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> DROWNING_SURFACE_COLOR;
-    public static final ModConfigSpec.DoubleValue DROWNING_PANIC_THRESHOLD;
-    public static final ModConfigSpec.BooleanValue BURNING_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> BURNING_CORE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> BURNING_TIP_COLOR;
-    public static final ModConfigSpec.DoubleValue BURNING_PANIC_THRESHOLD;
-    public static final ModConfigSpec.ConfigValue<String> NIGHT_INDICATOR_COLOR;
-    public static final ModConfigSpec.BooleanValue NIGHT_STAND_DOWN_FOR_ENCOUNTERS;
+    public static final ConfigSpec.ConfigValue<String> LIGHTING_BACKEND;
+    public static final ConfigSpec.ConfigValue<String> OPENRGB_HOST;
+    public static final ConfigSpec.IntValue OPENRGB_PORT;
+    public static final ConfigSpec.ConfigValue<String> MYSTIC_LIGHT_SDK_PATH;
+    public static final ConfigSpec.BooleanValue MYSTIC_LIGHT_SDK_PROMPT;
+    public static final ConfigSpec.BooleanValue WITHER_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> WITHER_BONE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> WITHER_EYE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> WITHER_POWERED_COLOR;
+    public static final ConfigSpec.IntValue WITHER_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue WITHER_GRACE_MILLIS;
+    public static final ConfigSpec.BooleanValue NAGA_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> NAGA_SCALE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> NAGA_HIGHLIGHT_COLOR;
+    public static final ConfigSpec.IntValue NAGA_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue NAGA_GRACE_MILLIS;
+    public static final ConfigSpec.IntValue NAGA_FADE_MILLIS;
+    public static final ConfigSpec.BooleanValue SLIDER_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> SLIDER_STONE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> SLIDER_RUNE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> SLIDER_CRITICAL_COLOR;
+    public static final ConfigSpec.IntValue SLIDER_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue SLIDER_GRACE_MILLIS;
+    public static final ConfigSpec.IntValue SLIDER_FADE_MILLIS;
+    public static final ConfigSpec.BooleanValue SUN_SPIRIT_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> SUN_SPIRIT_SUN_COLOR;
+    public static final ConfigSpec.ConfigValue<String> SUN_SPIRIT_FLAME_COLOR;
+    public static final ConfigSpec.ConfigValue<String> SUN_SPIRIT_ICE_COLOR;
+    public static final ConfigSpec.IntValue SUN_SPIRIT_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue SUN_SPIRIT_GRACE_MILLIS;
+    public static final ConfigSpec.IntValue SUN_SPIRIT_FADE_MILLIS;
+    public static final ConfigSpec.BooleanValue VALKYRIE_QUEEN_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> VALKYRIE_QUEEN_SILVER_COLOR;
+    public static final ConfigSpec.ConfigValue<String> VALKYRIE_QUEEN_GOLD_COLOR;
+    public static final ConfigSpec.ConfigValue<String> VALKYRIE_QUEEN_LIGHTNING_COLOR;
+    public static final ConfigSpec.IntValue VALKYRIE_QUEEN_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue VALKYRIE_QUEEN_GRACE_MILLIS;
+    public static final ConfigSpec.IntValue VALKYRIE_QUEEN_FADE_MILLIS;
+    public static final ConfigSpec.BooleanValue ELDER_GUARDIAN_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> ELDER_GUARDIAN_WATER_COLOR;
+    public static final ConfigSpec.ConfigValue<String> ELDER_GUARDIAN_EYE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> ELDER_GUARDIAN_BEAM_COLOR;
+    public static final ConfigSpec.IntValue ELDER_GUARDIAN_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue ELDER_GUARDIAN_GRACE_MILLIS;
+    public static final ConfigSpec.IntValue ELDER_GUARDIAN_FADE_MILLIS;
+    public static final ConfigSpec.BooleanValue END_DRAGON_ENABLED;
+    public static final ConfigSpec.BooleanValue END_RITUAL_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> END_VOID_COLOR;
+    public static final ConfigSpec.ConfigValue<String> END_ACCENT_COLOR;
+    public static final ConfigSpec.ConfigValue<String> END_BREATH_FIRE_COLOR;
+    public static final ConfigSpec.BooleanValue END_TRACE_RITUAL;
+    public static final ConfigSpec.BooleanValue DROWNING_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> DROWNING_DEEP_COLOR;
+    public static final ConfigSpec.ConfigValue<String> DROWNING_SURFACE_COLOR;
+    public static final ConfigSpec.DoubleValue DROWNING_PANIC_THRESHOLD;
+    public static final ConfigSpec.BooleanValue BURNING_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> BURNING_CORE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> BURNING_TIP_COLOR;
+    public static final ConfigSpec.DoubleValue BURNING_PANIC_THRESHOLD;
+    public static final ConfigSpec.ConfigValue<String> NIGHT_INDICATOR_COLOR;
+    public static final ConfigSpec.BooleanValue NIGHT_STAND_DOWN_FOR_ENCOUNTERS;
 
     // [progressionEffects]
-    public static final ModConfigSpec.BooleanValue LEVEL_UP_ENABLED;
-    public static final ModConfigSpec.BooleanValue ADVANCEMENT_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> LEVEL_UP_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> LEVEL_UP_BAR_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> ADVANCEMENT_COLOR;
+    public static final ConfigSpec.BooleanValue LEVEL_UP_ENABLED;
+    public static final ConfigSpec.BooleanValue ADVANCEMENT_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> LEVEL_UP_COLOR;
+    public static final ConfigSpec.ConfigValue<String> LEVEL_UP_BAR_COLOR;
+    public static final ConfigSpec.ConfigValue<String> ADVANCEMENT_COLOR;
 
     // [portalTransition]
-    public static final ModConfigSpec.BooleanValue PORTAL_FALLBACK_TO_DERIVED_COLOR;
-    public static final ModConfigSpec.IntValue PORTAL_DURATION_MILLIS;
-    public static final ModConfigSpec.DoubleValue PORTAL_HOLD_FRACTION;
-    public static final ModConfigSpec.BooleanValue PORTAL_HOLD_UNTIL_WORLD_READY;
-    public static final ModConfigSpec.IntValue PORTAL_POST_ARRIVAL_HOLD_MILLIS;
-    public static final ModConfigSpec.IntValue PORTAL_MAX_DURATION_MILLIS;
+    public static final ConfigSpec.BooleanValue PORTAL_FALLBACK_TO_DERIVED_COLOR;
+    public static final ConfigSpec.IntValue PORTAL_DURATION_MILLIS;
+    public static final ConfigSpec.DoubleValue PORTAL_HOLD_FRACTION;
+    public static final ConfigSpec.BooleanValue PORTAL_HOLD_UNTIL_WORLD_READY;
+    public static final ConfigSpec.IntValue PORTAL_POST_ARRIVAL_HOLD_MILLIS;
+    public static final ConfigSpec.IntValue PORTAL_MAX_DURATION_MILLIS;
 
     // [raidWarning]
-    public static final ModConfigSpec.ConfigValue<String> RAID_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> RAID_RAIDER_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> RAID_VICTORY_COLOR;
+    public static final ConfigSpec.ConfigValue<String> RAID_COLOR;
+    public static final ConfigSpec.ConfigValue<String> RAID_RAIDER_COLOR;
+    public static final ConfigSpec.ConfigValue<String> RAID_VICTORY_COLOR;
 
     // [sculkAlert]
-    public static final ModConfigSpec.BooleanValue SCULK_SENSOR_ENABLED;
-    public static final ModConfigSpec.BooleanValue SCULK_SHRIEKER_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> SCULK_SENSOR_COLOR;
-    public static final ModConfigSpec.IntValue SCULK_SENSOR_DURATION_MILLIS;
-    public static final ModConfigSpec.DoubleValue SCULK_SENSOR_RING_THICKNESS_KEYS;
-    public static final ModConfigSpec.ConfigValue<String> SCULK_SHRIEKER_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> SCULK_SHRIEKER_PEAK_COLOR;
-    public static final ModConfigSpec.IntValue SCULK_SHRIEKER_DURATION_MILLIS;
-    public static final ModConfigSpec.DoubleValue SCULK_SHRIEKER_RING_THICKNESS_KEYS;
-    public static final ModConfigSpec.IntValue SCULK_SHRIEKER_MAX_ESCALATION_LEVEL;
-    public static final ModConfigSpec.IntValue SCULK_SHRIEKER_ESCALATION_WINDOW_MILLIS;
-    public static final ModConfigSpec.IntValue SCULK_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue SCULK_SCAN_INTERVAL_TICKS;
+    public static final ConfigSpec.BooleanValue SCULK_SENSOR_ENABLED;
+    public static final ConfigSpec.BooleanValue SCULK_SHRIEKER_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> SCULK_SENSOR_COLOR;
+    public static final ConfigSpec.IntValue SCULK_SENSOR_DURATION_MILLIS;
+    public static final ConfigSpec.DoubleValue SCULK_SENSOR_RING_THICKNESS_KEYS;
+    public static final ConfigSpec.ConfigValue<String> SCULK_SHRIEKER_COLOR;
+    public static final ConfigSpec.ConfigValue<String> SCULK_SHRIEKER_PEAK_COLOR;
+    public static final ConfigSpec.IntValue SCULK_SHRIEKER_DURATION_MILLIS;
+    public static final ConfigSpec.DoubleValue SCULK_SHRIEKER_RING_THICKNESS_KEYS;
+    public static final ConfigSpec.IntValue SCULK_SHRIEKER_MAX_ESCALATION_LEVEL;
+    public static final ConfigSpec.IntValue SCULK_SHRIEKER_ESCALATION_WINDOW_MILLIS;
+    public static final ConfigSpec.IntValue SCULK_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue SCULK_SCAN_INTERVAL_TICKS;
 
     // [sleepWake]
-    public static final ModConfigSpec.ConfigValue<String> SLEEP_WAKE_COLOR;
-    public static final ModConfigSpec.IntValue SLEEP_WAKE_DURATION_MILLIS;
+    public static final ConfigSpec.ConfigValue<String> SLEEP_WAKE_COLOR;
+    public static final ConfigSpec.IntValue SLEEP_WAKE_DURATION_MILLIS;
 
     // [biomeColors]
-    public static final ModConfigSpec.BooleanValue BIOME_FALLBACK_TO_DERIVED_COLOR;
+    public static final ConfigSpec.BooleanValue BIOME_FALLBACK_TO_DERIVED_COLOR;
 
     // [bossEvents]
-    public static final ModConfigSpec.BooleanValue BOSS_FALLBACK_TO_BOSSBAR_COLOR;
-    public static final ModConfigSpec.BooleanValue BOSS_ENRAGE_INTENSITY_SCALING;
-    public static final ModConfigSpec.BooleanValue BOSS_PROXIMITY_ENABLED;
-    public static final ModConfigSpec.BooleanValue BOSS_USE_BOSSES_TAG;
-    public static final ModConfigSpec.IntValue BOSS_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue BOSS_GRACE_MILLIS;
-    public static final ModConfigSpec.ConfigValue<String> BOSS_EXCLUDED;
+    public static final ConfigSpec.BooleanValue BOSS_FALLBACK_TO_BOSSBAR_COLOR;
+    public static final ConfigSpec.BooleanValue BOSS_ENRAGE_INTENSITY_SCALING;
+    public static final ConfigSpec.BooleanValue BOSS_PROXIMITY_ENABLED;
+    public static final ConfigSpec.BooleanValue BOSS_USE_BOSSES_TAG;
+    public static final ConfigSpec.IntValue BOSS_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue BOSS_GRACE_MILLIS;
+    public static final ConfigSpec.ConfigValue<String> BOSS_EXCLUDED;
 
     // [rainThunderstorm]
-    public static final ModConfigSpec.ConfigValue<String> RAIN_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> SNOW_COLOR;
-    public static final ModConfigSpec.IntValue RAIN_PARTICLE_COUNT;
-    public static final ModConfigSpec.IntValue RAIN_FALL_MILLIS;
-    public static final ModConfigSpec.DoubleValue RAIN_LAYER_OPACITY;
-    public static final ModConfigSpec.IntValue RAIN_SHELTER_GRACE_MILLIS;
-    public static final ModConfigSpec.BooleanValue RAIN_REQUIRE_SKY_EXPOSURE;
-    public static final ModConfigSpec.ConfigValue<String> LIGHTNING_COLOR;
-    public static final ModConfigSpec.IntValue LIGHTNING_FLASH_DURATION_MILLIS;
-    public static final ModConfigSpec.IntValue LIGHTNING_DETECTION_RADIUS;
-    public static final ModConfigSpec.IntValue LIGHTNING_FALLBACK_INTERVAL_MILLIS;
+    public static final ConfigSpec.ConfigValue<String> RAIN_COLOR;
+    public static final ConfigSpec.ConfigValue<String> SNOW_COLOR;
+    public static final ConfigSpec.IntValue RAIN_PARTICLE_COUNT;
+    public static final ConfigSpec.IntValue RAIN_FALL_MILLIS;
+    public static final ConfigSpec.DoubleValue RAIN_LAYER_OPACITY;
+    public static final ConfigSpec.IntValue RAIN_SHELTER_GRACE_MILLIS;
+    public static final ConfigSpec.BooleanValue RAIN_REQUIRE_SKY_EXPOSURE;
+    public static final ConfigSpec.ConfigValue<String> LIGHTNING_COLOR;
+    public static final ConfigSpec.IntValue LIGHTNING_FLASH_DURATION_MILLIS;
+    public static final ConfigSpec.IntValue LIGHTNING_DETECTION_RADIUS;
+    public static final ConfigSpec.IntValue LIGHTNING_FALLBACK_INTERVAL_MILLIS;
 
     // [toughAsNails]
-    public static final ModConfigSpec.IntValue THIRST_THRESHOLD_PERCENT;
-    public static final ModConfigSpec.ConfigValue<String> THIRST_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> THIRST_FLASH_KEY;
-    public static final ModConfigSpec.BooleanValue THIRST_DROPS_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> THIRST_GLINT_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> TEMPERATURE_FLASH_KEY;
-    public static final ModConfigSpec.ConfigValue<String> OVERHEATING_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> FREEZING_COLOR;
-    public static final ModConfigSpec.BooleanValue TEMPERATURE_EDGES_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> FREEZING_RIM_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> OVERHEATING_RIM_COLOR;
+    public static final ConfigSpec.IntValue THIRST_THRESHOLD_PERCENT;
+    public static final ConfigSpec.ConfigValue<String> THIRST_COLOR;
+    public static final ConfigSpec.ConfigValue<String> THIRST_FLASH_KEY;
+    public static final ConfigSpec.BooleanValue THIRST_DROPS_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> THIRST_GLINT_COLOR;
+    public static final ConfigSpec.ConfigValue<String> TEMPERATURE_FLASH_KEY;
+    public static final ConfigSpec.ConfigValue<String> OVERHEATING_COLOR;
+    public static final ConfigSpec.ConfigValue<String> FREEZING_COLOR;
+    public static final ConfigSpec.BooleanValue TEMPERATURE_EDGES_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> FREEZING_RIM_COLOR;
+    public static final ConfigSpec.ConfigValue<String> OVERHEATING_RIM_COLOR;
 
     // [wardenEncounter]
-    public static final ModConfigSpec.IntValue WARDEN_DETECTION_RADIUS;
-    public static final ModConfigSpec.ConfigValue<String> WARDEN_EMERGENCE_COLOR;
-    public static final ModConfigSpec.BooleanValue WARDEN_EMERGENCE_HOLD_UNTIL_RISEN;
-    public static final ModConfigSpec.IntValue WARDEN_EMERGENCE_PULSE_MILLIS;
-    public static final ModConfigSpec.IntValue WARDEN_EMERGENCE_MIN_HOLD_MILLIS;
-    public static final ModConfigSpec.IntValue WARDEN_EMERGENCE_FADE_MILLIS;
-    public static final ModConfigSpec.IntValue WARDEN_EMERGENCE_MAX_MILLIS;
-    public static final ModConfigSpec.IntValue WARDEN_EMERGENCE_NOMINAL_MILLIS;
-    public static final ModConfigSpec.IntValue WARDEN_EMERGENCE_SUPPRESSION_FLOOR;
-    public static final ModConfigSpec.ConfigValue<String> WARDEN_PRESENCE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> WARDEN_PRESENCE_GLINT_COLOR;
-    public static final ModConfigSpec.IntValue WARDEN_ACTIVE_TWINKLE_COUNT;
-    public static final ModConfigSpec.IntValue WARDEN_ACTIVE_TWINKLE_INTERVAL_MILLIS;
+    public static final ConfigSpec.IntValue WARDEN_DETECTION_RADIUS;
+    public static final ConfigSpec.ConfigValue<String> WARDEN_EMERGENCE_COLOR;
+    public static final ConfigSpec.BooleanValue WARDEN_EMERGENCE_HOLD_UNTIL_RISEN;
+    public static final ConfigSpec.IntValue WARDEN_EMERGENCE_PULSE_MILLIS;
+    public static final ConfigSpec.IntValue WARDEN_EMERGENCE_MIN_HOLD_MILLIS;
+    public static final ConfigSpec.IntValue WARDEN_EMERGENCE_FADE_MILLIS;
+    public static final ConfigSpec.IntValue WARDEN_EMERGENCE_MAX_MILLIS;
+    public static final ConfigSpec.IntValue WARDEN_EMERGENCE_NOMINAL_MILLIS;
+    public static final ConfigSpec.IntValue WARDEN_EMERGENCE_SUPPRESSION_FLOOR;
+    public static final ConfigSpec.ConfigValue<String> WARDEN_PRESENCE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> WARDEN_PRESENCE_GLINT_COLOR;
+    public static final ConfigSpec.IntValue WARDEN_ACTIVE_TWINKLE_COUNT;
+    public static final ConfigSpec.IntValue WARDEN_ACTIVE_TWINKLE_INTERVAL_MILLIS;
 
     // [menuTheme]
-    public static final ModConfigSpec.BooleanValue MENU_THEME_ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> MENU_STYLE;
-    public static final ModConfigSpec.ConfigValue<String> MENU_PACK_PATTERNS;
-    public static final ModConfigSpec.ConfigValue<String> MENU_VANILLA_SKY_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_VANILLA_GRASS_COLOR;
-    public static final ModConfigSpec.IntValue MENU_VANILLA_CLOUD_COUNT;
-    public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_ROCK_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_SULFUR_POOL_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_AUTUMN_LEAF_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_AUTUMN_ACCENT_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_SIFT_MESA_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_SIFT_SKY_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_BASE_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_EMBER_COLOR;
-    public static final ModConfigSpec.ConfigValue<String> MENU_ARCANE_COLOR;
-    public static final ModConfigSpec.IntValue MENU_SPARK_COUNT;
-    public static final ModConfigSpec.IntValue MENU_SPARK_INTERVAL_MILLIS;
-    public static final ModConfigSpec.IntValue MENU_ORE_GLINT_COUNT;
-    public static final ModConfigSpec.IntValue MENU_ORE_GLINT_INTERVAL_MILLIS;
-    public static final ModConfigSpec.IntValue MENU_TORCH_COUNT;
+    public static final ConfigSpec.BooleanValue MENU_THEME_ENABLED;
+    public static final ConfigSpec.ConfigValue<String> MENU_STYLE;
+    public static final ConfigSpec.ConfigValue<String> MENU_PACK_PATTERNS;
+    public static final ConfigSpec.ConfigValue<String> MENU_VANILLA_SKY_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_VANILLA_GRASS_COLOR;
+    public static final ConfigSpec.IntValue MENU_VANILLA_CLOUD_COUNT;
+    public static final ConfigSpec.ConfigValue<String> MENU_SULFUR_ROCK_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_SULFUR_POOL_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_AUTUMN_LEAF_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_AUTUMN_ACCENT_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_SIFT_MESA_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_SIFT_SKY_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_BASE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_EMBER_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_ARCANE_COLOR;
+    public static final ConfigSpec.IntValue MENU_SPARK_COUNT;
+    public static final ConfigSpec.IntValue MENU_SPARK_INTERVAL_MILLIS;
+    public static final ConfigSpec.IntValue MENU_ORE_GLINT_COUNT;
+    public static final ConfigSpec.IntValue MENU_ORE_GLINT_INTERVAL_MILLIS;
+    public static final ConfigSpec.IntValue MENU_TORCH_COUNT;
 
     // [advanced]
-    public static final ModConfigSpec.IntValue UPDATE_INTERVAL_TICKS;
-    public static final ModConfigSpec.IntValue ANIMATION_FRAME_RATE_HZ;
-    public static final ModConfigSpec.IntValue DEBOUNCE_MILLIS;
-    public static final ModConfigSpec.IntValue BIOME_SAMPLE_INTERVAL_TICKS;
-    public static final ModConfigSpec.IntValue BIOME_CROSSFADE_MILLIS;
+    public static final ConfigSpec.IntValue UPDATE_INTERVAL_TICKS;
+    public static final ConfigSpec.IntValue ANIMATION_FRAME_RATE_HZ;
+    public static final ConfigSpec.IntValue DEBOUNCE_MILLIS;
+    public static final ConfigSpec.IntValue BIOME_SAMPLE_INTERVAL_TICKS;
+    public static final ConfigSpec.IntValue BIOME_CROSSFADE_MILLIS;
 
     static {
         // ONE builder, threaded through every section in order. push() opens a
         // TOML table, pop() closes it — miss a pop and everything after it
         // ends up nested inside the previous section, which the game will load
         // perfectly happily and which will confuse everyone forever.
-        ModConfigSpec.Builder b = new ModConfigSpec.Builder();
+        ConfigSpec.Builder b = new ConfigSpec.Builder();
 
         b.push("general");
         GENERAL_ENABLED = b.comment("Master kill switch for the whole mod.").define("enabled", true);

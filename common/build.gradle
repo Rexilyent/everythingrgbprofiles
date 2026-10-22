@@ -1,0 +1,114 @@
+plugins {
+    id 'net.neoforged.moddev'
+}
+
+// Plain Minecraft, no loader. If anything in here reaches for a NeoForge or
+// Fabric class, this is the build that fails, which is the entire point of
+// having it: the alternative is finding out when one of the two jars crashes.
+neoForge {
+    neoFormVersion = neoform_version
+}
+
+base {
+    // Never shipped: the loader jars compile common's sources themselves, and
+    // this jar only exists so the IDE can see common's classes from the
+    // loader projects. Named like the real ones anyway, so a stray copy in a
+    // build folder says what it is instead of just "common".
+    archivesName = "${mod_id}-common-${minecraft_version}"
+}
+
+dependencies {
+    // Annotations for common's mixins. compileOnly because both loaders ship
+    // Mixin themselves; a copy in our jar would be a second, fighting one.
+    compileOnly "net.fabricmc:sponge-mixin:${mixin_version}"
+}
+
+repositories {
+    maven { url = 'https://maven.fabricmc.net/' }
+}
+
+// What the loader projects compile into their own jars. They take the source
+// folders rather than a built jar, so the code is compiled once per loader
+// against that loader's Minecraft.
+configurations {
+    commonJava {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+    commonResources {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+
+artifacts {
+    commonJava sourceSets.main.java.sourceDirectories.singleFile
+    commonResources sourceSets.main.resources.sourceDirectories.singleFile
+}
+
+// --- Dev tooling -----------------------------------------------------------
+// The tuning harnesses, on common's runtime classpath: the mod's own classes
+// plus the libraries Minecraft ships, JNA among them. They used to need the
+// full NeoForge classpath, because anything touching RGBProfileMod pulled
+// NeoForge in during class verification. RGBProfileMod lives here now and
+// knows nothing about any loader, so plain Minecraft is enough.
+//
+// Run from the repository root, where the tools expect to find tuning/ and
+// the profile JSON.
+def tuningTask = { JavaExec task, String toolClass, String argsProperty ->
+    task.group = 'verification'
+    task.dependsOn tasks.named('compileJava')
+    task.classpath = sourceSets.main.runtimeClasspath + files(rootProject.file('tuning'))
+    task.mainClass = toolClass
+    task.workingDir = rootProject.projectDir
+    if (argsProperty != null && project.hasProperty(argsProperty)) {
+        task.args project.property(argsProperty).split(' ')
+    }
+}
+
+tasks.register('openRgbProbe', JavaExec) {
+    description = 'Reads geometry from a running OpenRGB SDK server. Writes no colours.'
+    tuningTask(it, 'OpenRgbProbe', 'orgbArgs')
+}
+
+// Runs the MSI Mystic Light backend against an SDK DLL you point it at:
+// -PmlArgs="path/to/MysticLight_SDK_x64.dll". Switches areas to a static
+// style while connected and puts them back on shutdown. Not split on spaces,
+// because the path may well have some.
+tasks.register('mysticLightProbe', JavaExec) {
+    description = 'Connects the MSI Mystic Light backend to a given SDK DLL and prints the diagnosis.'
+    tuningTask(it, 'MysticLightProbe', null)
+    if (project.hasProperty('mlArgs')) {
+        args project.property('mlArgs')
+    }
+}
+
+// Runs the ASUS Aura backend against whatever Armoury Crate installed. Takes
+// lighting control and hands it back; -PauraArgs=--send also paints every LED
+// red for two seconds.
+tasks.register('auraProbe', JavaExec) {
+    description = 'Connects the ASUS Aura backend through Armoury Crate and prints the diagnosis.'
+    tuningTask(it, 'AuraProbe', 'auraArgs')
+}
+
+// Tries the Razer, Logitech and SteelSeries backends against whatever vendor
+// software is installed. Add -PprobeArgs=--send to also push a test frame.
+tasks.register('vendorProbe', JavaExec) {
+    description = 'Opens a session with each grid-vendor backend and reports what answered.'
+    tuningTask(it, 'VendorProbe', 'probeArgs')
+}
+
+// The colour tuner and pattern studio on the full runtime classpath, which is
+// what lets "drive my real keyboard" use every backend instead of only the
+// Corsair fallback a plain java -cp launch gets. Compile the tools with javac
+// first (see tuning/README.md). -PtunerArgs passes options through, e.g.
+// -PtunerArgs=--probe. -Dtuner.openrgb.host / .port point OpenRGB elsewhere.
+['colorTuner': 'ColorTuner', 'patternStudio': 'PatternStudio'].each { taskName, toolClass ->
+    tasks.register(taskName, JavaExec) {
+        description = "Runs ${toolClass} with every lighting backend available."
+        tuningTask(it, toolClass, 'tunerArgs')
+        ['tuner.openrgb.host', 'tuner.openrgb.port'].each { key ->
+            if (System.getProperty(key) != null) systemProperty key, System.getProperty(key)
+        }
+    }
+}
