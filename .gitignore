@@ -9,6 +9,7 @@ bin/
 build/
 out/
 src/generated/
+.eclipse/
 
 # NeoForge MDK cache
 run/

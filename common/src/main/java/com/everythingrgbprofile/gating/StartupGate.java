@@ -1,13 +1,11 @@
 package com.everythingrgbprofile.gating;
 
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.api.distmarker.Dist;
-
 import java.nio.file.Path;
 import java.util.Locale;
 
 import com.everythingrgbprofile.RGBProfileMod;
 import com.everythingrgbprofile.config.RGBProfileConfig;
+import com.everythingrgbprofile.platform.Platform;
 import com.everythingrgbprofile.sdk.BackendHealth;
 import com.everythingrgbprofile.sdk.SdkWorkerThread;
 
@@ -52,8 +50,10 @@ import com.everythingrgbprofile.sdk.SdkWorkerThread;
  * is more correct AND less code than having this class guess on their behalf,
  * which it was never qualified to do.
  *
- * <p>Called exactly once, from {@code FMLClientSetupEvent}, which already
- * guarantees we're on the client. Step 1 checks again regardless. See step 1.
+ * <p>Called exactly once, from the loader's client startup: NeoForge's
+ * {@code FMLClientSetupEvent}, or Fabric's {@code CLIENT_STARTED}. Both
+ * already guarantee we're on the client. Step 1 checks again regardless. See
+ * step 1.
  */
 public final class StartupGate {
 
@@ -73,13 +73,15 @@ public final class StartupGate {
         // all, and since the sculk relay got deleted, neither does anything
         // else in this mod.
         //
-        // Yes, this is the third time this exact condition gets checked: the
-        // client setup event only firing on the client is the first, and the
-        // guard in RGBProfileMod.clientSetup is the second. It's staying.
+        // Yes, this is the third time this exact condition gets checked. On
+        // NeoForge the client setup event only firing on the client is the
+        // first, and the dist guard in front of the call is the second. On
+        // Fabric the jar is marked client-only and this is called from a
+        // client-only entrypoint, which makes the same two. It's staying.
         // The failure mode being insured against is "load a vendor's Windows
         // DLL on somebody's headless Linux server", and there is no amount of
         // paranoia about that which counts as excessive.
-        if (FMLEnvironment.dist != Dist.CLIENT) {
+        if (Platform.get().isDedicatedServer()) {
             RGBProfileMod.LOGGER.debug("RGB Profile: dedicated server side, skipping lighting pipeline entirely.");
             return;
         }

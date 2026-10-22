@@ -127,9 +127,9 @@ import java.util.TreeMap;
  *
  * <pre>
  *   gradlew compileJava
- *   javac --release 21 -cp "build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java
+ *   javac --release 21 -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" -d tuning tuning\ColorTuner.java tuning\PatternStudio.java tuning\HardwareBridge.java
  *   gradlew colorTuner                                                 every lighting backend
- *   java  -cp "build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner   Corsair only
+ *   java  -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" ColorTuner   Corsair only
  * </pre>
  *
  * JNA is only needed to tick "drive real keyboard"; without it everything else
@@ -169,7 +169,7 @@ public class ColorTuner {
 
     /** Shipped defaults, relative to the repo root. */
     private static final Path DEFAULTS =
-            Paths.get("src/main/resources/everythingrgbprofile_defaults/biome_profiles.json");
+            Paths.get("common/src/main/resources/everythingrgbprofile_defaults/biome_profiles.json");
     /**
      * The live config. Overridable with {@code -Dtuner.config=...} for a
      * different Minecraft instance.
@@ -188,12 +188,12 @@ public class ColorTuner {
      * two independent properties would eventually do.
      */
     private static final Path DIM_DEFAULTS =
-            Paths.get("src/main/resources/everythingrgbprofile_defaults/dimension_profiles.json");
+            Paths.get("common/src/main/resources/everythingrgbprofile_defaults/dimension_profiles.json");
     private static final Path DIM_LIVE = LIVE.resolveSibling("dimension_profiles.json");
 
     /** The generic boss-bar profiles, unioned the same way again. */
     private static final Path BOSS_DEFAULTS =
-            Paths.get("src/main/resources/everythingrgbprofile_defaults/boss_profiles.json");
+            Paths.get("common/src/main/resources/everythingrgbprofile_defaults/boss_profiles.json");
     private static final Path BOSS_LIVE = LIVE.resolveSibling("boss_profiles.json");
 
     /**

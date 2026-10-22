@@ -13,7 +13,7 @@ import java.util.Map;
  * installed and prints what it found and how it got diagnosed.
  *
  * <pre>
- *   javac --release 21 -cp "build/classes/java/main;JNA;JNA_PLATFORM" -d tuning tuning/AuraProbe.java
+ *   javac --release 21 -cp "common/build/classes/java/main;JNA;JNA_PLATFORM" -d tuning tuning/AuraProbe.java
  *   ./gradlew auraProbe                  (connect, report, release)
  *   ./gradlew auraProbe -PauraArgs=--send   (also paints every LED red for two seconds)
  * </pre>
