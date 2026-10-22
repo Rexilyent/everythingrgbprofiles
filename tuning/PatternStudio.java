@@ -41,13 +41,13 @@ import java.util.*;
  * <h2>Running</h2>
  * <pre>
  * gradlew compileJava
- * javac -cp build\classes\java\main -d tuning tuning\PatternStudio.java
- * java  -cp "build\classes\java\main;tuning" PatternStudio
+ * javac -cp common\build\classes\java\main -d tuning tuning\PatternStudio.java
+ * java  -cp "common\build\classes\java\main;tuning" PatternStudio
  * </pre>
  *
  * <p>For hardware output, add JNA and have the DLL beside you:
  * <pre>
- * java -cp "build\classes\java\main;tuning;jna-5.14.0.jar" PatternStudio
+ * java -cp "common\build\classes\java\main;tuning;jna-5.14.0.jar" PatternStudio
  * </pre>
  * The SDK classes load lazily, so the studio runs fine without JNA present --
  * the Drive keyboard box simply reports why it can't connect.

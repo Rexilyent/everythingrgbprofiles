@@ -2,7 +2,7 @@ package com.everythingrgbprofile.gating;
 
 import com.everythingrgbprofile.RGBProfileMod;
 
-import net.neoforged.fml.loading.FMLPaths;
+import com.everythingrgbprofile.platform.Platform;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -125,7 +125,7 @@ public final class PackDetection {
     private static String resolve() {
         Path gameDir;
         try {
-            gameDir = FMLPaths.GAMEDIR.get();
+            gameDir = Platform.get().gameDir();
         } catch (Exception e) {
             return null;
         }

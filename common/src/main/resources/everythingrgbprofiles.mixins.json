@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.everythingrgbprofile.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "BossHealthOverlayAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
