@@ -18,6 +18,7 @@ import com.everythingrgbprofile.compat.toughasnails.ToughAsNailsCompat;
 import com.everythingrgbprofile.config.Feature;
 import com.everythingrgbprofile.config.RGBProfileConfig;
 import com.everythingrgbprofile.detect.SculkBlockWatcher;
+import com.everythingrgbprofile.mixin.BossHealthOverlayAccessor;
 import com.everythingrgbprofile.effects.EffectRegistry;
 import com.everythingrgbprofile.effects.support.EnderDragonEffect;
 import com.everythingrgbprofile.pattern.PatternParams;
@@ -33,6 +34,9 @@ import com.everythingrgbprofile.profile.ProfileResolver;
 import com.everythingrgbprofile.sdk.SdkWorkerThread;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.AdvancementToast;
+import net.minecraft.client.gui.components.toasts.Toast;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.BlockPos;
@@ -50,7 +54,6 @@ import com.everythingrgbprofile.pattern.patterns.RaidHordePattern;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.sounds.SoundEvents;
-import net.neoforged.neoforge.client.event.sound.PlaySoundEvent;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
@@ -65,17 +68,11 @@ import net.minecraft.world.entity.monster.ElderGuardian;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.ToastAddEvent;
-import net.neoforged.neoforge.event.level.LevelEvent;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -136,8 +133,16 @@ import java.util.Set;
  * deeper gets you in front of that queue. See {@link #onLevelLoad} for the
  * measurements that made the point, including the four consecutive portal
  * trips where the obvious hook was between 0.9 and 2.7 seconds late.
+ *
+ * <h2>Who calls these</h2>
+ * The loaders, and nothing else. Every {@code on...} method here takes plain
+ * vanilla types, and each loader project has a thin layer that catches the
+ * moment in its own way and forwards it: NeoForge through its event bus
+ * ({@code NeoForgeClientEvents}), Fabric through Fabric API and a few small
+ * mixins ({@code RGBProfileFabric} and the {@code fabric.mixin} package).
+ * Where a hook's timing matters, and for the level load it matters a lot,
+ * both loaders land on the same spot in vanilla. Each forwarder says where.
  */
-@EventBusSubscriber(modid = RGBProfileMod.MODID, value = Dist.CLIENT)
 public final class ClientEventHandlers {
 
     private static int tickCounter = 0;
@@ -323,8 +328,7 @@ public final class ClientEventHandlers {
      * everything else runs behind the {@code updateIntervalTicks} gate because
      * it's ambient state that nobody can perceive changing at 20Hz.
      */
-    @SubscribeEvent
-    public static void onClientTick(ClientTickEvent.Post event) {
+    public static void onClientTick() {
         EffectRegistry effects = SdkWorkerThread.effects();
         // null means the worker isn't running: gating never started it (mod
         // disabled, wrong OS, dedicated server), or it started, found no
@@ -500,8 +504,7 @@ public final class ClientEventHandlers {
      * covers a disconnect; the poll covers everything that isn't one. Belt and
      * braces, and the braces are two lines long.
      */
-    @SubscribeEvent
-    public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+    public static void onLoggingOut() {
         EffectRegistry effects = SdkWorkerThread.effects();
         if (effects == null) return;
         endWorldSession(effects, "logging-out event");
@@ -2072,9 +2075,10 @@ public final class ClientEventHandlers {
     //   - The raid itself is a vanilla boss bar, renamed "Raid - Victory" or
     //     "Raid - Defeat" when it ends. Matched by translation key rather than
     //     by text, so it reads the same in every language. The boss bars on
-    //     screen are package-private in vanilla and opened up by this mod's
-    //     access transformer: NeoForge's event for a bar being drawn would do
-    //     too, but stops firing whenever the HUD is hidden.
+    //     screen are package-private in vanilla and read through this mod's
+    //     BossHealthOverlayAccessor mixin. NeoForge's event for a bar being
+    //     drawn would do too, but stops firing whenever the HUD is hidden, and
+    //     Fabric doesn't have one at all.
     //   - The horn is a sound the server sends to every player near the raid
     //     when a wave arrives. See onRaidHorn.
     // ---------------------------------------------------------------
@@ -2122,7 +2126,7 @@ public final class ClientEventHandlers {
 
     /** What the raid bar on screen says, or null if there is none. */
     private static RaidHordePattern.Phase raidBarPhase(Minecraft mc) {
-        for (LerpingBossEvent bar : mc.gui.getBossOverlay().events.values()) {
+        for (LerpingBossEvent bar : ((BossHealthOverlayAccessor) mc.gui.getBossOverlay()).rgbprofiles$events().values()) {
             if (!(bar.getName().getContents() instanceof TranslatableContents name)) continue;
             switch (name.getKey()) {
                 case RAID_BAR_KEY:
@@ -2147,10 +2151,9 @@ public final class ClientEventHandlers {
      * the possibly-replaced one, so another mod swapping or silencing the horn
      * does not quietly take this with it.
      */
-    @SubscribeEvent
-    public static void onRaidHorn(PlaySoundEvent event) {
-        if (event.getOriginalSound() == null) return;
-        if (!SoundEvents.RAID_HORN.value().location().equals(event.getOriginalSound().getLocation())) return;
+    public static void onRaidHorn(SoundInstance originalSound) {
+        if (originalSound == null) return;
+        if (!SoundEvents.RAID_HORN.value().location().equals(originalSound.getLocation())) return;
         if (!Feature.RAID_WARNING.isOn()) return;
         EffectRegistry effects = SdkWorkerThread.effects();
         if (effects == null) return;
@@ -2703,17 +2706,19 @@ public final class ClientEventHandlers {
      * meant to be announced.
      *
      * <p>So a toast being queued is exactly "you just earned something worth
-     * announcing", as decided by vanilla itself rather than by us, and
-     * NeoForge hands it over right here.
+     * announcing", as decided by vanilla itself rather than by us, and the
+     * loader hands it over right here.
      *
-     * <p>{@code receiveCanceled}, because hiding toasts is a popular thing for
-     * a mod to do, and it does it by cancelling this event. The advancement is
-     * still earned when its popup is hidden, and the keyboard is a different
-     * place to hear about it.
+     * <p>Hiding toasts is a popular thing for a mod to do, and the
+     * advancement is still earned when its popup is hidden, so the keyboard
+     * should still hear about it. On NeoForge it always does: mods hide toasts
+     * by cancelling the toast event, and {@code receiveCanceled} gets this
+     * called anyway. Fabric has no toast event, so a hider there cancels the
+     * method with its own mixin, and whether that runs before ours is down to
+     * mixin ordering. See {@code ToastManagerMixin}.
      */
-    @SubscribeEvent(receiveCanceled = true)
-    public static void onAdvancementToast(ToastAddEvent event) {
-        if (!(event.getToast() instanceof AdvancementToast)) return;
+    public static void onAdvancementToast(Toast toast) {
+        if (!(toast instanceof AdvancementToast)) return;
         if (!Feature.ADVANCEMENT.isOn()) return;
         EffectRegistry effects = SdkWorkerThread.effects();
         if (effects == null) return;
@@ -2730,8 +2735,8 @@ public final class ClientEventHandlers {
     // either of which would have been enough on its own:
     //
     //   1. That event is dispatched on the LOGICAL SERVER. This handler class
-    //      is @EventBusSubscriber(value = Dist.CLIENT), so on a multiplayer
-    //      server it is never delivered here at all.
+    //      was a client-only @EventBusSubscriber, so on a multiplayer server
+    //      it was never delivered here at all.
     //   2. Even in singleplayer, where the integrated server does dispatch it,
     //      event.getEntity() is a ServerPlayer. So the guard
     //      `Minecraft.getInstance().player != player` failed every single
@@ -2807,9 +2812,11 @@ public final class ClientEventHandlers {
      * which is a completely different bug to go looking for, and this is
      * precisely the ambiguity Diagnostics exists to settle.
      *
-     * <p>{@code LevelEvent.Load} fires when the new ClientLevel is
+     * <p>NeoForge's {@code LevelEvent.Load} fires when the new ClientLevel is
      * constructed, which is upstream of that entire pile, so we now land at or
-     * before Iris. Going deeper in the class hierarchy was the whole fix: the
+     * before Iris. Fabric gets the same moment from a mixin at the end of the
+     * ClientLevel constructor. Not from Fabric API's world-change event, which
+     * fires after {@code Minecraft#setLevel} and so right back behind Iris. Going deeper in the class hierarchy was the whole fix: the
      * level is the thing that actually changed, and it is the one place nobody
      * else has queued up in front of us.
      *
@@ -2825,19 +2832,17 @@ public final class ClientEventHandlers {
      * {@code Minecraft#setLevel}, which is exactly where Iris hooks, and at
      * that point we would be having the same argument from the other side.
      */
-    @SubscribeEvent
-    public static void onLevelLoad(LevelEvent.Load event) {
+    public static void onLevelLoad(LevelAccessor loaded) {
         EffectRegistry effects = SdkWorkerThread.effects();
         if (effects == null) return;
-        if (!(event.getLevel() instanceof Level level)) return;
+        if (!(loaded instanceof Level level)) return;
         if (!level.isClientSide()) return; // the integrated server posts this too, and it is not ours
         String id = dimensionIdOf(level);
         if (id == null) return;
         checkDimensionChange(effects, id, System.currentTimeMillis(), "level-load");
     }
 
-    @SubscribeEvent
-    public static void onClientPlayerClone(ClientPlayerNetworkEvent.Clone event) {
+    public static void onClientPlayerClone(LocalPlayer newPlayer) {
         EffectRegistry effects = SdkWorkerThread.effects();
         if (effects == null) return;
 
@@ -2851,7 +2856,7 @@ public final class ClientEventHandlers {
         // arrives one tick later regardless.
         Minecraft mc = Minecraft.getInstance();
         String fromLevel = dimensionIdOf(mc != null ? mc.level : null);
-        String fromNewPlayer = event.getNewPlayer() != null ? dimensionIdOf(event.getNewPlayer().level()) : null;
+        String fromNewPlayer = newPlayer != null ? dimensionIdOf(newPlayer.level()) : null;
 
         if (portalDebug()) {
             RGBProfileMod.LOGGER.info("[portal] clone event: mc.level={} newPlayer.level={} last={}",

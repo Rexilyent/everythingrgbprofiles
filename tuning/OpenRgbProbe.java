@@ -12,7 +12,7 @@ import java.util.List;
  * what they keep showing.
  *
  * <pre>
- *   java -cp "build/classes/java/main;tuning;LOG4J;GSON" OpenRgbProbe
+ *   java -cp "common/build/classes/java/main;tuning;LOG4J;GSON" OpenRgbProbe
  * </pre>
  *
  * <p>Point of this over the Python probe: the Python one proves the protocol is
