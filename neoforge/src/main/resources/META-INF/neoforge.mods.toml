@@ -1,0 +1,71 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+issueTrackerURL = "https://github.com/Rexilyent/everythingrgbprofiles/issues"
+
+# The one mixin common carries: a read-only accessor for the boss bars, which
+# used to be an access transformer. See BossHealthOverlayAccessor.
+[[mixins]]
+config = "everythingrgbprofiles.mixins.json"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+# iconFile, not bannerFile: NeoForge 26.3 deprecated logoFile and split it in
+# two, a wide banner and a square icon. The logo is 500x500, so it's the icon.
+iconFile = "rgb_logo.png"
+description = '''${mod_description}
+
+Every biome gets its own animated scene. Bosses like the Wither and the Ender Dragon are drawn right on the keys, and things like low health, drowning, burning, lightning and raids light up as they happen.
+
+Tested with Corsair keyboards through iCUE. Razer Chroma, Logitech G HUB, SteelSeries GG and OpenRGB (with its SDK Server turned on) are supported too, but haven't been tried on real hardware yet. If you use one, please tell us how it goes: run /rgbprofiles report in game and send us the file it writes. Whichever you use, its software needs to be running.
+
+Client-side only: servers don't need it, and you can join any server with it installed.
+'''
+
+# The lighting/SDK side of this mod is strictly client-only, and since the
+# optional sculk relay was removed there is no server-side behaviour left at
+# all. There is still no blanket clientSideOnly flag, because that flag
+# prevents server-side loading entirely and a pack shipping this mod on both
+# sides should keep working rather than start failing to load.
+#
+# An earlier version registered one network payload for that relay, and had to
+# declare it optional so NeoForge would not refuse a connection to a server
+# without the mod. Nothing is registered now, so there is nothing to negotiate
+# and a player carrying this mod can join any server, vanilla or NeoForge.
+#
+# This uses the `[[dependencies]]` `type = "optional"` mechanism from the
+# 1.21.x NeoForge generation, and loads correctly on NeoForge for 1.21.1. If a
+# later NeoForge changes how "optional on both sides" is declared, this is the
+# block to update.
+
+[[dependencies.${mod_id}]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "${neo_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.${mod_id}]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+# Soft/optional compat — never causes a load failure if absent.
+[[dependencies.${mod_id}]]
+    modId = "toughasnails"
+    type = "optional"
+    versionRange = "[0,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
+[[dependencies.${mod_id}]]
+    modId = "legendary_monsters"
+    type = "optional"
+    versionRange = "[0,)"
+    ordering = "AFTER"
+    side = "BOTH"

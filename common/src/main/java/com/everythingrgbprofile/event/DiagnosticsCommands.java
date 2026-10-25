@@ -1,0 +1,645 @@
+package com.everythingrgbprofile.event;
+
+import com.everythingrgbprofile.RGBProfileFiles;
+import com.everythingrgbprofile.RGBProfileMod;
+import com.everythingrgbprofile.config.Feature;
+import com.everythingrgbprofile.config.RGBProfileConfig;
+import com.everythingrgbprofile.debug.DiagnosticReport;
+import com.everythingrgbprofile.debug.EffectTimeline;
+import com.everythingrgbprofile.debug.HardwareTest;
+import com.everythingrgbprofile.sdk.BackendHealth;
+import com.everythingrgbprofile.sdk.MysticLightBackend;
+import com.everythingrgbprofile.sdk.NativeCrashGuard;
+import com.everythingrgbprofile.sdk.SdkWorkerThread;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * {@code /rgbprofiles} and the chat notices that point at it. This is the
+ * part of the diagnostics an actual player ever sees, as opposed to the part
+ * that lives in the log waiting to be asked for.
+ *
+ * <ul>
+ *   <li>{@code /rgbprofiles status} — which lighting software is in use, and for
+ *       every kind that is not, why, with what to try.</li>
+ *   <li>{@code /rgbprofiles test} — {@link HardwareTest} on the keyboard, with
+ *       each step's expected result above the hotbar.</li>
+ *   <li>{@code /rgbprofiles effects} — which effects are active, who owns the
+ *       board, and the latest changes, from {@link EffectTimeline}.</li>
+ *   <li>{@code /rgbprofiles report} — {@link DiagnosticReport} to a file, with
+ *       links to open it or copy it.</li>
+ *   <li>{@code /rgbprofiles retry} — forgets which lighting software
+ *       {@link NativeCrashGuard} is skipping after a crash.</li>
+ * </ul>
+ *
+ * <p>Client commands, so they work on any server at all, including servers
+ * that have never heard of this mod, and they never once touch the server.
+ *
+ * <p>The chat notices exist for a boring and important reason: somebody
+ * staring at a dark keyboard has no idea the command exists. So each one is
+ * said exactly once — on the first world joined, and when a connection drops
+ * or the mod runs into an error — and all of them can be switched off with
+ * {@code [debug] chatNotices} by anyone who finds them irritating.
+ *
+ * <p>The loaders do the wiring: each one hands {@link #register} its client
+ * command dispatcher and calls {@link #onClientTick} every client tick. The
+ * commands never look at who ran them, so the tree doesn't care which
+ * loader's command source type it's built for.
+ */
+public final class DiagnosticsCommands {
+
+    private static final String ROOT = "rgbprofiles";
+
+    private static boolean startupNoticeDone;
+    private static int seenChanges = -1;
+    private static final Map<String, BackendHealth.State> seenStates = new HashMap<>();
+    private static int seenProblems;
+    private static boolean bugNoticeDone;
+    private static boolean msiPromptDone;
+
+    /** When the test this client started began, or {@link Long#MIN_VALUE} for none. */
+    private static long testStartMillis = Long.MIN_VALUE;
+    private static HardwareTest.Step lastTestStep;
+
+    private DiagnosticsCommands() {
+    }
+
+    public static <S> void register(CommandDispatcher<S> dispatcher) {
+        dispatcher.register(LiteralArgumentBuilder.<S>literal(ROOT)
+                .executes(ctx -> help())
+                .then(LiteralArgumentBuilder.<S>literal("status").executes(ctx -> status()))
+                .then(LiteralArgumentBuilder.<S>literal("test").executes(ctx -> test()))
+                .then(LiteralArgumentBuilder.<S>literal("effects").executes(ctx -> effects()))
+                .then(LiteralArgumentBuilder.<S>literal("report").executes(ctx -> report()))
+                .then(LiteralArgumentBuilder.<S>literal("retry").executes(ctx -> retry()))
+                .then(LiteralArgumentBuilder.<S>literal("msi").executes(ctx -> msi())
+                        .then(LiteralArgumentBuilder.<S>literal("dismiss").executes(ctx -> msiDismiss()))));
+    }
+
+    // ---------------------------------------------------------------
+    // Commands
+    // ---------------------------------------------------------------
+
+    private static int help() {
+        say(title("Everything RGB Profiles"));
+        say(Component.literal(" ").append(command("status")).append(gray(" — what is lighting your keyboard, or why nothing is")));
+        say(Component.literal(" ").append(command("test")).append(gray(" — check the keyboard shows the right colours in the right places")));
+        say(Component.literal(" ").append(command("effects")).append(gray(" — which lighting effects are running, and what just changed")));
+        say(Component.literal(" ").append(command("report")).append(gray(" — write a file to send with a bug report")));
+        say(Component.literal(" ").append(command("retry")).append(gray(" — try lighting software again that was skipped after a crash")));
+        say(Component.literal(" ").append(command("msi")).append(gray(" — how to set up MSI Mystic Light")));
+        return 1;
+    }
+
+    private static int status() {
+        say(title("Lighting status"));
+
+        if (BackendHealth.gateSummary() != null) {
+            say(yellow(BackendHealth.gateSummary()));
+            if (BackendHealth.gateFix() != null) say(fix(BackendHealth.gateFix()));
+            return 1;
+        }
+        if (!BackendHealth.workerStarted()) {
+            say(yellow("Lighting has not started yet."));
+            return 1;
+        }
+        if (!BackendHealth.connectFinished()) {
+            say(yellow("Still connecting to lighting software. Try again in a few seconds."));
+            return 1;
+        }
+
+        String leader = BackendHealth.leaderId();
+        List<BackendHealth.Diagnosis> all = BackendHealth.diagnoses();
+        SdkWorkerThread.Status worker = SdkWorkerThread.status();
+
+        if (leader == null) {
+            say(Component.literal("No lighting software connected, so nothing will light. Here is what was found:")
+                    .withStyle(ChatFormatting.YELLOW));
+        } else {
+            BackendHealth.Diagnosis lead = find(all, leader);
+            MutableComponent line = Component.literal("Lighting through ").withStyle(ChatFormatting.GREEN)
+                    .append(Component.literal(lead == null ? leader : lead.displayName()).withStyle(ChatFormatting.WHITE));
+            if (worker != null && !worker.grid().isEmpty()) {
+                line.append(gray(" — " + worker.grid().surfaces().size() + " device(s), "
+                        + worker.grid().allKeys().size() + " LEDs"));
+            }
+            say(line);
+            if (!BackendHealth.tested(leader)) {
+                say(gray("This one is experimental: only Corsair iCUE has been tested. If colours or positions "
+                        + "look wrong, run ").append(command("test")).append(gray(".")));
+            }
+            if (!BackendHealth.followerIds().isEmpty()) {
+                say(gray("Also showing the same lighting on: " + String.join(", ", BackendHealth.followerIds())));
+            }
+        }
+
+        // When lighting IS working, listing software that simply isn't
+        // installed is pure noise, so it collapses down to one line with the
+        // details tucked behind a hover.
+        //
+        // When nothing is working, any one of those absences might be the
+        // answer, so every one of them gets its own line. Same data, opposite
+        // presentation, decided by whether the reader currently has a problem.
+        List<BackendHealth.Diagnosis> quiet = new ArrayList<>();
+        for (BackendHealth.Diagnosis d : all) {
+            if (d.backendId().equals(leader)) continue;
+            boolean absent = d.state() == BackendHealth.State.NOT_INSTALLED
+                    || d.state() == BackendHealth.State.NOT_RUNNING
+                    || d.state() == BackendHealth.State.NOT_SELECTED;
+            if (leader != null && absent) {
+                quiet.add(d);
+                continue;
+            }
+            say(Component.literal(" ").append(stateLabel(d)).append(Component.literal(" " + d.displayName() + ": ")
+                    .withStyle(ChatFormatting.WHITE)).append(gray(d.summary())));
+            if (d.fix() != null && d.state() != BackendHealth.State.CONNECTED) say(fix(d.fix()));
+        }
+        if (!quiet.isEmpty()) {
+            MutableComponent line = gray(" Not in use: ");
+            for (int i = 0; i < quiet.size(); i++) {
+                BackendHealth.Diagnosis d = quiet.get(i);
+                if (i > 0) line.append(gray(", "));
+                String hover = d.summary() + (d.fix() == null ? "" : "\n\n" + d.fix());
+                line.append(Component.literal(d.displayName() + " (" + d.state().label() + ")")
+                        .withStyle(Style.EMPTY.withColor(ChatFormatting.GRAY).withUnderlined(true)
+                                .withHoverEvent(new HoverEvent.ShowText(Component.literal(hover)))));
+            }
+            say(line);
+        }
+
+        if (worker != null && worker.idle()) {
+            // Not an error, so not red. Just the one thing worth knowing: the
+            // mod won't go looking again by itself.
+            say(gray(" The mod is idle for this session. Start your lighting software, then restart Minecraft."));
+        }
+        if (worker != null && worker.stoppedBecause() != null && !worker.stoppedBecause().contains("shutting down")) {
+            say(Component.literal(" " + worker.stoppedBecause()).withStyle(ChatFormatting.RED));
+        }
+        int errors = 0;
+        for (BackendHealth.Problem p : BackendHealth.problems()) errors += p.count();
+        if (errors > 0) {
+            say(Component.literal(" " + errors + " error(s) recorded this session. ").withStyle(ChatFormatting.GOLD)
+                    .append(command("report")).append(gray(" has the details.")));
+        }
+        return 1;
+    }
+
+    private static int test() {
+        SdkWorkerThread.Status worker = SdkWorkerThread.status();
+        if (worker == null || !worker.connected()) {
+            say(Component.literal("There is no connected lighting to test. ").withStyle(ChatFormatting.YELLOW)
+                    .append(command("status")).append(gray(" says why.")));
+            return 0;
+        }
+        long now = System.currentTimeMillis();
+        if (!SdkWorkerThread.startHardwareTest(now)) {
+            say(yellow("The lighting is not ready for a test yet. Try again in a moment."));
+            return 0;
+        }
+        testStartMillis = now;
+        lastTestStep = null;
+        say(title("Keyboard test"));
+        say(gray("About " + Math.round(HardwareTest.totalMillis() / 1000.0) + " seconds. Watch the keyboard: "
+                + "what it should show is written above the hotbar. Your normal lighting comes back afterwards."));
+        if (worker.grid().namedKey("W") == null) {
+            say(gray("This lighting software cannot say where individual letters are, so the last step "
+                    + "(W, A, S and D) will stay dark. That is expected."));
+        }
+        return 1;
+    }
+
+    /**
+     * Built for "my effect didn't show".
+     *
+     * <p>What owns the board is what separates "it never started" from "it
+     * started and something drew over it". That is the first thing worth
+     * knowing, it sends you to two completely different places, and there is
+     * no way on earth to tell which one happened by looking at a keyboard.
+     */
+    private static int effects() {
+        long now = System.currentTimeMillis();
+        say(title("Effects"));
+        EffectTimeline.Snapshot current = EffectTimeline.current();
+        if (current.atMillis() == 0) {
+            say(yellow(BackendHealth.workerStarted()
+                    ? "Effects have not started yet. Try again in a few seconds."
+                    : "Lighting is not running, so no effects are either. "));
+            if (!BackendHealth.workerStarted()) say(gray("See ").append(command("status")).append(gray(".")));
+            return 1;
+        }
+        SdkWorkerThread.Status worker = SdkWorkerThread.status();
+        if (worker != null && !worker.connected()) {
+            say(yellow("No lighting is connected, so these run without reaching a keyboard. ")
+                    .append(command("status")).append(gray(" says why.")));
+        }
+        say(Component.literal("Now: ").withStyle(ChatFormatting.WHITE).append(gray(current.board())));
+        say(Component.literal("Active: ").withStyle(ChatFormatting.WHITE)
+                .append(gray(current.active().isEmpty() ? "nothing" : String.join(", ", current.active()))));
+
+        List<String> off = new ArrayList<>();
+        for (Feature feature : Feature.values()) {
+            if (!feature.isAvailable()) continue;
+            try {
+                if (!feature.isOn()) off.add(feature.name().toLowerCase(java.util.Locale.ROOT));
+            } catch (RuntimeException ignored) {
+                // Config not readable yet. The report says so itself, so there
+                // is nothing useful to add from here.
+            }
+        }
+        if (!off.isEmpty()) {
+            say(Component.literal("Turned off in the config: ").withStyle(ChatFormatting.WHITE)
+                    .append(gray(String.join(", ", off))));
+        }
+
+        List<EffectTimeline.Event> events = EffectTimeline.recent();
+        int shown = 0;
+        for (int i = events.size() - 1; i >= 0 && shown < 8; i--) {
+            EffectTimeline.Event e = events.get(i);
+            if (now - e.atMillis() > 5 * 60_000) break;
+            if (shown == 0) say(Component.literal("Latest changes:").withStyle(ChatFormatting.WHITE));
+            MutableComponent line = Component.literal(" " + ago(now - e.atMillis()) + " ").withStyle(ChatFormatting.DARK_GRAY)
+                    .append(Component.literal((e.started() ? "started " : "stopped ") + e.effectId())
+                            .withStyle(e.started() ? ChatFormatting.GREEN : ChatFormatting.GRAY));
+            if (e.started()) {
+                line.withStyle(Style.EMPTY.withHoverEvent(new HoverEvent.ShowText(
+                        Component.literal(e.tier() + ", priority " + e.priority() + "\nJust after: " + e.board()))));
+            }
+            say(line);
+            shown++;
+        }
+        if (shown == 0) say(gray("No effects have started or stopped in the last five minutes."));
+        say(gray("Hover a change to see who owned the board just after. ").append(command("report"))
+                .append(gray(" includes the last " + events.size() + " changes.")));
+        return 1;
+    }
+
+    private static int retry() {
+        List<String> cleared = NativeCrashGuard.clearAll(RGBProfileFiles.dllExtractDirectory());
+        if (cleared.isEmpty()) {
+            say(prefix().append(gray("Nothing is being skipped after a crash.")));
+            return 0;
+        }
+        say(prefix().append(Component.literal("Cleared. " + String.join(", ", cleared)
+                + " will be tried again when Minecraft next starts.").withStyle(ChatFormatting.GREEN)));
+        say(gray("If the game crashes again while starting, it will be skipped again automatically. Please send us "
+                + "the report and the hs_err_pid crash log from your game folder if that happens."));
+        return 1;
+    }
+
+    /**
+     * How to get MSI's SDK, since we're not allowed to hand it over ourselves.
+     * Link to MSI's own zip, a button for the folder it goes in, and the
+     * one-sentence version of which file to take out of the zip.
+     */
+    private static int msi() {
+        Path folder = RGBProfileFiles.dllExtractDirectory();
+        try {
+            // [Open folder] on a folder that doesn't exist yet opens nothing,
+            // which is a great way to make someone think the button is broken.
+            java.nio.file.Files.createDirectories(folder);
+        } catch (IOException e) {
+            RGBProfileMod.LOGGER.warn("RGB Profile: could not create {}", folder, e);
+        }
+        String because = MysticLightBackend.sdkWanted();
+        say(title("MSI Mystic Light"));
+        say(gray((because == null ? "" : "Found: " + because + ". ")
+                + "MSI lighting needs MSI's Mystic Light SDK, which MSI doesn't let us include with the mod. "
+                + "It's a free 1 MB download from MSI. No RGB on your MSI stuff (plenty of monitors have none)? "
+                + "Then you can skip this."));
+        say(Component.literal(" 1. ").withStyle(ChatFormatting.WHITE)
+                .append(link("[Download from MSI]",
+                        new ClickEvent.OpenUrl(URI.create(MysticLightBackend.SDK_DOWNLOAD_URL)),
+                        MysticLightBackend.SDK_DOWNLOAD_URL)));
+        say(Component.literal(" 2. ").withStyle(ChatFormatting.WHITE)
+                .append(gray("Open the zip and copy " + MysticLightBackend.DLL_NAME + " (inside Mystic_light_SDK_1.0.0.08) into "))
+                .append(link("[this folder]", new ClickEvent.OpenFile(folder), folder.toString())));
+        say(Component.literal(" 3. ").withStyle(ChatFormatting.WHITE)
+                .append(gray("Open MSI Center and click into Mystic Light, then restart Minecraft.")));
+        say(gray("Only MSI's own file is loaded; anything else with that name is refused. ")
+                .append(link("[Don't ask again]", new ClickEvent.RunCommand("/" + ROOT + " msi dismiss"),
+                        "Stop mentioning this at startup")));
+        return 1;
+    }
+
+    private static int msiDismiss() {
+        RGBProfileConfig.MYSTIC_LIGHT_SDK_PROMPT.set(false);
+        RGBProfileConfig.MYSTIC_LIGHT_SDK_PROMPT.save();
+        msiPromptDone = true;
+        say(prefix().append(gray("Got it, no more MSI reminders. ")).append(command("msi"))
+                .append(gray(" still has the instructions if you change your mind.")));
+        return 1;
+    }
+
+    private static String ago(long millis) {
+        long seconds = millis / 1000;
+        return seconds < 60 ? seconds + "s ago" : (seconds / 60) + "m ago";
+    }
+
+    private static int report() {
+        String text;
+        try {
+            text = DiagnosticReport.build();
+        } catch (RuntimeException e) {
+            RGBProfileMod.LOGGER.error("RGB Profile: building the diagnostic report failed.", e);
+            say(red("Could not build the report: " + e + ". Please send latest.log instead."));
+            return 0;
+        }
+        Path path;
+        try {
+            path = DiagnosticReport.write(text);
+        } catch (IOException e) {
+            RGBProfileMod.LOGGER.error("RGB Profile: writing the diagnostic report failed.", e);
+            say(red("Could not write the report file (" + e.getMessage() + "). ")
+                    .append(link("[Copy it instead]", new ClickEvent.CopyToClipboard(text), "Copy the report")));
+            return 0;
+        }
+        // Printed into the log as well, so somebody who sends latest.log
+        // instead of the report file has still, without knowing it, sent the
+        // report.
+        RGBProfileMod.LOGGER.info("RGB Profile: diagnostic report written to {}:\n{}", path, text);
+
+        say(title("Diagnostic report"));
+        for (String conclusion : DiagnosticReport.conclusions()) say(gray("• " + conclusion));
+        say(Component.literal("Saved as logs/" + path.getFileName() + " ").withStyle(ChatFormatting.WHITE)
+                .append(link("[Open]", new ClickEvent.OpenFile(path), "Open the report"))
+                .append(" ")
+                .append(link("[Folder]", new ClickEvent.OpenFile(path.getParent()), "Open the logs folder"))
+                .append(" ")
+                .append(link("[Copy]", new ClickEvent.CopyToClipboard(text), "Copy the whole report to paste somewhere")));
+        say(gray("Attach this file when reporting a lighting problem. It has no personal details in it."));
+        return 1;
+    }
+
+    // ---------------------------------------------------------------
+    // Notices and the test's step captions
+    // ---------------------------------------------------------------
+
+    public static void onClientTick() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        showTestStep(mc);
+        msiPrompt();
+        if (!RGBProfileConfig.DEBUG_CHAT_NOTICES.get()) return;
+        int changes = BackendHealth.changes();
+        if (changes == seenChanges && startupNoticeDone) return;
+        if (!startupNoticeDone) {
+            startupNotice();
+        } else {
+            changeNotices();
+        }
+        if (startupNoticeDone) seenChanges = changes;
+    }
+
+    private static void showTestStep(Minecraft mc) {
+        if (testStartMillis == Long.MIN_VALUE) return;
+        long elapsed = System.currentTimeMillis() - testStartMillis;
+        HardwareTest.Step step = HardwareTest.stepAt(elapsed);
+        if (step == null) {
+            testStartMillis = Long.MIN_VALUE;
+            mc.gui.hud.setOverlayMessage(Component.empty(), false);
+            say(Component.literal("Keyboard test finished. ").withStyle(ChatFormatting.GREEN)
+                    .append(gray("If any step did not match, run ")).append(command("report"))
+                    .append(gray(" and tell us which step looked wrong and what you saw instead.")));
+            return;
+        }
+        if (step != lastTestStep) {
+            lastTestStep = step;
+            say(gray("Test " + (step.ordinal() + 1) + "/" + HardwareTest.Step.values().length + ": "
+                    + step.expectation()));
+        }
+        mc.gui.hud.setOverlayMessage(Component.literal("Keyboard test " + (step.ordinal() + 1) + "/"
+                + HardwareTest.Step.values().length + ": " + step.expectation()).withStyle(ChatFormatting.AQUA), false);
+    }
+
+    /**
+     * The "you have MSI stuff, want the SDK?" nudge. Once per session, first
+     * world joined, only for players {@link MysticLightBackend#sdkWanted} picked
+     * out, and never again after [Don't ask again].
+     *
+     * <p>Has its own switch rather than riding on chatNotices. Somebody who
+     * turned the error chatter off may still want to hear that their MSI
+     * board could be lighting up, and vice versa.
+     */
+    private static void msiPrompt() {
+        if (msiPromptDone) return;
+        if (!BackendHealth.workerStarted() || !BackendHealth.connectFinished()) return;
+        msiPromptDone = true;
+        if (!RGBProfileConfig.MYSTIC_LIGHT_SDK_PROMPT.get()) return;
+        String because = MysticLightBackend.sdkWanted();
+        if (because == null) return;
+        say(prefix().append(yellow("Found MSI hardware. If it has RGB lighting, it needs a free download from MSI "
+                        + "first. "))
+                .append(command("msi")).append(gray(" shows how (takes a minute). "))
+                .append(link("[Don't ask again]", new ClickEvent.RunCommand("/" + ROOT + " msi dismiss"),
+                        "Stop mentioning this at startup")));
+    }
+
+    /** Said once, at the first world joined after the lighting settles. */
+    private static void startupNotice() {
+        if (BackendHealth.gateSummary() != null) {
+            // Turning the mod off deliberately is a choice that needs no
+            // announcing back at you. Running on an unsupported system is not
+            // a choice, so that one does get said, once.
+            if (BackendHealth.gateFix() == null) {
+                say(prefix().append(gray(BackendHealth.gateSummary() + " The rest of the mod does nothing here.")));
+            }
+            startupNoticeDone = true;
+            return;
+        }
+        if (!BackendHealth.workerStarted() || !BackendHealth.connectFinished()) return;
+
+        List<BackendHealth.Diagnosis> all = BackendHealth.diagnoses();
+        String leader = BackendHealth.leaderId();
+        boolean modFault = false;
+        List<String> crashed = new ArrayList<>();
+        for (BackendHealth.Diagnosis d : all) {
+            modFault |= d.state().modFault();
+            if (d.state() == BackendHealth.State.CRASHED) crashed.add(d.displayName());
+            seenStates.put(d.backendId(), d.state());
+        }
+        if (!crashed.isEmpty()) {
+            say(prefix().append(yellow("Minecraft crashed while connecting to " + String.join(" and ", crashed)
+                    + " last time, so it was skipped to keep the game running. ")).append(command("status"))
+                    .append(gray(" says what to do.")));
+        }
+        seenProblems = BackendHealth.problems().size();
+
+        if (leader == null && rgbSoftwareFound(all)) {
+            say(prefix().append(yellow("No keyboard lighting connected. ")).append(command("status"))
+                    .append(gray(" says why and what to try.")));
+        } else if (leader != null && !BackendHealth.tested(leader)) {
+            BackendHealth.Diagnosis lead = find(all, leader);
+            say(prefix().append(gray("Lighting through " + (lead == null ? leader : lead.displayName())
+                    + ", which is experimental: only Corsair iCUE has been tested. If something looks wrong, "))
+                    .append(command("test")).append(gray(" and ")).append(command("report")).append(gray(" help us fix it.")));
+        }
+        if (modFault) {
+            say(prefix().append(red("Some lighting support failed because of a bug in this mod. "))
+                    .append(command("report")).append(gray(" writes a file you can send us.")));
+        }
+        startupNoticeDone = true;
+    }
+
+    /**
+     * Whether this player looks like they have RGB lighting software at all.
+     *
+     * <p>This mod ships inside modpacks, where the overwhelming majority of
+     * players own no RGB keyboard whatsoever. Telling every single one of them
+     * "no lighting connected" on every launch is noise, and noise is a thing
+     * people learn to scroll past, including on the day it finally matters.
+     *
+     * <p>So the notice is reserved for players who have something they could
+     * actually fix: lighting software that WAS found and then did not connect.
+     * "Not installed" means nothing was found at all, which is not a problem,
+     * it is just a PC.
+     *
+     * <p>"Not running" is ambiguous for Razer and OpenRGB, which are network
+     * servers and genuinely cannot distinguish "not running" from "not
+     * installed", so only the other backends are allowed to count it.
+     *
+     * <p>"No devices" from Aura does not count either. Armoury Crate is what
+     * ASUS boards install for drivers and updates, RGB or not, and it brings
+     * the Aura SDK along "every time". Every time meaning you had to physically
+		 * select a device during install, otherwise be greeted with the failure to
+		 * install and a redirect to the uninstall tool, ask us how we know...
+		 * Aura answering with nothing attached is an ASUS PC without lighting,
+		 * which is, again, just a PC.
+     */
+    private static boolean rgbSoftwareFound(List<BackendHealth.Diagnosis> all) {
+        for (BackendHealth.Diagnosis d : all) {
+            switch (d.state()) {
+                case NOT_INSTALLED, NOT_SELECTED, WAITING -> {
+                }
+                case NOT_RUNNING -> {
+                    if (!d.backendId().equals("razer") && !d.backendId().equals("openrgb")) return true;
+                }
+                case NO_DEVICES -> {
+                    if (!d.backendId().equals("aura")) return true;
+                }
+                default -> {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** After startup: a connection dropping, or the mod hitting an error, is said as it happens. */
+    private static void changeNotices() {
+        for (BackendHealth.Diagnosis d : BackendHealth.diagnoses()) {
+            BackendHealth.State before = seenStates.put(d.backendId(), d.state());
+            if (before == d.state()) continue;
+            if (d.state() == BackendHealth.State.LOST) {
+                say(prefix().append(yellow("Lost " + d.displayName() + ". ")).append(gray(d.summary() + " "
+                        + (d.fix() == null ? "" : d.fix()))));
+            } else if (d.state() == BackendHealth.State.BROKEN) {
+                say(prefix().append(red(d.displayName() + " stopped because of a bug in this mod. "))
+                        .append(command("report")).append(gray(" writes a file you can send us.")));
+            }
+        }
+        List<BackendHealth.Problem> problems = BackendHealth.problems();
+        if (problems.size() > seenProblems && !bugNoticeDone) {
+            for (BackendHealth.Problem p : problems.subList(Math.min(seenProblems, problems.size()), problems.size())) {
+                if (!p.modFault()) continue;
+                say(prefix().append(red("The lighting hit an error (a bug in this mod). "))
+                        .append(command("report")).append(gray(" writes a file you can send us.")));
+                // Once per session. An effect that fails goes on failing, and
+                // the first message says everything the next hundred were
+                // going to.
+                bugNoticeDone = true;
+                break;
+            }
+        }
+        seenProblems = problems.size();
+    }
+
+    // ---------------------------------------------------------------
+    // Chat helpers
+    // ---------------------------------------------------------------
+
+    private static BackendHealth.Diagnosis find(List<BackendHealth.Diagnosis> all, String id) {
+        for (BackendHealth.Diagnosis d : all) {
+            if (d.backendId().equals(id)) return d;
+        }
+        return null;
+    }
+
+    private static void say(Component message) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            mc.player.sendSystemMessage(message);
+        } else {
+            // addClientSystemMessage, not the server variant: this text comes
+            // from the mod on this machine, and 26.1 keeps the two apart.
+            mc.gui.hud.getChat().addClientSystemMessage(message);
+        }
+    }
+
+    private static MutableComponent stateLabel(BackendHealth.Diagnosis d) {
+        ChatFormatting colour = switch (d.state()) {
+            case CONNECTED -> ChatFormatting.GREEN;
+            case BROKEN -> ChatFormatting.RED;
+            case LOST, REFUSED, NO_DEVICES, DISABLED, MISCONFIGURED, UNSUPPORTED -> ChatFormatting.GOLD;
+            default -> ChatFormatting.YELLOW;
+        };
+        return Component.literal("[" + d.state().label() + "]").withStyle(colour);
+    }
+
+    private static MutableComponent prefix() {
+        return Component.literal("[RGB Profiles] ").withStyle(ChatFormatting.DARK_AQUA);
+    }
+
+    private static MutableComponent title(String text) {
+        return prefix().append(Component.literal(text).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
+    }
+
+    private static MutableComponent command(String sub) {
+        String full = "/" + ROOT + " " + sub;
+        return link(full, new ClickEvent.RunCommand(full), "Click to run " + full);
+    }
+
+    /**
+     * @param click what clicking the text does. A whole {@code ClickEvent}
+     *              rather than an action and a string: since 1.21.5 the two
+     *              are one object per kind of click, each carrying the value
+     *              in the type it actually is — a URI for a link, a File for a
+     *              file — so an action and a loose string can no longer be
+     *              paired up here.
+     */
+    private static MutableComponent link(String text, ClickEvent click, String hover) {
+        return Component.literal(text).withStyle(Style.EMPTY.withColor(ChatFormatting.AQUA).withUnderlined(true)
+                .withClickEvent(click)
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal(hover))));
+    }
+
+    private static MutableComponent fix(String text) {
+        return Component.literal("   → " + text).withStyle(ChatFormatting.AQUA);
+    }
+
+    private static MutableComponent gray(String text) {
+        return Component.literal(text).withStyle(ChatFormatting.GRAY);
+    }
+
+    private static MutableComponent yellow(String text) {
+        return Component.literal(text).withStyle(ChatFormatting.YELLOW);
+    }
+
+    private static MutableComponent red(String text) {
+        return Component.literal(text).withStyle(ChatFormatting.RED);
+    }
+}

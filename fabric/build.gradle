@@ -1,0 +1,30 @@
+plugins {
+    id 'net.fabricmc.fabric-loom'
+}
+
+ext.loaderName = 'fabric'
+apply from: rootProject.file('gradle/loader.gradle')
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    // Required, and installed by the player rather than shipped inside our
+    // jar. Nearly every Fabric mod needs it, so nearly every Fabric player
+    // already has it. Nothing else gets added; see the JNA note in
+    // neoforge/build.gradle, which holds here too.
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+}
+
+loom {
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+
+    runs {
+        configureEach {
+            runDir = "../run/fabric/${name}"
+        }
+    }
+}

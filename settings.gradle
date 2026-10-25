@@ -3,6 +3,7 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
         maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.fabricmc.net/' }
     }
 }
 
@@ -15,3 +16,12 @@ plugins {
 }
 
 rootProject.name = 'everythingrgbprofiles'
+
+// common holds the mod itself and compiles against plain Minecraft, with no
+// loader anywhere on its classpath. Each loader project compiles common's
+// sources into its own jar alongside a thin layer of its own, so every jar
+// stands alone: nothing nested inside it, nothing for a player to install
+// next to it beyond the loader (and, on Fabric, Fabric API).
+include 'common'
+include 'neoforge'
+include 'fabric'

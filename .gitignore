@@ -9,6 +9,7 @@ bin/
 build/
 out/
 src/generated/
+.eclipse/
 
 # NeoForge MDK cache
 run/
@@ -39,7 +40,7 @@ jna-5.14.0.jar
 
 # Tuning tools
 tuning/export/
-tuning/**/*.class
+tuning/*.class
 
 # References, documentation, and other auxiliary files
 reference/

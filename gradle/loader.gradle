@@ -1,0 +1,113 @@
+// Everything the NeoForge and Fabric projects do identically. Each applies
+// this after its own plugin, and sets `loaderName` before doing so.
+
+def common = project(':common')
+def localProps = rootProject.ext.localProps
+def experimentalFeatures = rootProject.ext.experimentalFeatures
+
+configurations {
+    commonJava {
+        canBeResolved = true
+    }
+    commonResources {
+        canBeResolved = true
+    }
+}
+
+dependencies {
+    // For the IDE, so loader code can see common's classes while you edit it.
+    // The jar gets common from the source folders below, compiled against
+    // this loader's own Minecraft.
+    compileOnly common
+    commonJava project(path: ':common', configuration: 'commonJava')
+    commonResources project(path: ':common', configuration: 'commonResources')
+}
+
+tasks.named('compileJava', JavaCompile).configure {
+    dependsOn configurations.commonJava
+    source configurations.commonJava
+}
+
+base {
+    // The loader and Minecraft version go in the file name, so a player can
+    // tell which jar is which at a glance. Kept out of `version`, which is
+    // also what the in-game mod list shows. No mod version here: Gradle
+    // appends `version` to this itself, experimental stamp and all.
+    archivesName = "${mod_id}-${loaderName}-${minecraft_version}"
+}
+
+// This block of code expands all declared replace properties in the specified resource targets.
+// A missing property will result in an error. Properties are expanded using ${} Groovy notation.
+// See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
+tasks.named('processResources', ProcessResources).configure {
+    dependsOn configurations.commonResources
+    from configurations.commonResources
+
+    var replaceProperties = [
+            minecraft_version             : minecraft_version,
+            minecraft_version_range       : minecraft_version_range,
+            neo_version                   : neo_version,
+            neo_version_range             : neo_version_range,
+            loader_version_range          : loader_version_range,
+            fabric_minecraft_version_range: fabric_minecraft_version_range,
+            fabric_loader_version_range   : fabric_loader_version_range,
+            mod_id                        : mod_id,
+            mod_name                      : mod_name,
+            mod_license                   : mod_license,
+            mod_version                   : project.version,
+            mod_authors                   : mod_authors,
+            mod_description               : mod_description,
+            experimental_features         : experimentalFeatures,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml', 'fabric.mod.json', 'everythingrgbprofiles/build.properties']) {
+        // escapeBackslash keeps a backslash a backslash. Without it the
+        // template engine reads the \n line breaks in fabric.mod.json's
+        // description as real line breaks, which JSON does not allow inside
+        // a string, and Fabric refuses to load the mod over it.
+        expand(replaceProperties) {
+            escapeBackslash = true
+        }
+    }
+}
+
+// Copies the built jar into your modpack mods folder. Each loader reads its
+// own key from local.properties, because a NeoForge pack and a Fabric pack
+// are never the same folder:
+//   modpack_mods_dir          for the NeoForge jar
+//   fabric_modpack_mods_dir   for the Fabric jar
+tasks.register('copyToModpack', Copy) {
+    group = 'modpack'
+    description = 'Builds the mod and copies the jar to the modpack mods directory.'
+    dependsOn tasks.named('build')
+
+    def dirKey = loaderName == 'neoforge' ? 'modpack_mods_dir' : "${loaderName}_modpack_mods_dir"
+    def destDir = localProps.getProperty(dirKey)
+    def copiedName = "${mod_id}-${loaderName}-${minecraft_version}-${mod_version}.jar"
+    if (destDir) {
+        // Named for the version, but never for the kind of build. The Modrinth
+        // App tracks every file in an instance by name, and treats a tracked
+        // file disappearing as damage: an earlier version copied the jar under
+        // its full build name, so switching to an experimental build replaced
+        // everythingrgbprofiles-0.0.1.jar with ...-0.0.1-experimental.jar and
+        // the App reported the instance as needing repair. Replacing a file
+        // under a name it already knows is just an update, so the name here
+        // only changes when the version does. The experimental stamp is still
+        // on the jar in build/libs and in the in-game mod list.
+        from(tasks.named('jar').flatMap { it.archiveFile })
+        into(destDir)
+        rename { copiedName }
+        doFirst {
+            // Deleted rather than overwritten. The App keeps its own copy of
+            // each file it tracks and links the one in the mods folder to it,
+            // so writing into the existing file would change the App's copy
+            // too and leave it disagreeing with its own record of the file.
+            // Also clears the versioned names earlier builds were copied as.
+            fileTree(destDir).matching { include "${mod_id}*.jar" }.each { it.delete() }
+        }
+        doLast { logger.lifecycle("Copied to: ${destDir}/${copiedName}") }
+    } else {
+        doFirst { logger.warn("${dirKey} not set in local.properties — skipping copy.") }
+    }
+}
