@@ -1,7 +1,7 @@
 package com.everythingrgbprofile.fabric.mixin;
 
 import net.minecraft.client.gui.components.toasts.Toast;
-import net.minecraft.client.gui.components.toasts.ToastManager;
+import net.minecraft.client.gui.components.toasts.ToastComponent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,9 +20,13 @@ import com.everythingrgbprofile.event.ClientEventHandlers;
  * flash with it here, which NeoForge's {@code receiveCanceled} avoids. Nothing
  * this side can fix that without fighting the other mod, and fighting another
  * mod over a toast is not a hill worth standing on.
+ *
+ * <p>{@code ToastComponent}, not {@code ToastManager}. Same class, older name:
+ * 1.21.2 renamed it, so every branch from there up mixes into ToastManager and
+ * this one gets to be the odd one out. The method didn't change, at least.
  */
-@Mixin(ToastManager.class)
-abstract class ToastManagerMixin {
+@Mixin(ToastComponent.class)
+abstract class ToastComponentMixin {
 
     @Inject(method = "addToast", at = @At("HEAD"))
     private void rgbprofiles$onAddToast(Toast toast, CallbackInfo ci) {

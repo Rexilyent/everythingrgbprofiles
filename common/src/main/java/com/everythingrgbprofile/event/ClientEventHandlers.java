@@ -2688,7 +2688,7 @@ public final class ClientEventHandlers {
      * by cancelling the toast event, and {@code receiveCanceled} gets this
      * called anyway. Fabric has no toast event, so a hider there cancels the
      * method with its own mixin, and whether that runs before ours is down to
-     * mixin ordering. See {@code ToastManagerMixin}.
+     * mixin ordering. See {@code ToastComponentMixin}.
      */
     public static void onAdvancementToast(Toast toast) {
         if (!(toast instanceof AdvancementToast)) return;
