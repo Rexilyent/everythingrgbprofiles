@@ -2,6 +2,7 @@ plugins {
     // Declared here so all three projects share one copy of each plugin.
     // Applied by the projects that need them, and nowhere else.
     id 'net.neoforged.moddev' version "${moddev_version}" apply false
+    id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
 }
 
 tasks.named('wrapper', Wrapper).configure {
