@@ -24,7 +24,7 @@ import com.everythingrgbprofile.event.ClientEventHandlers;
 @Mixin(Minecraft.class)
 abstract class MinecraftMixin {
 
-    @Inject(method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;ZZ)V",
+    @Inject(method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;Z)V",
             at = @At(value = "FIELD",
                     target = "Lnet/minecraft/client/Minecraft;gameMode:Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;",
                     opcode = Opcodes.PUTFIELD,
