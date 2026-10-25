@@ -16,6 +16,7 @@ import com.everythingrgbprofile.pattern.patterns.NetherWastesPattern;
 import com.everythingrgbprofile.pattern.patterns.OpenSeaPattern;
 import com.everythingrgbprofile.pattern.patterns.PrideFlagPattern;
 import com.everythingrgbprofile.pattern.patterns.PulsePattern;
+import com.everythingrgbprofile.pattern.patterns.RainStreakPattern;
 import com.everythingrgbprofile.pattern.patterns.RainbowWavePattern;
 import com.everythingrgbprofile.pattern.patterns.SavannaPattern;
 import com.everythingrgbprofile.pattern.patterns.ShimmerPattern;
@@ -313,7 +314,7 @@ public final class PatternFactory {
             case "ember-rise" -> DriftParticlePattern.emberRise();
             case "spore-drift" -> DriftParticlePattern.sporeDrift();
             case "drip-fall" -> DriftParticlePattern.dripFall();
-            case "rain-drift" -> DriftParticlePattern.rainDrift();
+            case "rain-drift" -> RainStreakPattern.withDefaults();
             default -> DriftParticlePattern.petalDrift();
         };
     }
