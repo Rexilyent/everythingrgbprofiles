@@ -95,7 +95,11 @@ tasks.register('copyToModpack', Copy) {
         // under a name it already knows is just an update, so the name here
         // only changes when the version does. The experimental stamp is still
         // on the jar in build/libs and in the in-game mod list.
-        from(tasks.named('jar').flatMap { it.archiveFile })
+        // remapJar wherever Loom remaps (Fabric on an obfuscated version). The
+        // plain jar there is still in dev names, and a real game will refuse
+        // to load it. Everywhere else, plain jar. That's the whole decision.
+        def jarTask = tasks.names.contains('remapJar') ? 'remapJar' : 'jar'
+        from(tasks.named(jarTask).flatMap { it.archiveFile })
         into(destDir)
         rename { copiedName }
         doFirst {
