@@ -15,18 +15,18 @@
     "falloffPower": 1.95
   },
   "minecraft:the_end": {
-    "color": "#8A7FBF",
-    "accentColor": "#F5F0FF",
+    "color": "#13C2C8",
+    "accentColor": "#3A7CFF",
     "spiralArmCount": 1,
     "arrivalFlashStyle": "bloom",
     "gradient": [
-      "#3948F9",
-      "#7F88F8",
-      "#D3D7FE",
-      "#F9FAFE"
+      "#0F5C66",
+      "#13C2C8",
+      "#3DDC98",
+      "#3A7CFF"
     ],
-    "pillarDcLevel": 0.68,
-    "pillarAmplitude": 0.311,
+    "pillarDcLevel": 0.47,
+    "pillarAmplitude": 0.5,
     "falloffPower": 1.75
   },
   "aether:the_aether": {
