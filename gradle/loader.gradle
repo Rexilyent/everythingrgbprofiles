@@ -1,4 +1,4 @@
-// Everything the loader projects do identically. Each applies
+// Everything the NeoForge and Fabric projects do identically. Each applies
 // this after its own plugin, and sets `loaderName` before doing so.
 
 def common = project(':common')
@@ -49,6 +49,8 @@ tasks.named('processResources', ProcessResources).configure {
             neo_version                   : neo_version,
             neo_version_range             : neo_version_range,
             loader_version_range          : loader_version_range,
+            fabric_minecraft_version_range: fabric_minecraft_version_range,
+            fabric_loader_version_range   : fabric_loader_version_range,
             mod_id                        : mod_id,
             mod_name                      : mod_name,
             mod_license                   : mod_license,
@@ -59,15 +61,22 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/neoforge.mods.toml', 'everythingrgbprofiles/build.properties']) {
-        expand replaceProperties
+    filesMatching(['META-INF/neoforge.mods.toml', 'fabric.mod.json', 'everythingrgbprofiles/build.properties']) {
+        // escapeBackslash keeps a backslash a backslash. Without it the
+        // template engine reads the \n line breaks in fabric.mod.json's
+        // description as real line breaks, which JSON does not allow inside
+        // a string, and Fabric refuses to load the mod over it.
+        expand(replaceProperties) {
+            escapeBackslash = true
+        }
     }
 }
 
 // Copies the built jar into your modpack mods folder. Each loader reads its
-// own key from local.properties, since packs for different loaders are never
-// the same folder. The NeoForge jar reads modpack_mods_dir; any other loader
-// reads <loader>_modpack_mods_dir.
+// own key from local.properties, because a NeoForge pack and a Fabric pack
+// are never the same folder:
+//   modpack_mods_dir          for the NeoForge jar
+//   fabric_modpack_mods_dir   for the Fabric jar
 tasks.register('copyToModpack', Copy) {
     group = 'modpack'
     description = 'Builds the mod and copies the jar to the modpack mods directory.'
