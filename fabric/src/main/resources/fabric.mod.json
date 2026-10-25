@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}\n\nEvery biome gets its own animated scene. Bosses like the Wither and the Ender Dragon are drawn right on the keys, and things like low health, drowning, burning, lightning and raids light up as they happen.\n\nTested with Corsair keyboards through iCUE. Razer Chroma, Logitech G HUB, SteelSeries GG and OpenRGB (with its SDK Server turned on) are supported too, but haven't been tried on real hardware yet. If you use one, please tell us how it goes: run /rgbprofiles report in game and send us the file it writes. Whichever you use, its software needs to be running.\n\nClient-side only: servers don't need it, and you can join any server with it installed.",
+  "authors": ["${mod_authors}"],
+  "contact": {
+    "issues": "https://github.com/Rexilyent/everythingrgbprofiles/issues",
+    "sources": "https://github.com/Rexilyent/everythingrgbprofiles"
+  },
+  "license": "${mod_license}",
+  "icon": "rgb_logo.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.everythingrgbprofile.fabric.RGBProfileFabric"]
+  },
+  "mixins": [
+    "everythingrgbprofiles.mixins.json",
+    "everythingrgbprofiles.fabric.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": "${fabric_loader_version_range}",
+    "minecraft": "${fabric_minecraft_version_range}",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
