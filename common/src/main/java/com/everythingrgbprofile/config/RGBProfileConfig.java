@@ -316,6 +316,8 @@ public final class RGBProfileConfig {
                         "  logitech    - Logitech G HUB",
                         "  steelseries - SteelSeries GG (GameSense)",
                         "  aura        - ASUS Armoury Crate (Aura Sync)",
+                        "  wooting     - Wooting keyboards, straight over USB. Wooting's SDK comes with "
+                                + "this mod, so Wootility doesn't need to be running.",
                         "  openrgb     - OpenRGB's SDK server, for hardware none of the above cover "
                                 + "(ASUS, MSI, and a long tail of others).",
                         "  msi         - MSI Mystic Light. The one exception to the line above: it needs "
