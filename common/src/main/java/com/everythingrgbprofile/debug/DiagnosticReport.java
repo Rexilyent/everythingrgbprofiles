@@ -72,6 +72,7 @@ public final class DiagnosticReport {
             {"SteelSeries GG", "steelseries"},
             {"MSI Center / Mystic Light", "mysticlight"},
             {"ASUS Armoury Crate / Aura", "armourycrate", "lightingservice", "aura"},
+            {"Wootility", "wootility"},
             {"SignalRGB (drives the same lights)", "signalrgb"},
     };
 
@@ -231,7 +232,8 @@ public final class DiagnosticReport {
                     keys.append(k).append('=').append(ref == null ? "missing" : String.valueOf(ref.luid())).append(' ');
                 }
                 line(out, "Keys found by name: " + keys.toString().trim()
-                        + " (missing is expected for Logitech and SteelSeries, which do not say where keys are)");
+                        + " (missing is expected for Logitech and SteelSeries, which do not say where keys are,"
+                        + " and for Wooting boards narrower than 17 columns)");
             }
             line(out, "Frames sent: " + status.framesSent());
             if (status.idle()) {

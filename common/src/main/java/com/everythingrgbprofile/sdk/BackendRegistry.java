@@ -30,6 +30,9 @@ import java.util.function.Supplier;
  * both report exactly which devices exist and precisely where their LEDs sit.
  * ASUS Aura comes right after them: it lists devices too, and real key
  * positions for keyboards, but only guesses at the layout of everything else.
+ * Wooting follows Aura: its SDK finds real boards over USB and says which
+ * model each one is, even if the key positions are its 6x21 matrix rather than
+ * millimetres.
  *
  * <p>The grid vendors (Razer, Logitech, SteelSeries) come afterwards, because
  * they cannot do that. All three of them answer "connected" whenever their
@@ -76,6 +79,7 @@ public final class BackendRegistry {
         add("corsair", "Corsair iCUE", CorsairBackend::new);
         add("openrgb", "OpenRGB", OpenRgbBackend::new);
         add("aura", "ASUS Aura Sync", AuraBackend::new);
+        add("wooting", "Wooting", WootingBackend::new);
         add("razer", "Razer Chroma", RazerChromaBackend::new);
         add("logitech", "Logitech G HUB", LogitechBackend::new);
         add("steelseries", "SteelSeries GameSense", SteelSeriesBackend::new);

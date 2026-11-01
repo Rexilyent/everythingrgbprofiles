@@ -557,7 +557,7 @@ public final class CueSdkBridge {
      * be current on the day this mod was released. Two problems, one fallback.
      */
     private Path resolveDll(Path extractDir) throws IOException {
-        Path bundled = extractBundledDll(extractDir);
+        Path bundled = extractBundledDll(DLL_RESOURCE, DLL_FILE_NAME, extractDir);
         if (bundled != null) return bundled;
 
         for (String candidate : ICUE_INSTALL_DLLS) {
@@ -613,21 +613,26 @@ public final class CueSdkBridge {
      * Minecraft has loaded is locked. Then the existing copy is used as it is,
      * which is no worse than what the old version always did, and the log says
      * so.
+     *
+     * <p>Static and parameterised because {@link WootingBackend} bundles a DLL
+     * too, and every word above applies to it just as much.
+     *
+     * @return the verified copy on disk, or null if {@code resource} is not in this jar
      */
-    private Path extractBundledDll(Path dir) throws IOException {
+    static Path extractBundledDll(String resource, String fileName, Path dir) throws IOException {
         byte[] bundled;
-        try (InputStream in = CueSdkBridge.class.getResourceAsStream(DLL_RESOURCE)) {
-            if (in == null) return null; // not bundled in this build, so the caller falls back to iCUE's copy
+        try (InputStream in = CueSdkBridge.class.getResourceAsStream(resource)) {
+            if (in == null) return null; // not bundled in this build, so the caller falls back to an installed copy
             bundled = in.readAllBytes();
         }
-        Path target = dir.resolve(DLL_FILE_NAME);
+        Path target = dir.resolve(fileName);
         if (Files.isRegularFile(target) && Files.size(target) == bundled.length
                 && Arrays.equals(Files.readAllBytes(target), bundled)) {
             return target;
         }
 
         Files.createDirectories(dir);
-        Path temp = Files.createTempFile(dir, DLL_FILE_NAME, ".tmp");
+        Path temp = Files.createTempFile(dir, fileName, ".tmp");
         try {
             Files.write(temp, bundled);
             try {
