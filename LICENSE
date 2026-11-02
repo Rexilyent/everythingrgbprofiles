@@ -4,14 +4,16 @@ Copyright (c) 2026 Forge Everything Team (Rexilyent and Team)
 
 This is a source-available license, not an open-source one. You can read the
 code, change it for yourself and help improve it, but you cannot share or
-re-upload the mod or versions of it. The full terms are below.
+re-upload the mod or versions of it. After Rexilyent's death the mod becomes
+free for anyone to change and share, as long as the pride flags stay in (see
+section 6). The full terms are below.
 
 1. Definitions
 
 "The Mod" means Everything RGB Profiles: its source code, compiled builds,
 default profile files, images, documentation and every other file in this
 repository or in a release of it, except the Third-Party Components listed in
-section 6.
+section 7.
 
 "Official Sources" means the Mod's own project pages on Modrinth and
 CurseForge, and the releases page of its GitHub repository.
@@ -64,7 +66,54 @@ this license or any later license the Mod is released under.
 If you break the terms of this license, the rights it gives you end
 automatically.
 
-6. Third-party components
+6. Release after Rexilyent's death
+
+a. This section takes effect automatically on the death of Rexilyent, the
+   Mod's creator. Nobody needs to do anything for it to take effect, and
+   nobody, including Rexilyent's relatives, can delay or block it. Either of
+   the following is enough to confirm it:
+   - a published obituary or death notice for Rexilyent; or
+   - an official statement from Rexilyent's partner or from a member of the
+     Forge Everything Team, posted in the Mod's GitHub repository, on an
+     Official Source, or on another public page they control.
+   The lack of such a confirmation does not stop this section taking effect.
+
+b. From then on, sections 2, 3a, 3b and 3c no longer apply. Instead, everyone
+   is granted a perpetual, worldwide, non-exclusive, royalty-free and
+   irrevocable license to use, copy, study, change, merge, publish,
+   distribute, sublicense and sell the Mod, changed or unchanged, in source or
+   compiled form, and to let others do the same, subject only to the
+   conditions in 6c and 6d.
+
+c. Attribution. Every copy or changed version of the Mod must keep the
+   copyright notice above and a copy of this license, and a changed version
+   must say that it has been changed. Section 3d still applies.
+
+d. Pride flags. "Pride Flag Patterns" means the trans-flag, lesbian-flag and
+   bi-flag patterns, and any other pride flag pattern included in a version of
+   the Mod released by Rexilyent. Every copy or changed version of the Mod,
+   and every other work that copies a substantial part of it, must:
+   - include every Pride Flag Pattern;
+   - keep each one working, and as easy for users to turn on as it was in the
+     last version of the Mod released by Rexilyent;
+   - keep each one recognisable as the flag it shows, with the same stripes
+     in the same order. Colours may be adjusted to suit lighting hardware, as
+     the Mod already does;
+   - carry the Pride Flag Patterns over to any game version, mod loader or
+     platform it is ported to; and
+   - be distributed only under terms that include this condition 6d, so that
+     it binds everyone who receives the work after you.
+   You may add more flags. You may not remove, disable, hide or alter any
+   Pride Flag Pattern in a way the points above do not allow.
+
+e. The license in this section is given by all of the copyright holders,
+   cannot be withdrawn, and binds their heirs, executors, estates and anyone
+   else who later comes to own the copyright in the Mod.
+
+f. If you break 6c or 6d, section 5 applies and your rights end. This section
+   does not cover the Third-Party Components in section 7.
+
+7. Third-party components
 
 The following files are not part of the Mod for the purposes of this license
 and are not licensed by it. They remain the property of their owners and are
@@ -73,7 +122,7 @@ covered by their owners' own terms.
 - iCUESDK.x64_2019.dll (the Corsair iCUE SDK runtime), copyright Corsair and
   its licensors, included unmodified so the Mod can talk to Corsair hardware.
 
-7. Trademarks and affiliation
+8. Trademarks and affiliation
 
 Minecraft is a trademark of Mojang Synergies AB. Corsair, iCUE, Razer, Razer
 Chroma, Logitech, G HUB, SteelSeries, OpenRGB and Terraria are trademarks of
@@ -82,7 +131,7 @@ with or takes inspiration from. The Mod is not an official Minecraft product
 and is not approved by or associated with Mojang, Microsoft or any of those
 companies.
 
-8. No warranty
+9. No warranty
 
 THE MOD IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
