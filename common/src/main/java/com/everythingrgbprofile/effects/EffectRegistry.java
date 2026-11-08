@@ -515,8 +515,13 @@ public final class EffectRegistry {
     /** The title-screen themes, so the pattern and its two colours cannot disagree. */
     private enum MenuStyle {
         /**
+         * An ice cave: icicles that fall and shatter, crystals glowing on the
+         * floor. Minecraft 26.4 added the ice caves. The default.
+         */
+        ICE_CAVE,
+        /**
          * Poplar leaves falling, matching Minecraft 26.3's own panorama of the
-         * dappled forest. The cherry grove's petals in autumn colours. The default.
+         * dappled forest. The cherry grove's petals in autumn colours.
          */
         AUTUMN,
         /** A sulfur cave, matching Minecraft 26.2's panorama. */
@@ -532,16 +537,20 @@ public final class EffectRegistry {
     /**
      * Picks the title-screen theme.
      *
-     * <p>Default is the autumn leaves, because Minecraft 26.3 puts the dappled
-     * forest on the title screen: matching the panorama is not a decorating
-     * decision the way the mineshaft theme is, it is the board agreeing with
-     * the screen it sits under. The mineshaft theme is drawn for one pack's
+     * <p>Default is the ice cave, because the ice caves are what Minecraft 26.4
+     * added, the same way 26.2's sulfur caves and 26.3's dappled forest each
+     * ended up on their own version's title screen. The 26.4 snapshots still
+     * ship placeholder panorama files, so check this against the real
+     * panorama when 26.4 is released. Matching the panorama is not a
+     * decorating decision the way the mineshaft theme is, it is the board
+     * agreeing with the screen it sits under. The mineshaft theme is drawn for one pack's
      * title art and looks like a mistake anywhere else, so it stays opt-in —
      * either by naming it outright, or by {@code auto} recognising the pack.
      *
      * <p>The older panoramas' themes are still here and still worth having.
-     * Sulfur is what 26.2 showed, and sky-over-grass is what 1.21.x showed, so
-     * anyone running a resource pack that restores either one wants it.
+     * Autumn is what 26.3 showed, sulfur is what 26.2 showed, and
+     * sky-over-grass is what 1.21.x showed, so anyone running a resource pack
+     * that restores one of those wants it.
      */
     private static Pattern menuPattern() {
         // Unlisted styles: the hidden patterns (rainbow, flags) work here too.
@@ -560,6 +569,7 @@ public final class EffectRegistry {
                     RGBProfileConfig.MENU_TORCH_COUNT.get());
             case VANILLA -> new VanillaMenuPattern(RGBProfileConfig.MENU_VANILLA_CLOUD_COUNT.get());
             case SULFUR -> SulfurCavePattern.menu();
+            case ICE_CAVE -> IceCavePattern.menu();
             case AUTUMN -> DriftParticlePattern.leafDrift();
             case SIFT -> SiftPattern.menu();
         };
@@ -584,6 +594,8 @@ public final class EffectRegistry {
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_VANILLA_GRASS_COLOR.get(), ColorPalette.MENU_VANILLA_GRASS);
             case SULFUR ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_ROCK_COLOR.get(), ColorPalette.SULFUR_ROCK);
+            case ICE_CAVE ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_ICE_CAVE_ICE_COLOR.get(), ColorPalette.ICE_CAVE_PACKED_ICE);
             case AUTUMN ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_AUTUMN_LEAF_COLOR.get(), ColorPalette.AUTUMN_ORANGE_LEAF);
             case SIFT ->
@@ -593,8 +605,8 @@ public final class EffectRegistry {
 
     /**
      * The second colour, which each theme reads differently: the vanilla theme
-     * takes it as the sky, the sulfur theme as the acid pool, the autumn theme
-     * as every other falling leaf, and the mineshaft theme ignores it entirely
+     * takes it as the sky, the sulfur theme as the acid pool, the ice cave as
+     * the crystals' glow, the autumn theme as every other falling leaf, and the mineshaft theme ignores it entirely
      * because it derives everything warm from its own ember colour instead.
      *
      * <p>Set unconditionally rather than only for the themes that read it,
@@ -606,6 +618,8 @@ public final class EffectRegistry {
         return switch (menuStyle()) {
             case SULFUR ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_SULFUR_POOL_COLOR.get(), ColorPalette.SULFUR_ACID_POOL);
+            case ICE_CAVE ->
+                    RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_ICE_CAVE_CRYSTAL_COLOR.get(), ColorPalette.ICE_CAVE_CRYSTAL);
             case AUTUMN ->
                     RGBColor.fromHexOrDefault(RGBProfileConfig.MENU_AUTUMN_ACCENT_COLOR.get(), ColorPalette.AUTUMN_RED_LEAF);
             case SIFT ->
@@ -618,28 +632,29 @@ public final class EffectRegistry {
     /** Resolved once at registration, because the theme does not change mid-session. */
     private static MenuStyle menuStyle() {
         String style = RGBProfileConfig.MENU_STYLE.get();
-        if (style == null) return MenuStyle.AUTUMN;
+        if (style == null) return MenuStyle.ICE_CAVE;
         // A hidden pattern ignores the theme colours anyway, so there's no
         // reason to go poking at the disk for pack detection over one. Asked of
         // PatternFactory rather than listed here, because a list here is a list
         // somebody forgets to update when the next flag goes in.
-        if (PatternFactory.hiddenPattern(style) != null) return MenuStyle.AUTUMN;
+        if (PatternFactory.hiddenPattern(style) != null) return MenuStyle.ICE_CAVE;
         return switch (style.trim().toLowerCase(java.util.Locale.ROOT)) {
             case "mineshaft" -> MenuStyle.MINESHAFT;
             case "vanilla" -> MenuStyle.VANILLA;
             case "sulfur" -> MenuStyle.SULFUR;
             case "autumn" -> MenuStyle.AUTUMN;
+            case "icecave" -> MenuStyle.ICE_CAVE;
             // Only in a build that carries the Sift. In a release it gets the
             // default theme instead, the same as any unknown value.
-            case "sift" -> Feature.SIFT.isOn() ? MenuStyle.SIFT : MenuStyle.AUTUMN;
+            case "sift" -> Feature.SIFT.isOn() ? MenuStyle.SIFT : MenuStyle.ICE_CAVE;
             // Anything unrecognised behaves as auto rather than throwing,
             // because a typo in a config file does not get to decide whether
             // the mod starts. Note this is the only path that reaches
-            // PackDetection at all: the default of "autumn" returns above
+            // PackDetection at all: the default of "icecave" returns above
             // without ever touching the disk.
             default -> PackDetection.matches(RGBProfileConfig.MENU_PACK_PATTERNS.get())
                     ? MenuStyle.MINESHAFT
-                    : MenuStyle.AUTUMN;
+                    : MenuStyle.ICE_CAVE;
         };
     }
 

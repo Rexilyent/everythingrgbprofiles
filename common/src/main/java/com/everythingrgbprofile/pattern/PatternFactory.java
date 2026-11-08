@@ -28,6 +28,7 @@ import com.everythingrgbprofile.pattern.patterns.SnowForestPattern;
 import com.everythingrgbprofile.pattern.patterns.StrataPattern;
 import com.everythingrgbprofile.pattern.patterns.SoulHazePattern;
 import com.everythingrgbprofile.pattern.patterns.SulfurCavePattern;
+import com.everythingrgbprofile.pattern.patterns.IceCavePattern;
 import com.everythingrgbprofile.pattern.patterns.SunflowerFieldPattern;
 import com.everythingrgbprofile.pattern.patterns.SwampBogPattern;
 import com.everythingrgbprofile.pattern.patterns.TwinkleParticlePattern;
@@ -185,6 +186,10 @@ public final class PatternFactory {
             // sulfur cave — which is why it takes a preset despite there being
             // one biome: the menu wants the same scene at a slower pace.
             case "sulfur-cave" -> sulfurPreset(preset);
+            // Packed ice walls, icicles that fall and shatter, crystals on the
+            // floor. Takes a preset for the same reason as the sulfur cave:
+            // one biome, plus a slower cut of it for the title screen.
+            case "ice-cave" -> iceCavePreset(preset);
             default -> {
                 Pattern hidden = hiddenPattern(patternName);
                 yield hidden != null ? hidden : new ShimmerPattern(); // animated fallback, never solid — see class doc
@@ -379,6 +384,15 @@ public final class PatternFactory {
             case "sulfur-caves" -> SulfurCavePattern.sulfurCaves();
             case "menu" -> SulfurCavePattern.menu();
             default -> SulfurCavePattern.sulfurCaves();
+        };
+    }
+
+    /** Ice cave presets. Same split as the sulfur ones: the biome, and the menu. */
+    private static Pattern iceCavePreset(String preset) {
+        if (preset == null) return IceCavePattern.iceCaves();
+        return switch (preset.toLowerCase(java.util.Locale.ROOT)) {
+            case "menu" -> IceCavePattern.menu();
+            default -> IceCavePattern.iceCaves();
         };
     }
 

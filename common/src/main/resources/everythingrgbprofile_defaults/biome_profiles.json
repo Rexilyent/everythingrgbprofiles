@@ -65,6 +65,7 @@
   "minecraft:lush_caves": { "color": "#1F4A12", "accentColor": "#FF8E00", "pattern": "glow-motes", "preset": "lush-caves" },
   "minecraft:deep_dark": { "color": "#105B72", "accentColor": "#63E8DB", "pattern": "shimmer-twinkle", "preset": "sculk" },
   "minecraft:sulfur_caves": { "color": "#C4A917", "accentColor": "#19D98C", "pattern": "sulfur-cave", "preset": "sulfur-caves" },
+  "minecraft:ice_caves": { "color": "#2289FA", "accentColor": "#7CC8FF", "pattern": "ice-cave", "preset": "ice-caves" },
 
   "minecraft:nether_wastes": { "color": "#8A1C10", "accentColor": "#FF8A10", "pattern": "nether-wastes" },
   "minecraft:crimson_forest": { "color": "#100104", "accentColor": "#FF8717", "pattern": "nether-fungus", "preset": "crimson-forest" },

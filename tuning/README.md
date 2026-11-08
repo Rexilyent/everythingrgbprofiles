@@ -312,8 +312,8 @@ The other effects with colours in the TOML:
 | `[effect] level up` | `progressionEffects` | nothing; it's a one-shot, replayed on a loop |
 | `[effect] menu vanilla` | `menuTheme` | nothing |
 
-Plus `[effect] menu sift` and `[effect] menu sulfur` on branches that have
-them; see [Version-bound entries](#version-bound-entries).
+Plus `[effect] menu sift`, `[effect] menu sulfur` and `[effect] menu icecave`
+on branches that have them; see [Version-bound entries](#version-bound-entries).
 
 Only the colours are live. Drop counts, drip intervals and panic thresholds
 are the shipped defaults, not read from your config.
@@ -427,6 +427,9 @@ anything newer out of the list:
   `sulfurPoolColor` under `[menuTheme]`).
 - `minecraft:sulfur_caves`, and any biome drawn with `sulfur-cave`, even one
   sitting in a live config a 26.2 instance wrote.
+- From 26.4: `[effect] menu icecave` (`iceCaveIceColor` and
+  `iceCaveCrystalColor` under `[menuTheme]`), and `minecraft:ice_caves` or
+  anything drawn with `ice-cave`.
 
 Those classes are looked up by name rather than imported, so the tuner still
 compiles on older branches. It's gated twice: the version decides whether an

@@ -30,9 +30,10 @@ import java.util.Map;
  * <p>So each bubble here has a life with an event in the middle of it. It
  * climbs through the acid, swells when it reaches the surface, bursts in one
  * bright frame of pale sulfur, and leaves a puff of gas that rises up the
- * board and thins out. The burst is the only hard transient in any Tier 1
- * ambient pattern, and it is what makes this biome recognisable from across
- * the room without reading the colour at all.
+ * board and thins out. The burst is one of the very few hard transients in
+ * any Tier 1 ambient pattern (the ice cave's shattering icicle is another),
+ * and it is what makes this biome recognisable from across the room without
+ * reading the colour at all.
  *
  * <p>That also settles what this is <b>not</b>. A shimmer in sulfur yellow
  * would have been ten minutes' work and would have said nothing: half the

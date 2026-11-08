@@ -38,6 +38,9 @@ final class GameVersion {
     /** Minecraft 26.2: the sulfur caves, and a sulfur cave on the title screen. */
     static final String SULFUR = "26.2";
 
+    /** Minecraft 26.4: the ice caves, and the ice cave menu theme. */
+    static final String ICE_CAVES = "26.4";
+
     /**
      * Patterns that only exist from a given version, by the name profiles use
      * for them. A biome profile naming one of these on an older branch would
@@ -45,11 +48,13 @@ final class GameVersion {
      * fine while being completely wrong.
      */
     private static final Map<String, String> PATTERN_SINCE = Map.of(
-            "sulfur-cave", SULFUR);
+            "sulfur-cave", SULFUR,
+            "ice-cave", ICE_CAVES);
 
     /** Biomes the game only has from a given version. */
     private static final Map<String, String> BIOME_SINCE = Map.of(
-            "minecraft:sulfur_caves", SULFUR);
+            "minecraft:sulfur_caves", SULFUR,
+            "minecraft:ice_caves", ICE_CAVES);
 
     private static final Path PROPERTIES = Paths.get("gradle.properties");
 
@@ -147,6 +152,7 @@ final class GameVersion {
     static String describe() {
         return CURRENT == null
                 ? "unknown (no minecraft_version in gradle.properties); version-bound entries hidden"
-                : CURRENT + (atLeast(SULFUR) ? ", sulfur caves on" : ", sulfur caves off (they arrive in " + SULFUR + ")");
+                : CURRENT + (atLeast(SULFUR) ? ", sulfur caves on" : ", sulfur caves off (they arrive in " + SULFUR + ")")
+                        + (atLeast(ICE_CAVES) ? ", ice caves on" : ", ice caves off (they arrive in " + ICE_CAVES + ")");
     }
 }
