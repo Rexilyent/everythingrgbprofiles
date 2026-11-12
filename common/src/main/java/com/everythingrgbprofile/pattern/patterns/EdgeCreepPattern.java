@@ -6,7 +6,9 @@ import com.everythingrgbprofile.pattern.LayerPixel;
 import com.everythingrgbprofile.pattern.Pattern;
 import com.everythingrgbprofile.pattern.PatternContext;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,14 +24,28 @@ import java.util.Map;
  * over the middle. The biome shows through whatever's left uncovered, so how
  * much of it you can still see IS the meter.
  *
- * <h2>Edge distance, measured like a human would</h2>
- * Distance from the nearest edge, in board heights, which means the x term is
- * divided by {@link KeyGrid#aspectRatio()}. Skip that and normalised
- * coordinates claim the board is square, the frost eats a third of the width
- * for every third of the height, and the left and right sides close in about
- * three times faster than the top and bottom. With it, the ring creeps in at
- * the same physical speed on every side and the last thing to go is a strip
- * through the middle row, which is where a vignette on a wide board ends up.
+ * <h2>Depth is measured from the border keys, not from a box</h2>
+ * Every key's depth is how far it physically sits from the nearest key on the
+ * outline of the board, in board heights. A key is on the outline if looking
+ * left, right, up or down from it finds no other key (stray media buttons
+ * don't count as a row, see {@code FULL_ROW_FRACTION}). So the whole border sits
+ * at depth zero and lights up together, and everything else follows it in,
+ * ring by ring, at the same physical speed from every side. The last thing to
+ * go is a strip through the middle rows, which is where a vignette on a wide
+ * board ends up.
+ *
+ * <p>An earlier version measured from the edges of the LED bounding box
+ * instead. Perfectly sound on a rectangle, and a keyboard is a rectangle only
+ * from across the room. The box touches whatever sticks out furthest on each
+ * side and nothing else: the bottom row and the numpad's right-hand column sat
+ * at zero, while the staggered left column (Tab, Caps, Shift, each a bit
+ * further in than the last) and any function row with media keys above it sat
+ * up to a fifth of a board height deeper. So the "ring" turned up one side at
+ * a time, bottom row first, and read as a spiral winding in. Nobody ordered a
+ * spiral.
+ *
+ * <p>Raw device units throughout, the same ones on both axes, so there's no
+ * aspect ratio to remember here. The heat ripple still needs one, see below.
  *
  * <h2>Two personalities, one engine</h2>
  * The geometry is identical and the temperament is opposite.
@@ -78,7 +94,27 @@ public final class EdgeCreepPattern implements Pattern {
     private static final double THROB_SLOW_HZ = 0.45;
     private static final double THROB_FAST_HZ = 1.6;
 
+    /**
+     * How far off its own row another key can be and still count as being in
+     * it, in key widths. Over half, because the double-height numpad keys
+     * report their LED halfway between two rows. Doubles as the sideways slack
+     * for "straight above or below".
+     */
+    private static final double ROW_BAND_KEYS = 0.6;
+    /**
+     * A row only counts as a roof or a floor for the keys under or over it if
+     * it has at least this fraction of the fullest row's key count. A handful
+     * of media buttons floating above the function row do not make the
+     * function row an inside row, and without this they would.
+     */
+    private static final double FULL_ROW_FRACTION = 0.5;
+
     private final Kind kind;
+
+    // Depth of every key for one particular grid. Rebuilt when the grid
+    // object changes, which is when a device comes or goes. Render thread only.
+    private KeyGrid depthGrid;
+    private Map<KeyGrid.LedRef, Double> depths = Map.of();
 
     private volatile double targetLevel = 0;
     private double displayedLevel = 0;
@@ -146,11 +182,16 @@ public final class EdgeCreepPattern implements Pattern {
             throbPhase = (throbPhase + hz * dt) % 1.0;
         }
 
+        if (depthGrid != ctx.grid()) {
+            depthGrid = ctx.grid();
+            depths = borderDepths(depthGrid);
+        }
+
         Map<KeyGrid.LedRef, LayerPixel> out = new HashMap<>();
         for (KeyGrid.LedPosition key : ctx.grid().allKeys()) {
             double x = key.x();
             double y = key.y();
-            double edge = Math.min(Math.min(x, 1 - x) / aspect, Math.min(y, 1 - y));
+            double edge = depths.getOrDefault(key.ref(), 0.0);
 
             LayerPixel px = kind == Kind.FROST
                     ? frost(ctx, key, x, y, edge, reach, seconds)
@@ -215,6 +256,108 @@ public final class EdgeCreepPattern implements Pattern {
         double throb = 1 - throbDepth * (0.5 + 0.5 * Math.sin(2 * Math.PI * throbPhase));
         double brightness = (HEAT_FRONT_BRIGHTNESS + (1 - HEAT_FRONT_BRIGHTNESS) * cover) * throb;
         return LayerPixel.opaque(color.scaled(brightness));
+    }
+
+    /**
+     * Every key's distance from the nearest border key, in board heights. See
+     * the class notes for why it's done this way round.
+     *
+     * <p>All of it is n squared over a hundred-odd keys, once per grid, so
+     * nobody needs to be clever about it.
+     */
+    private static Map<KeyGrid.LedRef, Double> borderDepths(KeyGrid grid) {
+        List<KeyGrid.LedPosition> keys = grid.allKeys();
+        int n = keys.size();
+        if (n == 0) return Map.of();
+
+        // One key width in raw units: the median gap to the nearest neighbour.
+        // Median for the same reason KeyGrid uses one, light-pipe LEDs packed
+        // tighter than any two keys would drag a mean down.
+        double[] nearest = new double[n];
+        for (int i = 0; i < n; i++) {
+            double best = Double.MAX_VALUE;
+            for (int j = 0; j < n; j++) {
+                if (j == i) continue;
+                best = Math.min(best, Math.hypot(keys.get(j).rawX() - keys.get(i).rawX(),
+                        keys.get(j).rawY() - keys.get(i).rawY()));
+            }
+            nearest[i] = best;
+        }
+        double[] sorted = nearest.clone();
+        Arrays.sort(sorted);
+        double pitch = sorted[n / 2];
+        // One LED, or every LED stacked on the same spot. There is no inside
+        // to creep toward, so the whole thing is border.
+        if (n < 2 || pitch <= 0 || pitch == Double.MAX_VALUE) {
+            Map<KeyGrid.LedRef, Double> flat = new HashMap<>();
+            for (KeyGrid.LedPosition key : keys) flat.put(key.ref(), 0.0);
+            return flat;
+        }
+
+        // How many keys share each key's row, and what a full row looks like.
+        double band = ROW_BAND_KEYS * pitch;
+        int[] rowSize = new int[n];
+        int fullest = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (Math.abs(keys.get(j).rawY() - keys.get(i).rawY()) <= band) rowSize[i]++;
+            }
+            fullest = Math.max(fullest, rowSize[i]);
+        }
+        double fullRow = fullest * FULL_ROW_FRACTION;
+
+        boolean[] border = new boolean[n];
+        for (int i = 0; i < n; i++) {
+            boolean left = false, right = false;
+            // Above and below each want covering from both sides, by one key
+            // sitting straight over it or by two flanking it. Flanking is what
+            // handles rows that don't line up: the 1 key sits a full key from
+            // both Esc and F1, and C has nothing under it but the gap between
+            // Alt and the single LED in the middle of the space bar.
+            boolean upL = false, upR = false, downL = false, downR = false;
+            for (int j = 0; j < n; j++) {
+                if (j == i) continue;
+                double dx = keys.get(j).rawX() - keys.get(i).rawX();
+                double dy = keys.get(j).rawY() - keys.get(i).rawY();
+                if (Math.abs(dy) <= band) {
+                    if (dx < -0.5 * pitch) left = true;
+                    if (dx > 0.5 * pitch) right = true;
+                }
+                if (rowSize[j] < fullRow) continue;
+                if (dy < -0.5 * pitch) {
+                    if (dx <= band) upL = true;
+                    if (dx >= -band) upR = true;
+                }
+                if (dy > 0.5 * pitch) {
+                    if (dx <= band) downL = true;
+                    if (dx >= -band) downR = true;
+                }
+            }
+            border[i] = !(left && right && upL && upR && downL && downR);
+        }
+
+        // A single-row device has a height of basically nothing, and dividing
+        // by basically nothing is how you get depths in the millions. Every
+        // key on one of those is border anyway, so the floor only has to stop
+        // the division being silly.
+        KeyGrid.Surface surface = grid.primarySurface();
+        double boardHeight = Math.max(surface != null ? surface.heightRaw() : 0, pitch);
+
+        Map<KeyGrid.LedRef, Double> out = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            double best = Double.MAX_VALUE;
+            if (border[i]) {
+                best = 0;
+            } else {
+                for (int j = 0; j < n; j++) {
+                    if (!border[j]) continue;
+                    best = Math.min(best, Math.hypot(keys.get(j).rawX() - keys.get(i).rawX(),
+                            keys.get(j).rawY() - keys.get(i).rawY()));
+                }
+            }
+            out.put(keys.get(i).ref(), best == Double.MAX_VALUE ? 0.0 : best / boardHeight);
+        }
+        return out;
     }
 
     private static double smooth(double t) {
