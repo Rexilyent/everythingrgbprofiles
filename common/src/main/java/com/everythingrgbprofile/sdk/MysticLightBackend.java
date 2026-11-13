@@ -185,6 +185,9 @@ public final class MysticLightBackend implements LightingBackend {
             // SDK 1.0.0.08, file version 1.0.0.8.
             "ad1bd5a464c120f086839631cf9cb7a56e8e7373209158e66c628a89be06d166");
 
+    /** The most {@link #verifyDll} will read in order to hash it. */
+    private static final long MAX_DLL_BYTES = 16L * 1024 * 1024;
+
     /**
      * Frame-rate cap. Every changed area costs one SDK call into MSI's
      * service, and nobody here has ever timed one, so this is a cautious
@@ -914,7 +917,20 @@ public final class MysticLightBackend implements LightingBackend {
 
         String configured = configuredPath();
         if (configured != null && !configured.isBlank()) {
-            Path p = Path.of(configured.trim());
+            String text = configured.trim();
+            // Refused on the text alone, before anything asks Windows about
+            // the path. Merely checking whether \\some-server\share exists has
+            // Windows log in to some-server as the player, and a config file
+            // is a thing packs hand around. The SDK is one file, it can be
+            // copied somewhere local.
+            if (text.startsWith("\\\\") || text.startsWith("//")) {
+                throw new BackendHealth.Unavailable(BackendHealth.State.MISCONFIGURED,
+                        "mysticLightSdkPath in [hardware] is a network path, which is not allowed.",
+                        "Copy " + DLL_NAME + " onto this computer and point mysticLightSdkPath at that, or put it in "
+                                + "config/everythingrgbprofiles/native and leave the setting empty.",
+                        null);
+            }
+            Path p = Path.of(text);
             if (Files.isDirectory(p)) p = p.resolve(DLL_NAME);
             if (Files.isRegularFile(p)) return p;
             throw new BackendHealth.Unavailable(BackendHealth.State.MISCONFIGURED,
@@ -971,6 +987,16 @@ public final class MysticLightBackend implements LightingBackend {
     private static void verifyDll(Path dll) throws BackendHealth.Unavailable {
         String hash;
         try {
+            // Hashing means reading the whole file into memory, and the path
+            // can come from the config, so it gets a size check first. MSI's
+            // DLL is nowhere near this; anything that is can't be it.
+            long size = Files.size(dll);
+            if (size > MAX_DLL_BYTES) {
+                throw new BackendHealth.Unavailable(BackendHealth.State.MISCONFIGURED,
+                        "The " + DLL_NAME + " found is far too large to be MSI's, so it was not loaded.",
+                        "Use " + DLL_NAME + " from MSI's Mystic Light SDK 1.0.0.08, downloaded from MSI directly.",
+                        dll + "\n" + size + " bytes");
+            }
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(dll));
             hash = HexFormat.of().formatHex(digest);
         } catch (IOException | NoSuchAlgorithmException e) {
