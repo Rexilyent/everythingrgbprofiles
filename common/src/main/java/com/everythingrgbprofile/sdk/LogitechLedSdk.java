@@ -45,5 +45,19 @@ interface LogitechLedSdk extends Library {
 
     byte LogiLedSetLightingFromBitmap(byte[] bitmap);
 
+    /**
+     * The two {@code LogiLed::KeyName} values that are lights and not keys, so
+     * the bitmap has no cell for either. The header also names G1 to G9, which
+     * nothing here drives.
+     */
+    int G_LOGO = 0xFFFF1;
+    int G_BADGE = 0xFFFF2;
+
+    /**
+     * One light at a time, and in percentages (0 to 100) where the bitmap takes
+     * bytes. Same SDK, same header, two colour scales. Sure.
+     */
+    byte LogiLedSetLightingForKeyWithKeyName(int keyName, int redPercentage, int greenPercentage, int bluePercentage);
+
     void LogiLedShutdown();
 }
