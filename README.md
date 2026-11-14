@@ -121,6 +121,10 @@ The [tuning tools](tuning/README.md) preview the lighting without launching Mine
 
 Bug reports, lighting problems, mod-compat requests and feature ideas all have a template on the [issue tracker](https://github.com/Rexilyent/everythingrgbprofiles/issues/new/choose). Pull requests are welcome too. Forking the repo to send one is fine under the license.
 
+## Thanks
+
+- [Dreips](https://github.com/Dreips), for discovering that effects aimed at a single key (the health and hunger warnings, for example) had no key to land on with a Logitech board.
+
 ## License
 
 Everything RGB Profiles is **source-available, not open source**. You can read the code, change it for yourself and send changes back through pull requests. You can't re-upload or redistribute the mod or modified versions of it. Modpacks are welcome as long as they download the mod from an official page instead of bundling the jar. See [LICENSE](LICENSE) for the full terms.
