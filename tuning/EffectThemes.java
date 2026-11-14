@@ -388,6 +388,8 @@ final class EffectThemes {
         // The sulfur cave, on 26.2 and later only. Gated on the branch's game
         // version first and the class second; see GameVersion for why both.
         sulfurTheme().ifPresent(out::add);
+        // The ice cave, on 26.4 and later. Same double gate as the sulfur one.
+        iceCaveTheme().ifPresent(out::add);
 
         themes = List.copyOf(out);
         return themes;
@@ -465,6 +467,47 @@ final class EffectThemes {
             // The class is there but not the shape this expects: a renamed
             // palette constant, say. Worth hearing about, not worth a crash.
             System.err.println("menu sulfur left out: " + e);
+            return java.util.Optional.empty();
+        }
+    }
+
+    /**
+     * The ice cave menu theme, or empty on a branch older than 26.4. A copy
+     * of the sulfur one with the names changed, because two of these isn't
+     * enough of a pattern to be worth a helper yet.
+     */
+    private static java.util.Optional<BossThemes.Theme> iceCaveTheme() {
+        if (!GameVersion.atLeast(GameVersion.ICE_CAVES)) return java.util.Optional.empty();
+        Class<?> type = GameVersion.required("com.everythingrgbprofile.pattern.patterns.IceCavePattern",
+                "menu icecave");
+        if (type == null) return java.util.Optional.empty();
+        try {
+            java.lang.reflect.Method menu = type.getMethod("menu");
+            com.everythingrgbprofile.color.RGBColor ice =
+                    (com.everythingrgbprofile.color.RGBColor) ColorPalette.class.getField("ICE_CAVE_PACKED_ICE").get(null);
+            com.everythingrgbprofile.color.RGBColor crystal =
+                    (com.everythingrgbprofile.color.RGBColor) ColorPalette.class.getField("ICE_CAVE_CRYSTAL").get(null);
+            return java.util.Optional.of(new BossThemes.Theme("menu icecave", "menuTheme",
+                    List.of(new BossThemes.Slot("ice", "iceCaveIceColor", ice),
+                            new BossThemes.Slot("crystal", "iceCaveCrystalColor", crystal)),
+                    colors -> {
+                        try {
+                            return new SustainedOverlayEffect("menu_theme", EffectTier.TIER1_OPAQUE_BASE, 1, null,
+                                    (com.everythingrgbprofile.pattern.Pattern) menu.invoke(null), ice);
+                        } catch (ReflectiveOperationException e) {
+                            throw new IllegalStateException("IceCavePattern.menu() failed", e);
+                        }
+                    },
+                    (controller, memo, progress, elapsed) -> {
+                        SustainedOverlayEffect m = (SustainedOverlayEffect) controller;
+                        m.setColor(memo.colors.get(0));
+                        m.withAccentColor(memo.colors.get(1));
+                        m.setActive(true, elapsed);
+                    },
+                    progress -> "menu icecave - the 26.4 title screen, icicles falling in an ice cave; "
+                            + "progress does nothing here"));
+        } catch (ReflectiveOperationException | LinkageError e) {
+            System.err.println("menu icecave left out: " + e);
             return java.util.Optional.empty();
         }
     }

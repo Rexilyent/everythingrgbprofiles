@@ -597,6 +597,41 @@ public final class ColorPalette {
      */
     public static final RGBColor AUTUMN_RED_LEAF = RGBColor.fromHex("#E8281A");
 
+    // ---- Ice caves, 26.4 ---------------------------------------------------
+    // Minecraft 26.4's ice caves, and the ice cave menu theme built from them.
+    // Sampled from the 26.4 snapshots' biome file and block textures, so check
+    // them again once 26.4 is out in case the textures moved before release.
+    // Every one of these textures is pale blue-white, which on a keyboard is
+    // mostly white light, so the colours below lean on saturation even harder
+    // than the sulfur palette does. Sampled values beside each.
+
+    /**
+     * Packed ice, the walls. {@code packed_ice.png} averages #8DB4FA. Pushed
+     * to a deep, clean blue, and chosen so 0.62 of it lands on the biome's
+     * fog_color #14559B; IceCavePattern derives the deep ice from that.
+     */
+    public static final RGBColor ICE_CAVE_PACKED_ICE = RGBColor.fromHex("#2289FA");
+    /**
+     * The ice crystals' glow. {@code ice_crystal.png} runs #BCD4FF to #D8E6FF.
+     * Nudged toward cyan so it separates from the walls behind it.
+     */
+    public static final RGBColor ICE_CAVE_CRYSTAL = RGBColor.fromHex("#7CC8FF");
+    /** Icicle tips. {@code icicle_tip.png}'s commonest pale pixels are #D8E6FF and #BCD4FF. */
+    public static final RGBColor ICE_CAVE_ICICLE = RGBColor.fromHex("#C4DCFF");
+    /**
+     * Calcite and snow on the floor. Both textures are near white (#DFE0DC,
+     * #EEF8F8), and a dim neutral white on an LED is grey, which this palette
+     * avoids on principle. Tinted toward the ice so it stays white-ish and
+     * cold instead of dead.
+     */
+    public static final RGBColor ICE_CAVE_CALCITE = RGBColor.fromHex("#8FB0F5");
+    /**
+     * An icicle shattering, and a tip catching the light. {@code icicle_tip.png}
+     * peaks at #FCFDFF. Left near white on purpose, same as the sulfur pop: the
+     * brightest thing in the scene has to read as a flash, not as more blue.
+     */
+    public static final RGBColor ICE_CAVE_SHATTER = RGBColor.fromHex("#F0F6FF");
+
 		// ---- Default menu theme: sky over grass ---------------------------
     /** Daytime sky, for the default title-screen theme. */
     public static final RGBColor MENU_VANILLA_SKY = RGBColor.fromHex("#5B93E8");

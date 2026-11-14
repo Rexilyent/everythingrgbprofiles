@@ -276,6 +276,8 @@ public final class RGBProfileConfig {
     public static final ConfigSpec.ConfigValue<String> MENU_SULFUR_POOL_COLOR;
     public static final ConfigSpec.ConfigValue<String> MENU_AUTUMN_LEAF_COLOR;
     public static final ConfigSpec.ConfigValue<String> MENU_AUTUMN_ACCENT_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_ICE_CAVE_ICE_COLOR;
+    public static final ConfigSpec.ConfigValue<String> MENU_ICE_CAVE_CRYSTAL_COLOR;
     public static final ConfigSpec.ConfigValue<String> MENU_SIFT_MESA_COLOR;
     public static final ConfigSpec.ConfigValue<String> MENU_SIFT_SKY_COLOR;
     public static final ConfigSpec.ConfigValue<String> MENU_BASE_COLOR;
@@ -1257,10 +1259,11 @@ public final class RGBProfileConfig {
                 .define("enabled", true);
         MENU_STYLE = b.comment(
                         "Which title-screen theme to use.",
-                        "  autumn    - red and orange poplar leaves drifting down the board. The",
-                        "              default, because Minecraft 26.3's own title panorama IS the",
-                        "              dappled forest, so this is the theme that matches the screen",
-                        "              it is sitting behind rather than somebody's taste.",
+                        "  icecave   - packed ice walls, icicles that now and then drop and shatter,",
+                        "              and ice crystals glowing along the floor. The default, because",
+                        "              the ice caves are what Minecraft 26.4 added.",
+                        "  autumn    - red and orange poplar leaves drifting down the board. What",
+                        "              the panorama was in 26.3, the dappled forest.",
                         "  sulfur    - a sulfur cave: an acid pool bubbling and venting below a",
                         "              spiked ceiling. What the panorama was in 26.2.",
                         "  vanilla   - sky over grass with drifting clouds. What the panorama was",
@@ -1269,10 +1272,10 @@ public final class RGBProfileConfig {
                         "  mineshaft - the dark cave face with torches, a drill and ore glints. Built",
                         "              for the Forge Everything pack's title screen specifically.",
                         "  auto      - mineshaft if this looks like one of menuPackNames below,",
-                        "              autumn otherwise.",
+                        "              icecave otherwise.",
                         "Pack maintainers: set this outright in defaultconfigs/ rather than relying on",
                         "auto. Detection is a convenience and cannot see inside every launcher.")
-                .define("style", "autumn");
+                .define("style", "icecave");
         MENU_PACK_PATTERNS = b.comment(
                         "Comma-separated. Under 'auto', the mineshaft theme is used when the detected "
                                 + "pack name contains any of these. Matched as a case-insensitive "
@@ -1295,6 +1298,14 @@ public final class RGBProfileConfig {
                         "Autumn theme: the other half of the leaves. Red poplar. Set it the same as "
                                 + "autumnLeafColor for one colour of leaf.")
                 .define("autumnAccentColor", "#E8281A");
+        MENU_ICE_CAVE_ICE_COLOR = b.comment(
+                        "Ice cave theme (style = \"icecave\"): the packed ice walls. The darker, "
+                                + "deeper ice is worked out from this, so recolouring it moves the "
+                                + "whole wall with it.")
+                .define("iceCaveIceColor", "#2289FA");
+        MENU_ICE_CAVE_CRYSTAL_COLOR = b.comment(
+                        "Ice cave theme: the ice crystals glowing on the floor.")
+                .define("iceCaveCrystalColor", "#7CC8FF");
         MENU_SIFT_MESA_COLOR = b.comment(Feature.SIFT.configComment(
                         "Sift theme (style = \"sift\"): the coral mesas. The lit tops of their caps "
                                 + "are derived from this."))
