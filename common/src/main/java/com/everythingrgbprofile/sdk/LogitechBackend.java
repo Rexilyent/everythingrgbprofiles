@@ -4,7 +4,9 @@ import com.sun.jna.Native;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Logitech G HUB, through the LED Illumination SDK.
@@ -53,6 +55,21 @@ public final class LogitechBackend extends GridBackend {
     private boolean initialised;
     private final byte[] bitmap = new byte[LogitechLedSdk.BITMAP_SIZE];
     private int refusedInARow;
+
+    /**
+     * Where the logo and the badge get their colour: two cells of the top row,
+     * out past Pause. The key table in Logitech's SDK doc stops that row at
+     * Pause (column 15), so columns 16 to 20 are cells with no key in them that
+     * every pattern has been faithfully colouring in anyway.
+     */
+    private static final int LOGO_CELL = 18;
+    private static final int BADGE_CELL = 19;
+
+    /** Last colour sent to each, as packed percentages. -1 is "nothing yet". */
+    private int lastLogo = -1;
+    private int lastBadge = -1;
+    /** Goes false if the DLL turns out not to export the per-key call at all. */
+    private boolean offBitmapLights = true;
 
     public LogitechBackend() {
         // Native call, no transport to protect: push every frame the render
@@ -128,6 +145,9 @@ public final class LogitechBackend extends GridBackend {
                     "SDK: " + dll);
         }
         initialised = true;
+        lastLogo = -1;
+        lastBadge = -1;
+        offBitmapLights = true;
 
         // Snapshot whatever the user had, so shutdown can put it back.
         sdk.LogiLedSaveCurrentLighting();
@@ -166,10 +186,50 @@ public final class LogitechBackend extends GridBackend {
         // restarting — and a long enough run of those means the session is gone.
         if (sdk.LogiLedSetLightingFromBitmap(bitmap) != 0) {
             refusedInARow = 0;
+            if (offBitmapLights) {
+                lastLogo = pushOffBitmapLight(LogitechLedSdk.G_LOGO, rgb[LOGO_CELL], lastLogo);
+                lastBadge = pushOffBitmapLight(LogitechLedSdk.G_BADGE, rgb[BADGE_CELL], lastBadge);
+            }
         } else {
             refusedInARow++;
         }
         return true;
+    }
+
+    /**
+     * The lights that are not keys.
+     *
+     * <p>The bitmap is keys and only keys. Anything else on the board has to be
+     * asked for by name, and the header offers two names: {@code G_LOGO} and
+     * {@code G_BADGE}. So those two ride along with every frame, wearing the
+     * colour of a top-row cell each.
+     *
+     * <p>This went in for the G512, which has lighting next to its keys. Does
+     * G HUB send either name to that lighting? Unknown. Logitech's doc does not
+     * list the board and nobody here has one to look at, so this is the
+     * documented route and a hope. On a board with no logo the call just has nothing to
+     * do.
+     *
+     * <p>Sent only when the percentage actually changes, since each one is its
+     * own separate trip into G HUB, and the return value is ignored on purpose:
+     * the bitmap call a line earlier already said whether G HUB is listening.
+     *
+     * @return what to remember as the last colour sent
+     */
+    private int pushOffBitmapLight(int keyName, int rgb, int last) {
+        int r = percent(rgb >> 16), g = percent(rgb >> 8), b = percent(rgb);
+        int packed = r << 16 | g << 8 | b;
+        if (packed == last) return last;
+        try {
+            sdk.LogiLedSetLightingForKeyWithKeyName(keyName, r, g, b);
+        } catch (UnsatisfiedLinkError olderDll) {
+            offBitmapLights = false;
+        }
+        return packed;
+    }
+
+    private static int percent(int channel) {
+        return ((channel & 0xFF) * 100 + 127) / 255;
     }
 
     @Override
@@ -194,6 +254,42 @@ public final class LogitechBackend extends GridBackend {
         } catch (Throwable ignored) {
         }
         initialised = false;
+    }
+
+    /**
+     * Letter and digit cells as {row, col}.
+     *
+     * <p>From the US-layout table in Logitech's SDK doc
+     * ({@code LogitechGamingLEDSDK.pdf}, under
+     * {@code LogiLedSetLightingFromBitmap}), which lists each key's byte offset
+     * into the bitmap: Q is 172, A is 256, Z is 344. Aurora's
+     * {@code Logitech_keyboardBitmapKeys} table carries the same offsets.
+     * Divide by four for the cell, then by 21 for the row.
+     * Row 4 starts a column later because column 1 there is the ISO key
+     * between left shift and Z.
+     *
+     * <p>Until this table existed the backend named no keys at all, so a
+     * warning aimed at one key had no key to find. GitHub user Dreips is the
+     * one who discovered that. Thank you, genuinely.
+     *
+     * <p>Nobody here has watched this on a Logitech board yet. Step 7 of
+     * {@code /rgbprofiles test} lights W, A, S and D and nothing else, which is
+     * exactly the check for it.
+     */
+    @Override
+    protected Map<Character, int[]> namedCells() {
+        Map<Character, int[]> m = new HashMap<>();
+        row(m, "1234567890", 1, 1);
+        row(m, "QWERTYUIOP", 2, 1);
+        row(m, "ASDFGHJKL", 3, 1);
+        row(m, "ZXCVBNM", 4, 2);
+        return m;
+    }
+
+    private static void row(Map<Character, int[]> m, String keys, int row, int firstCol) {
+        for (int i = 0; i < keys.length(); i++) {
+            m.put(keys.charAt(i), new int[]{row, firstCol + i});
+        }
     }
 
     /**
